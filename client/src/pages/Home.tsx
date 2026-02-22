@@ -85,7 +85,7 @@ export default function Home() {
         {/* Fixed UI */}
         <div className="absolute top-6 left-6 z-50">
           <h1 className="text-xl md:text-2xl font-display text-primary drop-shadow-[2px_2px_0px_#000] pixel-art-rendering tracking-tighter">
-            $PUNCHMONKEY
+            $MoltPunchy
           </h1>
         </div>
 
