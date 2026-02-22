@@ -486,8 +486,8 @@ export default function Home() {
               </div>
 
               <div className="mt-8 text-center text-muted-foreground/50 font-sans text-sm">
-                Disclaimer: $PUNCHMONKEY is a meme coin with no intrinsic value or expectation of financial return. 
-                <br/>The jungle is dangerous. Don't invest bananas you can't afford to lose.
+                Disclaimer: $PUNCHMONKEY is a utility token powering the Monkey OS ecosystem.
+                <br/>Cryptocurrency investments carry risk. Do your own research before deploying bananas.
               </div>
             </motion.div>
           </div>
