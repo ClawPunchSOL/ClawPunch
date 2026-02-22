@@ -9,7 +9,7 @@ import monkeyHero from "@/assets/images/monkey-hero.png";
 import bullyMonkey from "@/assets/images/bully-monkey.png";
 import storyPlushie from "@/assets/images/story-plushie.png";
 import bananaLab from "@/assets/images/banana-lab.png";
-import crabClaw from "@/assets/images/crab-claw.png";
+import monkeyRidingCrab from "@/assets/images/monkey-riding-crab.png";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -261,11 +261,11 @@ export default function Home() {
           {/* SCENE 5: Banana Lab Spotlight (0.5 - 0.625) */}
           <div className="h-full w-[100vw] flex items-center justify-center px-10 relative">
             
-            {/* The Molt Crab */}
+            {/* The Molt Crab - positioned off to the right so you pass it after the lab */}
             <motion.div 
-              className="absolute bottom-[10%] left-[20%] origin-bottom z-10"
+              className="absolute bottom-[10%] right-[-25vw] origin-bottom z-10"
               animate={{ 
-                x: [0, 60, 0],
+                x: [0, -30, 0],
                 y: [0, -5, 0],
                 rotate: [-2, 2, -2]
               }}
@@ -275,9 +275,9 @@ export default function Home() {
                 ease: "easeInOut"
               }}
             >
-              <img src={crabClaw} className="w-32 h-32 md:w-48 md:h-48 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(255,50,0,0.5)]" />
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-primary px-2 py-1 font-display text-[8px] text-primary whitespace-nowrap">
-                MOLTBOOK SECURED
+              <img src={monkeyRidingCrab} className="w-48 h-48 md:w-64 md:h-64 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(255,50,0,0.5)]" />
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-primary px-3 py-1 font-display text-[10px] text-primary whitespace-nowrap">
+                SWARM COMMANDER
               </div>
             </motion.div>
 
