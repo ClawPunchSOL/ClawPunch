@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, ZoomIn, ZoomOut, Move, Info } from "lucide-react";
 import sanctuaryMap from "@/assets/images/sanctuary-map.png";
 import { useToast } from "@/hooks/use-toast";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 // 100x100 grid = 10,000 plots (visually representing the 1,000,000 pixels to maintain browser performance)
 const GRID_SIZE = 100;
@@ -11,8 +12,6 @@ const TOTAL_PLOTS = GRID_SIZE * GRID_SIZE;
 export default function Sanctuary() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [scale, setScale] = useState(0.1);
-  const containerRef = useRef<HTMLDivElement>(null);
   
   // Mock some pre-purchased plots
   const [purchasedPlots, setPurchasedPlots] = useState<Record<number, {color: string, name: string}>>({
@@ -26,9 +25,6 @@ export default function Sanctuary() {
   const [selectedPlot, setSelectedPlot] = useState<number | null>(null);
   const [isBuying, setIsBuying] = useState(false);
   const [pixelCount, setPixelCount] = useState<number>(100);
-
-  const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
-  const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.05));
 
   const handleBuy = () => {
     if (selectedPlot === null) return;
@@ -145,32 +141,36 @@ export default function Sanctuary() {
         </div>
 
         {/* Map Container */}
-        <div className="flex-1 relative bg-[#111] overflow-hidden">
-          
-          {/* Controls */}
-          <div className="absolute bottom-6 right-6 z-50 flex gap-2">
-            <button onClick={handleZoomOut} className="retro-button p-3 bg-black">
-              <ZoomOut className="w-5 h-5" />
-            </button>
-            <button onClick={handleZoomIn} className="retro-button p-3 bg-black">
-              <ZoomIn className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Scrollable Area */}
-          <div 
-            ref={containerRef}
-            className="w-full h-full overflow-auto cursor-grab active:cursor-grabbing custom-scrollbar"
+        <div className="flex-1 relative bg-[#111] overflow-hidden cursor-grab active:cursor-grabbing">
+          <TransformWrapper
+            initialScale={0.1}
+            minScale={0.05}
+            maxScale={3}
+            centerOnInit={true}
+            wheel={{ step: 0.1 }}
+            limitToBounds={false}
           >
-            <div 
-              className="origin-top-left transition-transform duration-200 ease-out"
-              style={{ 
-                transform: `scale(${scale})`,
-                width: '10000px', // Base size of the map
-                height: '10000px'
-              }}
-            >
-              {/* Background Map Image */}
+            {({ zoomIn, zoomOut }) => (
+              <>
+                {/* Controls */}
+                <div className="absolute bottom-6 right-6 z-50 flex gap-2">
+                  <button onClick={() => zoomOut()} className="retro-button p-3 bg-black">
+                    <ZoomOut className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => zoomIn()} className="retro-button p-3 bg-black">
+                    <ZoomIn className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+                  <div 
+                    className="relative"
+                    style={{ 
+                      width: '10000px', // Base size of the map
+                      height: '10000px'
+                    }}
+                  >
+                    {/* Background Map Image */}
               <div 
                 className="absolute inset-0 pixel-art-rendering opacity-60"
                 style={{
@@ -208,8 +208,11 @@ export default function Sanctuary() {
                   );
                 })}
               </div>
-            </div>
-          </div>
+                  </div>
+                </TransformComponent>
+              </>
+            )}
+          </TransformWrapper>
         </div>
       </div>
     </div>
