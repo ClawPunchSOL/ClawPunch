@@ -214,11 +214,11 @@ export default function Home() {
               <div className="flex-1 retro-container p-8 md:p-12 bg-black/80 rotate-1">
                 <h3 className="text-3xl md:text-4xl font-display text-primary mb-6 drop-shadow-[4px_4px_0px_#000]">THE ORIGIN</h3>
                 <p className="text-lg md:text-xl font-sans text-muted-foreground leading-relaxed space-y-4">
-                  <span>Inspired by "Punch" the baby macaque — abandoned, clinging to his plushie, rescued by a viral $100K donation from Justin Sun.</span>
+                  <span>Inspired by "Punch" the baby macaque — abandoned, clinging to his plushie, rescued by a viral $100K donation.</span>
                   <br/><br/>
-                  <span className="text-white font-bold">PunchMonkey punches back: from viral tragedy to crypto gains.</span>
+                  <span className="text-white font-bold">But Punch isn't just surviving; he's building.</span>
                   <br/><br/>
-                  <span>No rugs. No abandonment. Just community, resilience, and monkeying your way to the top.</span>
+                  <span>Teaming up with Clawd the crab, PunchMonkey is punching back. Forget the memecoin meta. We're building a powerhouse of AI-driven trading utilities, swapping rugs for real tools, and monkeying our way to the top.</span>
                 </p>
               </div>
               <div className="flex-1 flex justify-center -rotate-2">
