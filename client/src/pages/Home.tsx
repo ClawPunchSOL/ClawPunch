@@ -396,9 +396,9 @@ export default function Home() {
 
             {/* Happy Molt Crab */}
             <motion.div 
-              className="absolute bottom-[5%] right-[10vw] origin-bottom z-10"
+              className="absolute bottom-[10%] left-[20vw] origin-bottom z-10"
               animate={{ 
-                x: [0, -50, 0],
+                x: [0, 40, 0],
                 y: [0, -15, 0],
                 rotate: [-5, 5, -5],
                 scale: [1, 1.1, 1]
