@@ -4,8 +4,8 @@ import { ArrowLeft, ZoomIn, ZoomOut, Move, Info } from "lucide-react";
 import sanctuaryMap from "@/assets/images/sanctuary-map.png";
 import { useToast } from "@/hooks/use-toast";
 
-// 50x50 grid = 2500 plots (visually representing the 1,000,000 pixels to maintain browser performance)
-const GRID_SIZE = 50;
+// 100x100 grid = 10,000 plots (visually representing the 1,000,000 pixels to maintain browser performance)
+const GRID_SIZE = 100;
 const TOTAL_PLOTS = GRID_SIZE * GRID_SIZE;
 
 export default function Sanctuary() {
@@ -153,8 +153,8 @@ export default function Sanctuary() {
               className="origin-top-left transition-transform duration-200 ease-out"
               style={{ 
                 transform: `scale(${scale})`,
-                width: '3000px', // Base size of the map
-                height: '3000px'
+                width: '6000px', // Base size of the map
+                height: '6000px'
               }}
             >
               {/* Background Map Image */}
