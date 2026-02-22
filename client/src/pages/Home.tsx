@@ -12,6 +12,7 @@ import bananaLab from "@/assets/images/banana-lab.png";
 import monkeyRidingCrab from "@/assets/images/monkey-riding-crab.png";
 import crabRiderAngry from "@/assets/images/crab-rider-angry.png";
 import crabRiderHappy from "@/assets/images/crab-rider-happy.png";
+import celebrationPortrait from "@/assets/images/celebration-portrait.png";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -436,16 +437,13 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col gap-6">
-                <a href="#" className="retro-button bg-[#1DA1F2] text-white py-6 flex justify-center text-xl hover:bg-white hover:text-[#1DA1F2]">
-                  JOIN THE TROOP ON X
-                </a>
-                <a href="#" className="retro-button bg-[#0088cc] text-white py-6 flex justify-center text-xl hover:bg-white hover:text-[#0088cc]">
-                  TELEGRAM ALPHA
-                </a>
-                <a href="#" className="retro-button bg-card text-white py-6 flex justify-center text-xl hover:bg-white hover:text-black">
-                  READ THE GITBOOK
-                </a>
+              <div className="flex-1 flex justify-center rotate-2">
+                <div className="relative">
+                  <img src={celebrationPortrait} alt="Victory Celebration" className="w-full max-w-md border-8 border-foreground shadow-[12px_12px_0px_0px_#000] pixel-art-rendering" />
+                  <div className="absolute -bottom-4 -right-4 bg-primary text-black font-display px-4 py-2 text-sm border-2 border-black rotate-[-5deg]">
+                    WE MADE IT!
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -473,6 +471,18 @@ export default function Home() {
                 <span>BOOT SYSTEM</span>
                 <ArrowRight className="w-8 h-8 group-hover:translate-x-4 transition-transform" />
               </button>
+
+              <div className="flex flex-col md:flex-row gap-4 w-full justify-center mt-4">
+                <a href="#" className="retro-button bg-[#1DA1F2] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#1DA1F2] flex-1">
+                  TWITTER
+                </a>
+                <a href="#" className="retro-button bg-[#0088cc] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#0088cc] flex-1">
+                  TELEGRAM
+                </a>
+                <a href="#" className="retro-button bg-card text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-black flex-1 border-2 border-border">
+                  GITBOOK
+                </a>
+              </div>
 
               <div className="mt-8 text-center text-muted-foreground/50 font-sans text-sm">
                 Disclaimer: $PUNCHMONKEY is a meme coin with no intrinsic value or expectation of financial return. 
