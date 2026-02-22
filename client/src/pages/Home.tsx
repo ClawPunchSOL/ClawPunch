@@ -9,6 +9,7 @@ import monkeyHero from "@/assets/images/monkey-hero.png";
 import bullyMonkey from "@/assets/images/bully-monkey.png";
 import storyPlushie from "@/assets/images/story-plushie.png";
 import bananaLab from "@/assets/images/banana-lab.png";
+import crabClaw from "@/assets/images/crab-claw.png";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -259,7 +260,28 @@ export default function Home() {
 
           {/* SCENE 5: Banana Lab Spotlight (0.5 - 0.625) */}
           <div className="h-full w-[100vw] flex items-center justify-center px-10 relative">
-            <div className="flex flex-col md:flex-row-reverse items-center gap-12 max-w-6xl w-full">
+            
+            {/* The Molt Crab */}
+            <motion.div 
+              className="absolute bottom-[10%] left-[20%] origin-bottom z-10"
+              animate={{ 
+                x: [0, 60, 0],
+                y: [0, -5, 0],
+                rotate: [-2, 2, -2]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 3,
+                ease: "easeInOut"
+              }}
+            >
+              <img src={crabClaw} className="w-32 h-32 md:w-48 md:h-48 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(255,50,0,0.5)]" />
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-primary px-2 py-1 font-display text-[8px] text-primary whitespace-nowrap">
+                MOLTBOOK SECURED
+              </div>
+            </motion.div>
+
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 max-w-6xl w-full z-20">
               <div className="flex-1 retro-container p-8 md:p-12 bg-black/80 -rotate-1">
                 <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-3 py-1 mb-6 border-2 border-primary font-display text-xs animate-pulse">
                   <div className="w-2 h-2 bg-primary rounded-full" /> LIVE UTILITY
