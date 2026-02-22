@@ -13,6 +13,7 @@ import monkeyRidingCrab from "@/assets/images/monkey-riding-crab.png";
 import crabRiderAngry from "@/assets/images/crab-rider-angry.png";
 import crabRiderHappy from "@/assets/images/crab-rider-happy.png";
 import celebrationPortrait from "@/assets/images/celebration-portrait.png";
+import sanctuaryLoreImage from "@/assets/images/sanctuary-lore.png";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -364,31 +365,29 @@ export default function Home() {
             </div>
           </div>
 
-          {/* SCENE 6: Roadmap (0.625 - 0.75) */}
+          {/* SCENE 6: The Sanctuary Lore (0.625 - 0.75) */}
           <div className="h-full w-[100vw] flex items-center justify-center relative px-10">
-            <div className="max-w-4xl w-full retro-container p-8 md:p-12 bg-black/80">
-              <h3 className="text-4xl md:text-5xl font-display text-primary mb-12 text-center drop-shadow-[4px_4px_0px_#000]">JUNGLE PATH</h3>
-              
-              <div className="space-y-8 relative">
-                <div className="absolute left-[19px] top-4 bottom-4 w-1 bg-border" />
-                
-                {[
-                  { q: 'Q1 2026', title: 'The Breakout', desc: 'Token Launch + Banana Lab live. The viral story begins.' },
-                  { q: 'Q2 2026', title: 'The Assembly', desc: 'Full assistant suite unlocks + x402 hub integration.' },
-                  { q: 'Q3 2026', title: 'The Harvest', desc: 'Attention earnings active. Views and likes = token drops.' },
-                  { q: 'Q4 2026', title: 'The Conquest', desc: 'Cross-chain agents & fully decentralized marketplace.' }
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-6 relative">
-                    <div className="w-10 h-10 shrink-0 bg-card border-4 border-primary flex items-center justify-center font-display text-[10px] text-white z-10">
-                      {i+1}
-                    </div>
-                    <div>
-                      <div className="font-display text-primary text-sm mb-1">{item.q}</div>
-                      <div className="font-display text-xl text-white mb-2">{item.title}</div>
-                      <div className="font-sans text-muted-foreground">{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
+            <div className="max-w-5xl w-full flex flex-col md:flex-row gap-8 items-center z-20">
+              <div className="flex-1 retro-container p-8 md:p-12 bg-black/80 -rotate-1">
+                <h3 className="text-4xl md:text-5xl font-display text-primary mb-6 drop-shadow-[4px_4px_0px_#000]">THE SANCTUARY</h3>
+                <p className="text-lg font-sans text-muted-foreground leading-relaxed space-y-4">
+                  <span className="text-white font-bold">1,000,000 pixels of pure digital preservation.</span>
+                  <br/><br/>
+                  We didn't just want to build another token. We wanted to build a legacy. The Sanctuary was created as a permanent, interactive home for our troop on the blockchain.
+                  <br/><br/>
+                  Every pixel purchased directly funds the Punch Foundation, dedicated to real-world macaque rescue and rehabilitation efforts. It's a digital monument with real-world impact.
+                  <br/><br/>
+                  Claim your land. Leave your mark. Protect the troop.
+                </p>
+                <button 
+                  onClick={() => setLocation('/sanctuary')}
+                  className="mt-8 retro-button bg-primary text-black px-8 py-4 font-display text-xl w-full hover:bg-white transition-colors"
+                >
+                  ENTER SANCTUARY
+                </button>
+              </div>
+              <div className="flex-1 flex justify-center rotate-2">
+                <img src={sanctuaryLoreImage} alt="The Sanctuary" className="w-full max-w-md border-8 border-foreground shadow-[12px_12px_0px_0px_#000] pixel-art-rendering" />
               </div>
             </div>
           </div>
