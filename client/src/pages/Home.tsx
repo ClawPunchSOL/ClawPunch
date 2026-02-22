@@ -128,7 +128,19 @@ export default function Home() {
             rotate: monkeyRotate
           }}
         >
-          <img src={monkeyHero} alt="Punch Monkey" className="w-32 h-32 md:w-48 md:h-48 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)]" />
+          <motion.div
+            animate={{ 
+              y: [0, -15, 0],
+              rotate: [-5, 5, -5]
+            }}
+            transition={{ 
+              repeat: Infinity, 
+              duration: 0.5,
+              ease: "easeInOut"
+            }}
+          >
+            <img src={monkeyHero} alt="Punch Monkey" className="w-32 h-32 md:w-48 md:h-48 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)]" />
+          </motion.div>
         </motion.div>
 
         {/* Horizontal Scrolling Scene Content (8 screens wide = 800vw) */}
@@ -199,7 +211,12 @@ export default function Home() {
                 rotate: bullyRotate
               }}
             >
-              <img src={bullyMonkey} className="w-48 h-48 md:w-64 md:h-64 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(255,0,0,0.4)]" />
+              <motion.div
+                animate={{ scale: [1, 1.05, 1], y: [0, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+              >
+                <img src={bullyMonkey} className="w-48 h-48 md:w-64 md:h-64 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(255,0,0,0.4)]" />
+              </motion.div>
             </motion.div>
 
             {/* Pow Effect */}
