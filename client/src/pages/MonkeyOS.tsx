@@ -161,7 +161,7 @@ export default function MonkeyOS() {
             <Banana className="w-4 h-4 fill-current" />
             <span className="font-display text-xs">1,420</span>
           </div>
-          <button onClick={() => setLocation('/landing')} className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2">
+          <button onClick={() => setLocation('/')} className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2">
             <LogOut className="w-4 h-4" />
             <span className="font-display text-[10px]">EXIT</span>
           </button>
