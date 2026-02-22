@@ -25,6 +25,7 @@ export default function Sanctuary() {
   
   const [selectedPlot, setSelectedPlot] = useState<number | null>(null);
   const [isBuying, setIsBuying] = useState(false);
+  const [pixelCount, setPixelCount] = useState<number>(100);
 
   const handleZoomIn = () => setScale(s => Math.min(s + 0.5, 3));
   const handleZoomOut = () => setScale(s => Math.max(s - 0.5, 0.5));
@@ -41,8 +42,8 @@ export default function Sanctuary() {
       }));
       setIsBuying(false);
       toast({
-        title: "Plot Acquired! 🍌",
-        description: "Your donation to Punch has been processed. The plot is yours!",
+        title: "Pixels Acquired! 🍌",
+        description: `Your donation of $${pixelCount.toLocaleString()} to Punch has been processed. The pixels are yours!`,
       });
     }, 1500);
   };
@@ -103,9 +104,21 @@ export default function Sanctuary() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <div className="flex justify-between items-end border-b-2 border-border pb-2">
-                      <span className="font-sans text-muted-foreground">Price</span>
-                      <span className="font-display text-xl text-green-500">100 USDC</span>
+                    <div className="space-y-2">
+                      <label className="text-xs font-display text-muted-foreground">AMOUNT OF PIXELS</label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        value={pixelCount}
+                        onChange={(e) => setPixelCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full bg-black border-2 border-border p-3 text-white font-display text-xl outline-none focus:border-primary transition-colors"
+                      />
+                      <div className="text-xs text-muted-foreground text-right">$1 PER PIXEL</div>
+                    </div>
+                    
+                    <div className="flex justify-between items-end border-b-2 border-border pb-2 mt-4">
+                      <span className="font-sans text-muted-foreground">Total Price</span>
+                      <span className="font-display text-2xl text-green-500">${pixelCount.toLocaleString()}</span>
                     </div>
                     
                     <button 
@@ -113,7 +126,7 @@ export default function Sanctuary() {
                       disabled={isBuying}
                       className="retro-button bg-green-500 text-black py-4 w-full text-lg hover:bg-white hover:text-black disabled:opacity-50"
                     >
-                      {isBuying ? 'PROCESSING...' : 'MINT PLOT'}
+                      {isBuying ? 'PROCESSING...' : 'MINT PIXELS'}
                     </button>
                     
                     <div className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
@@ -153,8 +166,8 @@ export default function Sanctuary() {
               className="origin-top-left transition-transform duration-200 ease-out"
               style={{ 
                 transform: `scale(${scale})`,
-                width: '6000px', // Base size of the map
-                height: '6000px'
+                width: '10000px', // Base size of the map
+                height: '10000px'
               }}
             >
               {/* Background Map Image */}
