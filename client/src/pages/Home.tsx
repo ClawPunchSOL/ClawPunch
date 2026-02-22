@@ -10,6 +10,8 @@ import bullyMonkey from "@/assets/images/bully-monkey.png";
 import storyPlushie from "@/assets/images/story-plushie.png";
 import bananaLab from "@/assets/images/banana-lab.png";
 import monkeyRidingCrab from "@/assets/images/monkey-riding-crab.png";
+import crabRiderAngry from "@/assets/images/crab-rider-angry.png";
+import crabRiderHappy from "@/assets/images/crab-rider-happy.png";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -196,6 +198,27 @@ export default function Home() {
 
           {/* SCENE 3: How It Works / Bully Fight (0.25 - 0.375) */}
           <div className="h-full w-[100vw] flex items-center justify-center relative">
+            
+            {/* Angry Molt Crab */}
+            <motion.div 
+              className="absolute bottom-[5%] left-[15vw] origin-bottom z-10"
+              animate={{ 
+                x: [0, 40, 0],
+                y: [0, -5, 0],
+                rotate: [-2, 2, -2]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 2.5,
+                ease: "easeInOut"
+              }}
+            >
+              <img src={crabRiderAngry} className="w-40 h-40 md:w-56 md:h-56 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(255,0,0,0.4)]" />
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-destructive px-3 py-1 font-display text-[10px] text-destructive whitespace-nowrap">
+                MAD MOLTER
+              </div>
+            </motion.div>
+
             <div className="absolute top-[25%] left-[10%] retro-container p-6 md:p-8 max-w-md -rotate-2 bg-black/80 z-30">
               <h3 className="text-2xl font-display text-destructive mb-3">PUNCH THE BEAR MARKET</h3>
               <p className="font-sans text-lg text-muted-foreground">
@@ -332,7 +355,28 @@ export default function Home() {
 
           {/* SCENE 7: Tokenomics & Community (0.75 - 0.875) */}
           <div className="h-full w-[100vw] flex items-center justify-center relative px-10">
-            <div className="flex flex-col md:flex-row gap-8 max-w-6xl w-full">
+
+            {/* Happy Molt Crab */}
+            <motion.div 
+              className="absolute bottom-[5%] right-[10vw] origin-bottom z-10"
+              animate={{ 
+                x: [0, -50, 0],
+                y: [0, -8, 0],
+                rotate: [-3, 3, -3]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 3.5,
+                ease: "easeInOut"
+              }}
+            >
+              <img src={crabRiderHappy} className="w-48 h-48 md:w-64 md:h-64 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(0,255,0,0.4)]" />
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-green-500 px-3 py-1 font-display text-[10px] text-green-500 whitespace-nowrap">
+                BAG HOLDER
+              </div>
+            </motion.div>
+
+            <div className="flex flex-col md:flex-row gap-8 max-w-6xl w-full z-20">
               <div className="flex-1 retro-container p-8 md:p-12 bg-black/80">
                 <h3 className="text-3xl font-display text-primary mb-8 drop-shadow-[4px_4px_0px_#000]">TOKENOMICS</h3>
                 <div className="space-y-6">
