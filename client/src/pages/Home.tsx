@@ -394,27 +394,6 @@ export default function Home() {
           {/* SCENE 7: Tokenomics & Community (0.75 - 0.875) */}
           <div className="h-full w-[100vw] flex items-center justify-center relative px-10">
 
-            {/* Happy Molt Crab */}
-            <motion.div 
-              className="absolute top-[10%] left-[10vw] origin-bottom z-10"
-              animate={{ 
-                x: [0, 40, 0],
-                y: [0, -15, 0],
-                rotate: [-5, 5, -5],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ 
-                repeat: Infinity, 
-                duration: 2.2,
-                ease: "easeInOut"
-              }}
-            >
-              <img src={crabRiderHappy} className="w-48 h-48 md:w-64 md:h-64 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(0,255,0,0.4)]" />
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-green-500 px-3 py-1 font-display text-[10px] text-green-500 whitespace-nowrap">
-                BAG HOLDER
-              </div>
-            </motion.div>
-
             <div className="flex flex-col md:flex-row gap-8 max-w-6xl w-full z-20">
               <div className="flex-1 retro-container p-8 md:p-12 bg-black/80">
                 <h3 className="text-3xl font-display text-primary mb-8 drop-shadow-[4px_4px_0px_#000]">TOKENOMICS</h3>
@@ -450,6 +429,28 @@ export default function Home() {
 
           {/* SCENE 8: The Treehouse / Footer (0.875 - 1.0) */}
           <div className="h-full w-[100vw] flex flex-col items-center justify-center relative px-4">
+            
+            {/* Happy Molt Crab */}
+            <motion.div 
+              className="absolute bottom-[10%] left-[15vw] origin-bottom z-10"
+              animate={{ 
+                x: [0, 30, 0],
+                y: [0, -15, 0],
+                rotate: [-5, 5, -5],
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 2.2,
+                ease: "easeInOut"
+              }}
+            >
+              <img src={crabRiderHappy} className="w-48 h-48 md:w-64 md:h-64 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(0,255,0,0.4)]" />
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-green-500 px-3 py-1 font-display text-[10px] text-green-500 whitespace-nowrap">
+                BAG HOLDER
+              </div>
+            </motion.div>
+
             <motion.div 
               className="retro-container p-10 md:p-16 w-full max-w-3xl flex flex-col items-center gap-10 bg-black/90 backdrop-blur-md z-30"
               style={{
