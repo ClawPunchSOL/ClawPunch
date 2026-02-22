@@ -194,7 +194,7 @@ export default function Home() {
                 NOT JUST ANOTHER MEMECOIN.
               </h3>
               <p className="text-xl md:text-2xl font-sans text-muted-foreground bg-black/60 p-6 rounded-none border-4 border-border backdrop-blur-md shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] leading-relaxed inline-block">
-                Deploy Moltbook agents. Trade attention markets. Farm DeFi yields. <br/>Scroll to explore the Monkey OS ecosystem.
+                Powered by x402, Moltbook, and Clawd-style AI agents.<br/>Scroll to explore the Monkey OS ecosystem.
               </p>
               
               <div className="mt-12 flex gap-6 justify-center font-display text-xs md:text-sm text-muted-foreground">
