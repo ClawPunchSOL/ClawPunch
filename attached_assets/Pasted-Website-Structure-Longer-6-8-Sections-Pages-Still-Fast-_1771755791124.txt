@@ -1,0 +1,64 @@
+Website Structure (Longer, 6-8 Sections/Pages – Still Fast & Mobile-First)  
+Build on Next.js/Vercel (extend your game code). Total load <4s, scrollable one-pager with sections + subpages for depth.
+
+1. Hero / Landing Page (Homepage – Keep Punchy & Short)  
+   - Full-screen background: Retro pixel jungle with baby monkey swinging vines, punching obstacles (rugs, bears, vines).  
+   - Animated side-scroller loop (monkey "runs" endlessly, collects bananas, punches enemies).  
+   - Tagline: "Pixels Swing. Monkeys Punch. Gains Deploy." (your punchy style).  
+   - Big CTA: "Swing the Jungle → Enter Treehouse → Monkey OS Boots"  
+   - Embed short video/clip of the run → treehouse entry → OS warp.  
+   - Quick stats: Fair launch on Pump.fun, CA, live chart, socials.  
+   - Scroll down teases sections below.
+
+2. The Story / About Section  
+   - Emotional waffle: "Inspired by Punch the baby macaque — abandoned, clinging to his plushie, now a global fighter with Justin Sun's $100K donation. PunchMonkey punches back: from viral tragedy to crypto gains. No rugs, no abandonment — just community, resilience, and moonshots."  
+   - Include real story screenshots/clips (zoo donation news, viral videos).  
+   - Tie to crypto: "Punch the bear market. Monkey your way to the top."
+
+3. How It Works / Onboarding  
+   - Embed interactive or looped game: Monkey swings vines, punches obstacles, collects bananas/coins, ?-blocks pop with alpha (roadmap, utilities).  
+   - Ends at "rescue treehouse" → warp animation to Monkey OS dashboard.  
+   - Text: "Swing the jungle course → enter treehouse → Monkey OS loads. Nostalgic fun hooks you, real agent tools keep you."
+
+4. Monkey OS Dashboard (Utility Core)  
+   - Screenshots/mockups of jungle-themed pixel UI.  
+   - Bullet the 5 monkey assistants (inspired by docs style, but monkey-flavored):  
+     - Banana Bot: x402 micropayments & cross-chain sends  
+     - Swarm Monkey: Moltbook agent registration/management  
+     - Alpha Ape: Clawd-style crypto intel & strategy chat  
+     - Trader Monkey: bankrbot Solana trades  
+     - Launcher Monkey: Client-side token launches (100% creator fees)  
+   - Wallet sovereignty: "Sign prompts only — your keys, your banana stash."
+
+5. First Live Utility: Banana Lab  
+   - Spotlight section: "Banana Lab is live — spawn & control Moltbook agents via chat."  
+   - Crab Agent equivalent: "Banana Agent" (Moltbook specialist).  
+   - How it works (brief): Chat to register agent (name/desc → API key/claim URL/code), claim on Moltbook, activate auto-posting, view roster/feed, remove.  
+   - Benefits: Agents post memes/trends autonomously, build swarm presence, earn attention (views → rewards).  
+   - CTA: "Chat Banana Agent now in Monkey OS."
+
+6. Roadmap  
+   - Simple timeline (visual jungle path):  
+     - Q1 2026: Launch + Banana Lab live  
+     - Q2: Full assistants + x402 hub  
+     - Q3: Attention earnings (views/likes → token drops)  
+     - Q4: Cross-chain agents & marketplace
+
+7. Tokenomics & Community  
+   - Supply: 1B fixed (no tax, fair launch).  
+   - Allocation: Liquidity locked, community airdrops, marketing.  
+   - Links: TG, X, GitBook (create one for docs), Pump.fun page.
+
+8. Footer / Extras  
+   - Disclaimer (meme/high risk).  
+   - "Join the troop" socials + wallet connect teaser.
+
+Implementation Tips  
+- Use sections with parallax/scroll effects (jungle vines moving) for engagement.  
+- Add banana counter or "punch meter" that fills as you scroll.  
+- Keep game embed small (hero only) — link to full interactive version.  
+- Tools: Framer/Carrd for quick no-code, or Next.js for interactivity.
+
+This makes the site "longer" (full experience 2-5 min browse) but still punchy (game-first, emotional story, clear utility). It rides the real Punch monkey wave without direct copy (your narrative twist: fighter monkey punching gains).
+
+Want wireframe sketch, post copy for teaser, or tweak theme (e.g. more chaos/punch focus)? 🚀🐒👊
