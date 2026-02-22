@@ -11,7 +11,7 @@ const TOTAL_PLOTS = GRID_SIZE * GRID_SIZE;
 export default function Sanctuary() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(0.1);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Mock some pre-purchased plots
@@ -27,8 +27,8 @@ export default function Sanctuary() {
   const [isBuying, setIsBuying] = useState(false);
   const [pixelCount, setPixelCount] = useState<number>(100);
 
-  const handleZoomIn = () => setScale(s => Math.min(s + 0.5, 3));
-  const handleZoomOut = () => setScale(s => Math.max(s - 0.5, 0.5));
+  const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
+  const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.05));
 
   const handleBuy = () => {
     if (selectedPlot === null) return;
