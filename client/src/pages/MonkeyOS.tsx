@@ -71,7 +71,7 @@ const AGENTS: Record<AgentId, Agent> = {
     description: 'Prediction Markets Assistant',
     placeholder: "Command... (e.g., 'Stake 1000 PUNCH that SOL hits $300 by March')",
     systemMessage: 'ORACLES SYNCED. PREDICTION MARKETS LIVE. PUNCH YOUR PREDICTION.',
-    mockResponse: 'Prediction punched! 1000 $PUNCHY staked on [SOL > $300 by Mar 1]. Current odds: 45%. 🔮👊'
+    mockResponse: 'Prediction punched! 1000 $PUNCH staked on [SOL > $300 by Mar 1]. Current odds: 45%. 🔮👊'
   },
   'trend-puncher': {
     id: 'trend-puncher',
@@ -81,9 +81,9 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-yellow-500',
     icon: <Zap className="w-3 h-3 text-yellow-500" />,
     description: 'Attention Market Trading',
-    placeholder: "Command... (e.g., 'Buy $500 of attention shares on #Punchy')",
+    placeholder: "Command... (e.g., 'Buy $500 of attention shares on #Punch')",
     systemMessage: 'ATTENTION MARKETS SCANNING. TREND ANALYSIS ACTIVE.',
-    mockResponse: 'Position acquired! Bought 5,200 attention shares on #Punchy narrative. Monitoring virality via Zora oracles. 📈🔥'
+    mockResponse: 'Position acquired! Bought 5,200 attention shares on #Punch narrative. Monitoring virality via Zora oracles. 📈🔥'
   },
   'vault-swinger': {
     id: 'vault-swinger',

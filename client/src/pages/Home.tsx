@@ -86,7 +86,7 @@ export default function Home() {
         {/* Fixed UI */}
         <div className="absolute top-6 left-6 z-50">
           <h1 className="text-xl md:text-2xl font-display text-primary drop-shadow-[2px_2px_0px_#000] pixel-art-rendering tracking-tighter">
-            $MoltPunchy
+            $ClawPunch
           </h1>
         </div>
 
@@ -219,7 +219,7 @@ export default function Home() {
                   <br/><br/>
                   <span className="text-white font-bold">But Punch isn't just surviving; he's building.</span>
                   <br/><br/>
-                  <span>Teaming up with Clawd the crab, Punchy is punching back. Forget the memecoin meta. We're building a powerhouse of AI-driven trading utilities, swapping rugs for real tools, and monkeying our way to the top.</span>
+                  <span>Teaming up with Clawd the crab, Punch is punching back. Forget the memecoin meta. We're building a powerhouse of AI-driven trading utilities, swapping rugs for real tools, and monkeying our way to the top.</span>
                 </p>
               </div>
               <div className="flex-1 flex justify-center -rotate-2">
@@ -486,7 +486,7 @@ export default function Home() {
               </div>
 
               <div className="mt-8 text-center text-muted-foreground/50 font-sans text-sm">
-                Disclaimer: $PUNCHY is a utility token powering the Monkey OS ecosystem.
+                Disclaimer: $PUNCH is a utility token powering the Monkey OS ecosystem.
                 <br/>Cryptocurrency investments carry risk. Do your own research before deploying bananas.
               </div>
             </motion.div>
