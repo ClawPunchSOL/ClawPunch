@@ -145,7 +145,7 @@ export default function Home() {
               ease: "easeInOut"
             }}
           >
-            <img src={monkeyHero} alt="Punch Monkey" className="w-32 h-32 md:w-48 md:h-48 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)]" />
+            <img src={monkeyHero} alt="Punchy" className="w-32 h-32 md:w-48 md:h-48 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)]" />
           </motion.div>
         </motion.div>
 
@@ -219,7 +219,7 @@ export default function Home() {
                   <br/><br/>
                   <span className="text-white font-bold">But Punch isn't just surviving; he's building.</span>
                   <br/><br/>
-                  <span>Teaming up with Clawd the crab, PunchMonkey is punching back. Forget the memecoin meta. We're building a powerhouse of AI-driven trading utilities, swapping rugs for real tools, and monkeying our way to the top.</span>
+                  <span>Teaming up with Clawd the crab, Punchy is punching back. Forget the memecoin meta. We're building a powerhouse of AI-driven trading utilities, swapping rugs for real tools, and monkeying our way to the top.</span>
                 </p>
               </div>
               <div className="flex-1 flex justify-center -rotate-2">
@@ -486,7 +486,7 @@ export default function Home() {
               </div>
 
               <div className="mt-8 text-center text-muted-foreground/50 font-sans text-sm">
-                Disclaimer: $PUNCHMONKEY is a utility token powering the Monkey OS ecosystem.
+                Disclaimer: $PUNCHY is a utility token powering the Monkey OS ecosystem.
                 <br/>Cryptocurrency investments carry risk. Do your own research before deploying bananas.
               </div>
             </motion.div>
