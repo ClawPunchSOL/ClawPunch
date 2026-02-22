@@ -133,12 +133,14 @@ export default function Home() {
         >
           <motion.div
             animate={{ 
-              y: [0, -15, 0],
+              y: [0, -25, 0],
+              scaleY: [1, 0.9, 1.05, 1],
+              scaleX: [1, 1.05, 0.95, 1],
               rotate: [-5, 5, -5]
             }}
             transition={{ 
               repeat: Infinity, 
-              duration: 0.5,
+              duration: 0.6,
               ease: "easeInOut"
             }}
           >
@@ -152,6 +154,32 @@ export default function Home() {
           style={{ x }}
         >
           
+          {/* Floating Background Bananas */}
+          <div className="absolute top-0 left-0 w-[800vw] h-full pointer-events-none z-0 overflow-hidden">
+            {Array.from({ length: 40 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute text-4xl md:text-6xl drop-shadow-[0_0_15px_rgba(255,255,0,0.4)]"
+                style={{
+                  left: `${(i / 40) * 100 + (Math.random() * 2)}%`,
+                  bottom: `${10 + Math.random() * 70}%`,
+                }}
+                animate={{
+                  y: [0, -30 - Math.random() * 30, 0],
+                  rotate: [0, 10 + Math.random() * 20, -10 - Math.random() * 20, 0]
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 3 + Math.random() * 3,
+                  ease: "easeInOut",
+                  delay: Math.random() * 2
+                }}
+              >
+                🍌
+              </motion.div>
+            ))}
+          </div>
+
           {/* SCENE 1: Hero Landing (0 - 0.125) */}
           <div className="h-full w-[100vw] flex flex-col justify-center items-center px-10 md:px-20 relative">
             <div className="max-w-4xl text-center pl-10 md:pl-0">
@@ -204,12 +232,13 @@ export default function Home() {
               className="absolute bottom-[5%] left-[15vw] origin-bottom z-10"
               animate={{ 
                 x: [0, 40, 0],
-                y: [0, -5, 0],
-                rotate: [-2, 2, -2]
+                y: [0, -10, 0],
+                rotate: [-4, 4, -4],
+                scale: [1, 1.05, 1]
               }}
               transition={{ 
                 repeat: Infinity, 
-                duration: 2.5,
+                duration: 1.5,
                 ease: "easeInOut"
               }}
             >
@@ -236,8 +265,12 @@ export default function Home() {
               }}
             >
               <motion.div
-                animate={{ scale: [1, 1.05, 1], y: [0, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                animate={{ 
+                  scale: [1, 1.1, 1], 
+                  y: [0, -15, 0],
+                  rotate: [-3, 3, -3]
+                }}
+                transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }}
               >
                 <img src={bullyMonkey} className="w-48 h-48 md:w-64 md:h-64 pixel-art-rendering drop-shadow-[0_15px_30px_rgba(255,0,0,0.4)]" />
               </motion.div>
@@ -289,12 +322,13 @@ export default function Home() {
               className="absolute bottom-[10%] right-[-25vw] origin-bottom z-10"
               animate={{ 
                 x: [0, -30, 0],
-                y: [0, -5, 0],
-                rotate: [-2, 2, -2]
+                y: [0, -8, 0],
+                rotate: [-3, 3, -3],
+                scaleY: [1, 0.95, 1]
               }}
               transition={{ 
                 repeat: Infinity, 
-                duration: 3,
+                duration: 2,
                 ease: "easeInOut"
               }}
             >
@@ -361,12 +395,13 @@ export default function Home() {
               className="absolute bottom-[5%] right-[10vw] origin-bottom z-10"
               animate={{ 
                 x: [0, -50, 0],
-                y: [0, -8, 0],
-                rotate: [-3, 3, -3]
+                y: [0, -15, 0],
+                rotate: [-5, 5, -5],
+                scale: [1, 1.1, 1]
               }}
               transition={{ 
                 repeat: Infinity, 
-                duration: 3.5,
+                duration: 2.2,
                 ease: "easeInOut"
               }}
             >
