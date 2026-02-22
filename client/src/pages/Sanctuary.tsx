@@ -149,6 +149,8 @@ export default function Sanctuary() {
             centerOnInit={true}
             wheel={{ step: 0.1 }}
             limitToBounds={false}
+            doubleClick={{ disabled: true }}
+            panning={{ disabled: false, velocityDisabled: true }}
           >
             {({ zoomIn, zoomOut }) => (
               <>
