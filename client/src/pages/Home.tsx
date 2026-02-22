@@ -467,13 +467,22 @@ export default function Home() {
                 The breakout is complete. Welcome to the sanctuary. Deploy your agents and take over the timeline.
               </p>
               
-              <button 
-                onClick={() => setLocation('/app')}
-                className="retro-button retro-button-primary text-xl md:text-2xl px-12 py-8 w-full flex items-center justify-center gap-6 group hover:bg-white hover:text-black transition-colors"
-              >
-                <span>BOOT SYSTEM</span>
-                <ArrowRight className="w-8 h-8 group-hover:translate-x-4 transition-transform" />
-              </button>
+              <div className="flex flex-col md:flex-row gap-6 w-full justify-center">
+                <button 
+                  onClick={() => setLocation('/app')}
+                  className="retro-button retro-button-primary text-xl md:text-2xl px-12 py-8 flex items-center justify-center gap-6 group hover:bg-white hover:text-black transition-colors flex-1"
+                >
+                  <span>BOOT SYSTEM</span>
+                  <ArrowRight className="w-8 h-8 group-hover:translate-x-4 transition-transform" />
+                </button>
+                <button 
+                  onClick={() => setLocation('/sanctuary')}
+                  className="retro-button bg-[#10b981] text-black text-xl md:text-2xl px-12 py-8 flex items-center justify-center gap-6 group hover:bg-white transition-colors flex-1 border-2 border-black"
+                >
+                  <span>ENTER SANCTUARY</span>
+                  <span className="text-3xl group-hover:scale-125 transition-transform">🌴</span>
+                </button>
+              </div>
 
               <div className="flex flex-col md:flex-row gap-4 w-full justify-center mt-4">
                 <a href="#" className="retro-button bg-[#1DA1F2] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#1DA1F2] flex-1">

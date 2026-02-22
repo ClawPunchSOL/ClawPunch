@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import Home from "@/pages/Home";
 import MonkeyOS from "@/pages/MonkeyOS";
+import Sanctuary from "@/pages/Sanctuary";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/app" component={MonkeyOS} />
       <Route path="/os" component={MonkeyOS} />
+      <Route path="/sanctuary" component={Sanctuary} />
       <Route component={NotFound} />
     </Switch>
   );
