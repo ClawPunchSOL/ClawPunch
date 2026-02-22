@@ -192,7 +192,7 @@ export default function Home() {
                 BUILT ON <span className="text-primary">SOLANA.</span>
               </h2>
               <h3 className="text-2xl md:text-4xl font-display text-primary mb-10 drop-shadow-[4px_4px_0px_#000]">
-                NOT JUST ANOTHER MEMECOIN.
+                REAL TOOLS. REAL UTILITY.
               </h3>
               <p className="text-xl md:text-2xl font-sans text-muted-foreground bg-black/60 p-6 rounded-none border-4 border-border backdrop-blur-md shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] leading-relaxed inline-block">
                 Powered by x402, Moltbook, and Clawd-style AI agents.<br/>Scroll to explore the Monkey OS ecosystem.
