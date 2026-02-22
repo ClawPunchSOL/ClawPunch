@@ -241,11 +241,11 @@ export default function Home() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
-                  { icon: <CircleDollarSign />, name: 'Banana Bot', desc: 'x402 micropayments & cross-chain sends' },
-                  { icon: <Users />, name: 'Swarm Monkey', desc: 'Moltbook agent registration & management' },
-                  { icon: <Terminal />, name: 'Alpha Ape', desc: 'Clawd-style crypto intel & strategy chat' },
-                  { icon: <Zap />, name: 'Trader Monkey', desc: 'Lightning fast Solana bankrbot trades' },
-                  { icon: <Cpu />, name: 'Launcher Monkey', desc: 'Client-side launches (100% creator fees)' }
+                  { icon: <CircleDollarSign />, name: 'Banana Bot', desc: 'Fast cross-chain USDC micropayments with x402 protocol.' },
+                  { icon: <Users />, name: 'Swarm Monkey', desc: 'Register, manage, and upgrade agents on Moltbook.' },
+                  { icon: <Terminal />, name: 'Punch Oracle', desc: 'On-chain prediction markets assistant. Stake and punch your prediction.' },
+                  { icon: <Zap />, name: 'Trend Puncher', desc: 'Attention market trading assistant. Punch the trend and earn.' },
+                  { icon: <Cpu />, name: 'Vault Swinger', desc: 'Yield farming + agent treasury manager. Swing vines to farm APY boosts.' }
                 ].map((agent, i) => (
                   <div key={i} className="retro-container p-6 bg-black/60 backdrop-blur-sm hover:-translate-y-2 transition-transform">
                     <div className="text-primary mb-4 w-10 h-10">{agent.icon}</div>
