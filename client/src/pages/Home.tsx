@@ -363,7 +363,7 @@ export default function Home() {
               </p>
               
               <button 
-                onClick={() => setLocation('/os')}
+                onClick={() => setLocation('/app')}
                 className="retro-button retro-button-primary text-xl md:text-2xl px-12 py-8 w-full flex items-center justify-center gap-6 group hover:bg-white hover:text-black transition-colors"
               >
                 <span>BOOT SYSTEM</span>
