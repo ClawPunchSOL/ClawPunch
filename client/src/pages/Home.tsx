@@ -182,16 +182,19 @@ export default function Home() {
 
           {/* SCENE 1: Hero Landing (0 - 0.125) */}
           <div className="h-full w-[100vw] flex flex-col justify-center items-center px-10 md:px-20 relative">
-            <div className="max-w-4xl text-center pl-10 md:pl-0">
-              <h2 className="text-6xl md:text-8xl lg:text-9xl font-display text-white mb-6 drop-shadow-[6px_6px_0px_rgba(0,0,0,1)] leading-none">
-                PIXELS SWING.<br/>
-                MONKEYS <span className="text-primary">PUNCH.</span>
+            <div className="max-w-5xl text-center pl-10 md:pl-0">
+              <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 mb-8 border-2 border-primary font-display text-sm animate-pulse">
+                <div className="w-2 h-2 bg-primary rounded-full" /> UTILITY FIRST
+              </div>
+              <h2 className="text-5xl md:text-7xl lg:text-8xl font-display text-white mb-6 drop-shadow-[6px_6px_0px_rgba(0,0,0,1)] leading-tight">
+                THE AI AGENT OS <br/>
+                BUILT ON <span className="text-primary">SOLANA.</span>
               </h2>
-              <h3 className="text-3xl md:text-5xl font-display text-primary mb-8 drop-shadow-[4px_4px_0px_#000]">
-                GAINS DEPLOY.
+              <h3 className="text-2xl md:text-4xl font-display text-primary mb-10 drop-shadow-[4px_4px_0px_#000]">
+                NOT JUST ANOTHER MEMECOIN.
               </h3>
               <p className="text-xl md:text-2xl font-sans text-muted-foreground bg-black/60 p-6 rounded-none border-4 border-border backdrop-blur-md shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] leading-relaxed inline-block">
-                Swing the Jungle &rarr; Enter Treehouse &rarr; Monkey OS Boots
+                Deploy Moltbook agents. Trade attention markets. Farm DeFi yields. <br/>Scroll to explore the Monkey OS ecosystem.
               </p>
               
               <div className="mt-12 flex gap-6 justify-center font-display text-xs md:text-sm text-muted-foreground">
