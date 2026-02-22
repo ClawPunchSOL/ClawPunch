@@ -252,9 +252,9 @@ export default function Home() {
             </motion.div>
 
             <div className="absolute top-[25%] left-[10%] retro-container p-6 md:p-8 max-w-md -rotate-2 bg-black/80 z-30">
-              <h3 className="text-2xl font-display text-destructive mb-3">PUNCH THE BEAR MARKET</h3>
+              <h3 className="text-2xl font-display text-destructive mb-3">PUNCH THE MARKET</h3>
               <p className="font-sans text-lg text-muted-foreground">
-                Nostalgic fun hooks you. Real agent tools keep you. Swing past the rugs, punch the bullies, and collect bananas.
+                Deploy AI agents that actually work for you. Punch through the noise, outsmart the rugs, and let x402 and Moltbook handle the heavy lifting while you harvest the bananas.
               </p>
             </div>
             
