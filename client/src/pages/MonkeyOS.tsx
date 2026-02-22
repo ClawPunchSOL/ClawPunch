@@ -12,7 +12,9 @@ import {
   Zap,
   Users,
   CircleDollarSign,
-  Cpu
+  Cpu,
+  ShieldAlert,
+  FileCode
 } from "lucide-react";
 
 import bananaBot from "@/assets/images/banana-bot.png";
@@ -21,7 +23,7 @@ import oracleMonkey from "@/assets/images/oracle-monkey.png";
 import trendMonkey from "@/assets/images/trend-monkey.png";
 import vaultMonkey from "@/assets/images/vault-monkey.png";
 
-type AgentId = 'banana-bot' | 'swarm-monkey' | 'punch-oracle' | 'trend-puncher' | 'vault-swinger';
+type AgentId = 'banana-bot' | 'swarm-monkey' | 'punch-oracle' | 'trend-puncher' | 'vault-swinger' | 'rug-buster' | 'repo-ape';
 
 interface Agent {
   id: AgentId;
@@ -96,6 +98,30 @@ const AGENTS: Record<AgentId, Agent> = {
     placeholder: "Command... (e.g., 'Stake all PUNCH in the high-yield vault')",
     systemMessage: 'DEFI VAULTS CONNECTED. TREASURY MANAGER STANDING BY.',
     mockResponse: 'Swinging vines to the vault... 100% of $PUNCH balance staked. Current APY boosted to 420%. Agent treasuries funded. 💰🌴'
+  },
+  'rug-buster': {
+    id: 'rug-buster',
+    name: 'RUG BUSTER',
+    avatar: swarmMonkey,
+    status: 'Guarding',
+    statusColor: 'text-red-500',
+    icon: <ShieldAlert className="w-3 h-3 text-red-500" />,
+    description: 'Solana Rug-Pull Detection',
+    placeholder: "Command... (e.g., 'Scan contract Address... for rug risk')",
+    systemMessage: 'SECURITY SCANNERS ONLINE. READY TO BUST RUGS VIA X402 PAYMENTS.',
+    mockResponse: 'Scan complete. Risk assessment dynamically performed via on-chain analysis: Contract looks safu. No mint authority detected. 🛡️🐒'
+  },
+  'repo-ape': {
+    id: 'repo-ape',
+    name: 'REPO APE',
+    avatar: oracleMonkey,
+    status: 'Analyzing',
+    statusColor: 'text-cyan-500',
+    icon: <FileCode className="w-3 h-3 text-cyan-500" />,
+    description: 'GitHub Scanner & LARP Scoring',
+    placeholder: "Command... (e.g., 'Score github.com/user/repo for AI LARP')",
+    systemMessage: 'REPO ANALYSIS PROTOCOL ENGAGED. AWAITING TARGET GITHUB URL.',
+    mockResponse: 'Analysis complete. AI/LARP General Scoring computed dynamically: 92% Legit. High commit volume and valid code proofs found. 🦍💻'
   }
 };
 
@@ -107,7 +133,9 @@ export default function MonkeyOS() {
     'swarm-monkey': [{ id: 1, sender: 'system', text: AGENTS['swarm-monkey'].systemMessage, time: '09:00' }],
     'punch-oracle': [{ id: 1, sender: 'system', text: AGENTS['punch-oracle'].systemMessage, time: '09:00' }],
     'trend-puncher': [{ id: 1, sender: 'system', text: AGENTS['trend-puncher'].systemMessage, time: '09:00' }],
-    'vault-swinger': [{ id: 1, sender: 'system', text: AGENTS['vault-swinger'].systemMessage, time: '09:00' }]
+    'vault-swinger': [{ id: 1, sender: 'system', text: AGENTS['vault-swinger'].systemMessage, time: '09:00' }],
+    'rug-buster': [{ id: 1, sender: 'system', text: AGENTS['rug-buster'].systemMessage, time: '09:00' }],
+    'repo-ape': [{ id: 1, sender: 'system', text: AGENTS['repo-ape'].systemMessage, time: '09:00' }]
   });
   const [input, setInput] = useState('');
 

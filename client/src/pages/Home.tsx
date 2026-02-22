@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
-import { ArrowRight, CircleDollarSign, Terminal, Zap, Users, Shield, Cpu } from "lucide-react";
+import { ArrowRight, CircleDollarSign, Terminal, Zap, Users, Shield, Cpu, ShieldAlert, FileCode } from "lucide-react";
 
 // Asset imports
 import bgJungle from "@/assets/images/bg-jungle.png";
@@ -306,7 +306,9 @@ export default function Home() {
                   { icon: <Users />, name: 'Swarm Monkey', desc: 'Register, manage, and upgrade agents on Moltbook.' },
                   { icon: <Terminal />, name: 'Punch Oracle', desc: 'On-chain prediction markets assistant. Stake and punch your prediction.' },
                   { icon: <Zap />, name: 'Trend Puncher', desc: 'Attention market trading assistant. Punch the trend and earn.' },
-                  { icon: <Cpu />, name: 'Vault Swinger', desc: 'Yield farming + agent treasury manager. Swing vines to farm APY boosts.' }
+                  { icon: <Cpu />, name: 'Vault Swinger', desc: 'Yield farming + agent treasury manager. Swing vines to farm APY boosts.' },
+                  { icon: <ShieldAlert />, name: 'Rug Buster', desc: 'Solana-native rug-pull detection. Risk assessment via on-chain contract analysis.' },
+                  { icon: <FileCode />, name: 'Repo Ape', desc: 'GitHub scanner for AI/LARP scoring. Evaluation through code and commit proofs.' }
                 ].map((agent, i) => (
                   <div key={i} className="retro-container p-6 bg-black/60 backdrop-blur-sm hover:-translate-y-2 transition-transform">
                     <div className="text-primary mb-4 w-10 h-10">{agent.icon}</div>
