@@ -109,7 +109,7 @@ export default function Home() {
 
         {/* Parallax Background */}
         <motion.div 
-          className="absolute inset-0 h-full w-[400vw] z-0 bg-repeat-x bg-cover bg-center pixel-art-rendering opacity-40"
+          className="absolute inset-0 h-full w-[400vw] z-0 bg-repeat-x bg-[auto_100%] bg-center pixel-art-rendering opacity-40"
           style={{ 
             backgroundImage: `url(${bgJungle})`,
             x: bgX 
