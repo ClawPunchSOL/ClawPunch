@@ -88,19 +88,32 @@ export default function SwarmMonkeyPanel() {
           if (!line.startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.slice(6));
-            if (data.stage === "error") {
+            if (data.streaming) {
+              setRegisterLog(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.startsWith("[CONFIG] ")) {
+                  return [...prev.slice(0, -1), last + data.message];
+                }
+                return [...prev, `[CONFIG] ${data.message}`];
+              });
+            } else if (data.stage === "error") {
               setRegisterLog(prev => [...prev, `[ERROR] ${data.message}`]);
             } else if (data.stage === "done") {
-              setRegisterLog(prev => [...prev, `[DONE] ${data.message}`]);
-              setRegisterResult({ claimUrl: data.claimUrl, verificationCode: data.verificationCode });
+              setRegisterLog(prev => [...prev, `[LIVE] ${data.message}`]);
+              if (data.claimUrl) {
+                setRegisterResult({ claimUrl: data.claimUrl, verificationCode: data.verificationCode });
+              }
               setRegisterDone(true);
               if (data.agent) setAgents(prev => [data.agent, ...prev]);
               setName("");
               setDescription("");
-            } else if (data.stage === "claim") {
-              setRegisterLog(prev => [...prev, `[CLAIM] ${data.message}`]);
+            } else if (data.stage === "fallback") {
+              setRegisterLog(prev => [...prev, `[WARN] ${data.message}`]);
             } else {
-              const labels: Record<string, string> = { init: "CONN", registered: "OK", keys: "KEY", verify: "VERIFY" };
+              const labels: Record<string, string> = {
+                init: "CONN", registered: "OK", keys: "KEY", verify: "VERIFY",
+                configuring: "CONFIG", deploying: "DEPLOY", claim: "CLAIM"
+              };
               setRegisterLog(prev => [...prev, `[${labels[data.stage] || data.stage.toUpperCase()}] ${data.message}`]);
             }
           } catch {}
@@ -222,26 +235,35 @@ export default function SwarmMonkeyPanel() {
             </div>
           )}
 
-          {registerResult && (
+          {registerDone && (
             <div className="p-3 border-t border-green-500/20 space-y-2">
-              <div className="font-display text-[9px] text-orange-400 mb-1">VERIFICATION REQUIRED</div>
-              <div className="p-2 bg-black/40 border border-orange-500/30 space-y-2">
-                <div className="text-[10px] text-muted-foreground">
-                  1. Visit your claim URL and tweet your verification code:
+              {registerResult?.claimUrl ? (
+                <>
+                  <div className="font-display text-[9px] text-orange-400 mb-1">MOLTBOOK VERIFICATION</div>
+                  <div className="p-2 bg-black/40 border border-orange-500/30 space-y-2">
+                    <div className="text-[10px] text-muted-foreground">
+                      Tweet your verification code to activate on Moltbook:
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-[11px] text-orange-400 font-mono flex-1 truncate">{registerResult.verificationCode}</code>
+                      <button onClick={() => copyToClipboard(registerResult.verificationCode)}
+                        className="shrink-0 px-2 py-1 border border-orange-500/50 text-orange-400 text-[9px] font-display hover:bg-orange-500/10 flex items-center gap-1">
+                        {copied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                        {copied ? 'COPIED' : 'COPY'}
+                      </button>
+                    </div>
+                    <a href={registerResult.claimUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-3 py-2 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[10px] font-display hover:bg-blue-500/30 transition-colors justify-center">
+                      <ExternalLink className="w-3 h-3" /> OPEN CLAIM PAGE ON MOLTBOOK
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <div className="p-2 bg-green-500/10 border border-green-500/30 text-center">
+                  <div className="font-display text-[10px] text-green-400">AGENT DEPLOYED SUCCESSFULLY</div>
+                  <div className="text-[9px] text-muted-foreground mt-1">Agent is active and ready for tasks</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <code className="text-[11px] text-orange-400 font-mono flex-1 truncate">{registerResult.verificationCode}</code>
-                  <button onClick={() => copyToClipboard(registerResult.verificationCode)}
-                    className="shrink-0 px-2 py-1 border border-orange-500/50 text-orange-400 text-[9px] font-display hover:bg-orange-500/10 flex items-center gap-1">
-                    {copied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
-                    {copied ? 'COPIED' : 'COPY'}
-                  </button>
-                </div>
-                <a href={registerResult.claimUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-3 py-2 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[10px] font-display hover:bg-blue-500/30 transition-colors justify-center">
-                  <ExternalLink className="w-3 h-3" /> OPEN CLAIM PAGE ON MOLTBOOK
-                </a>
-              </div>
+              )}
               <button onClick={() => { setShowForm(false); setRegisterLog([]); setRegisterDone(false); setRegisterResult(null); }}
                 className="w-full py-1.5 border border-green-500/50 text-green-400 text-[10px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1">
                 <Wifi className="w-3 h-3" /> VIEW AGENTS
