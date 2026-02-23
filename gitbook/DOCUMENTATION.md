@@ -1,7 +1,5 @@
 # Monkey OS: The Complete Technical Reference & Master Documentation
 
-![Monkey OS Architecture](https://marioclawd.gitbook.io/marioclawd-docs/~gitbook/image?url=https%3A%2F%2F4004372986-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FEgQI60B6ry1dthYPXciU%252Fuploads%252F7eBQbN3cr0KDP8Z5hwh6%252FWORPX-LOGO.jpg%3Falt%3Dmedia%26token%3D19936ebd-ac74-4ff1-957d-bc0327675f69&width=490&dpr=3&quality=100&sign=a2cef02d&sv=2)
-
 Welcome to the official documentation for **Monkey OS**, the premier decentralized, client-side financial orchestration layer disguised as a retro 16-bit pixel-art operating system. 
 
 Behind the nostalgic, hyper-optimized aesthetic lives a suite of **seven autonomous utility agents** — each mathematically optimized and purpose-built for a different sector of the Solana Decentralized Finance (DeFi) ecosystem. 
@@ -19,9 +17,14 @@ Every transformative protocol has an origin story. Ours did not begin in a ventu
 
 **Punch** was an abandoned baby macaque discovered clinging desperately to a small, frayed plushie. His image and story rapidly circulated across global social networks, capturing the collective empathy of millions. A grassroots, decentralized movement formed organically, raising a staggering $100,000 community donation in less than 72 hours. This capital rescued Punch, provided him with world-class veterinary care, and established the foundation for a permanent wildlife sanctuary.
 
-But the story could not end with mere survival. To sustain the momentum and build permanent, compounding value for conservation efforts, Punch’s digital persona required a technological leap. Enter **Clawd**, a crypto-native crustacean architect and veteran of the decentralized seas. Recognizing the raw, untamed virality of Punch's narrative, Clawd proposed an alliance. 
+But the story could not end with mere survival. To sustain the momentum and build permanent, compounding value for conservation efforts, Punch’s digital persona required a technological leap. Enter **Clawd**, a crypto-native crustacean architect and veteran of the decentralized seas.
 
-Together, they engineered Monkey OS to combat the predatory "rug pull" tokenomics plaguing the Solana ecosystem. Their mission: swap fleeting memecoins for genuine, utility-driven agent infrastructure that actively funds real-world conservation.
+#### Who is Clawd?
+Clawd isn't just a mascot; he is the decentralized brain behind the entire Monkey OS architecture. A hardened veteran of the Solana ecosystem, Clawd cut his teeth writing assembly code during the bear market, observing the destructive nature of predatory tokenomics and infinite-supply memecoins.
+
+As a crustacean who understands the necessity of a hard shell, Clawd engineered Monkey OS to be impenetrable. He designed the Strict Client-Side Execution (SCE) model to ensure that user funds are never exposed to centralized attack vectors. Clawd's philosophy is simple: **"If it's not client-side, it's a trap."**
+
+Recognizing the raw, untamed virality of Punch's narrative, Clawd proposed an alliance. Punch provided the heart and the global reach; Clawd provided the impenetrable, hyper-optimized infrastructure. Together, they built Monkey OS to combat the predatory "rug pull" tokenomics plaguing the Solana ecosystem. Their mission: swap fleeting memecoins for genuine, utility-driven agent infrastructure that actively funds real-world conservation.
 
 ### 1.2 The Sanctuary: The 1,000,000 Pixel Monument
 The economic engine and visual centerpiece of the Monkey OS ecosystem is **The Sanctuary**—an expansive 10,000x10,000 (1,000,000 pixel) interactive digital monument. It represents the ultimate destination for Punch and the community, a safe haven from the chaos of the crypto jungle.
