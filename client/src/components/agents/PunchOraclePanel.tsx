@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, shortAddress } from "@/lib/solanaWallet";
-import { Target, Plus, Loader2, TrendingUp, Wallet, ChevronUp, Zap, RefreshCw, Clock, CheckCircle, XCircle, DollarSign, ExternalLink, BarChart3 } from "lucide-react";
+import { Target, Plus, Loader2, TrendingUp, Wallet, ChevronUp, Zap, RefreshCw, Clock, CheckCircle, XCircle, DollarSign } from "lucide-react";
 
 interface Prediction {
   id: number;
@@ -28,11 +28,10 @@ interface TokenPrice {
   change24h: number;
 }
 
-interface PolymarketMarket {
+interface LiveMarket {
   id: string;
   question: string;
   slug: string;
-  image: string;
   outcomePrices: number[];
   outcomes: string[];
   volume: number;
@@ -46,7 +45,7 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
   const wallet = useWalletState();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [prices, setPrices] = useState<TokenPrice[]>([]);
-  const [polymarkets, setPolymarkets] = useState<PolymarketMarket[]>([]);
+  const [liveMarkets, setLiveMarkets] = useState<LiveMarket[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [betModal, setBetModal] = useState<Prediction | null>(null);
@@ -57,7 +56,7 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
   const [submitting, setSubmitting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [resolving, setResolving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"polymarket" | "local">("polymarket");
+  const [importingId, setImportingId] = useState<string | null>(null);
 
   const fetchPredictions = useCallback(async () => {
     try {
@@ -73,18 +72,18 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
     } catch {}
   }, []);
 
-  const fetchPolymarket = useCallback(async () => {
+  const fetchLiveMarkets = useCallback(async () => {
     try {
       const res = await fetch("/api/predictions/polymarket");
-      if (res.ok) setPolymarkets(await res.json());
+      if (res.ok) setLiveMarkets(await res.json());
     } catch {}
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchPredictions(), fetchPrices(), fetchPolymarket()]).finally(() => setLoading(false));
-    const interval = setInterval(() => { fetchPredictions(); fetchPrices(); fetchPolymarket(); }, 60000);
+    Promise.all([fetchPredictions(), fetchPrices(), fetchLiveMarkets()]).finally(() => setLoading(false));
+    const interval = setInterval(() => { fetchPredictions(); fetchPrices(); fetchLiveMarkets(); }, 60000);
     return () => clearInterval(interval);
-  }, [fetchPredictions, fetchPrices, fetchPolymarket]);
+  }, [fetchPredictions, fetchPrices, fetchLiveMarkets]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -139,6 +138,32 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
     }
   };
 
+  const handleImportAndBet = async (market: LiveMarket) => {
+    setImportingId(market.id);
+    try {
+      const yesOdds = Math.round((market.outcomePrices[0] || 0.5) * 100);
+      const res = await fetch("/api/predictions/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          externalId: market.id,
+          question: market.question,
+          oddsYes: yesOdds,
+          endDate: market.endDate,
+          volume: market.volume,
+        }),
+      });
+      if (res.ok) {
+        const pred = await res.json();
+        await fetchPredictions();
+        setBetModal(pred);
+        setBetSide("yes");
+      }
+    } finally {
+      setImportingId(null);
+    }
+  };
+
   const handleBet = async () => {
     if (!betModal) return;
     setSubmitting(true);
@@ -161,7 +186,6 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
   };
 
   const totalPool = (p: Prediction) => p.poolYes + p.poolNo;
-  const totalVolume = predictions.reduce((sum, p) => sum + totalPool(p), 0);
 
   const formatPrice = (price: number) => {
     if (price < 0.01) return `$${price.toFixed(6)}`;
@@ -186,8 +210,17 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  const activeCount = predictions.filter(p => p.status === 'active').length;
+  const isImported = (marketId: string) => {
+    return predictions.some(p => p.description?.includes(`[EXT:${marketId}]`));
+  };
+
+  const getImportedPrediction = (marketId: string) => {
+    return predictions.find(p => p.description?.includes(`[EXT:${marketId}]`));
+  };
+
+  const activeLocalPreds = predictions.filter(p => p.status === 'active' && p.category !== 'live');
   const resolvedCount = predictions.filter(p => p.status === 'resolved').length;
+  const totalBetVolume = predictions.reduce((sum, p) => sum + totalPool(p), 0);
 
   return (
     <div className="space-y-3">
@@ -195,29 +228,21 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-purple-400" />
           <span className="font-display text-[11px] text-white">PREDICTION MARKETS</span>
+          {totalBetVolume > 0 && (
+            <span className="text-[9px] text-purple-400 font-display">{totalBetVolume.toLocaleString()} $PUNCH</span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
+          <button onClick={handleGenerate} disabled={generating} data-testid="button-generate-predictions" className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 text-[10px] font-display hover:bg-yellow-500/30 transition-colors disabled:opacity-50">
+            {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />} AUTO
+          </button>
+          <button onClick={handleResolve} disabled={resolving} data-testid="button-resolve-predictions" className="flex items-center gap-1 px-2 py-1 bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 text-[10px] font-display hover:bg-cyan-500/30 transition-colors disabled:opacity-50">
+            {resolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} RESOLVE
+          </button>
           <button onClick={() => setShowCreate(!showCreate)} data-testid="button-create-prediction" className="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-500/50 text-purple-400 text-[10px] font-display hover:bg-purple-500/30 transition-colors">
-            {showCreate ? <ChevronUp className="w-3 h-3" /> : <Plus className="w-3 h-3" />} {showCreate ? 'CLOSE' : 'CREATE'}
+            {showCreate ? <ChevronUp className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
           </button>
         </div>
-      </div>
-
-      <div className="flex gap-1">
-        <button
-          onClick={() => setActiveTab("polymarket")}
-          data-testid="tab-polymarket"
-          className={`flex-1 py-1.5 text-[10px] font-display border-2 transition-colors ${activeTab === "polymarket" ? "border-purple-500 bg-purple-500/20 text-purple-400" : "border-border text-muted-foreground hover:border-purple-500/30"}`}
-        >
-          <ExternalLink className="w-3 h-3 inline mr-1" />LIVE MARKETS ({polymarkets.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("local")}
-          data-testid="tab-local"
-          className={`flex-1 py-1.5 text-[10px] font-display border-2 transition-colors ${activeTab === "local" ? "border-purple-500 bg-purple-500/20 text-purple-400" : "border-border text-muted-foreground hover:border-purple-500/30"}`}
-        >
-          <BarChart3 className="w-3 h-3 inline mr-1" />PRICE BETS ({activeCount} LIVE)
-        </button>
       </div>
 
       {prices.length > 0 && (
@@ -275,7 +300,7 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
             </div>
             {!wallet.connected && (
               <button onClick={connectWallet} className="w-full flex items-center justify-center gap-2 py-2 border border-purple-500/30 text-purple-400 text-[10px] font-display hover:bg-purple-500/10 transition-colors">
-                <Wallet className="w-3 h-3" /> CONNECT WALLET FOR TRACKING
+                <Wallet className="w-3 h-3" /> CONNECT WALLET TO BET
               </button>
             )}
             {wallet.connected && wallet.publicKey && (
@@ -285,7 +310,7 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
               </div>
             )}
             <button onClick={handleBet} disabled={submitting} data-testid="button-place-bet" className="w-full retro-button retro-button-primary text-[10px] py-2.5 disabled:opacity-50">
-              {submitting ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : `STAKE ${betAmount} $PUNCH ON ${betSide.toUpperCase()}`}
+              {submitting ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : `BET ${betAmount} $PUNCH ON ${betSide.toUpperCase()}`}
             </button>
           </div>
         </div>
@@ -293,103 +318,80 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
 
       {loading ? (
         <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-purple-400" /></div>
-      ) : activeTab === "polymarket" ? (
-        <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar">
-          {polymarkets.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground text-xs">Loading Polymarket data...</div>
-          ) : (
-            polymarkets.map(m => {
-              const yesOdds = Math.round((m.outcomePrices[0] || 0.5) * 100);
-              const noOdds = 100 - yesOdds;
-              return (
-                <div key={m.id} className="p-3 border border-border bg-black/30 space-y-2" data-testid={`polymarket-${m.id}`}>
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs text-white font-semibold leading-tight flex-1">{m.question}</span>
-                    <span className={`text-[9px] font-display px-1.5 py-0.5 bg-green-500/20 text-green-400 shrink-0`}>LIVE</span>
-                  </div>
-
-                  <div className="flex gap-0.5 h-3">
-                    <div className="bg-green-500/60 transition-all" style={{ width: `${yesOdds}%` }} />
-                    <div className="bg-red-500/60 transition-all" style={{ width: `${noOdds}%` }} />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-green-400 font-display" data-testid={`pm-odds-yes-${m.id}`}>YES {yesOdds}%</span>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <TrendingUp className="w-3 h-3" />
-                        <span data-testid={`pm-volume-${m.id}`}>{formatVolume(m.volume)}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <span className="text-[9px]">24h:</span>
-                        <span data-testid={`pm-vol24h-${m.id}`}>{formatVolume(m.volume24hr)}</span>
-                      </div>
-                      {m.endDate && (
-                        <div className="flex items-center gap-0.5 text-yellow-400">
-                          <Clock className="w-3 h-3" />
-                          <span className="font-display">{timeLeft(m.endDate)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-red-400 font-display" data-testid={`pm-odds-no-${m.id}`}>NO {noOdds}%</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {m.oneDayPriceChange !== 0 && (
-                      <div className="flex items-center gap-1 text-[9px] flex-1">
-                        <span className="text-muted-foreground">24h Shift:</span>
-                        <span className={m.oneDayPriceChange > 0 ? 'text-green-400' : 'text-red-400'}>
-                          {m.oneDayPriceChange > 0 ? '+' : ''}{(m.oneDayPriceChange * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                    <a
-                      href={`https://polymarket.com/event/${m.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-testid={`trade-btn-${m.id}`}
-                      className="px-3 py-1 bg-purple-500/20 border border-purple-500/50 text-purple-400 text-[10px] font-display hover:bg-purple-500/30 transition-colors flex items-center gap-1"
-                    >
-                      <ExternalLink className="w-3 h-3" /> TRADE
-                    </a>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
       ) : (
-        <>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-purple-400 font-display" data-testid="text-active-count">{activeCount} LIVE</span>
-              {resolvedCount > 0 && (
-                <span className="text-[10px] text-gray-400 font-display" data-testid="text-resolved-count">{resolvedCount} RESOLVED</span>
-              )}
-              {totalVolume > 0 && (
-                <span className="text-[9px] text-muted-foreground font-display">{totalVolume.toLocaleString()} $PUNCH</span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button onClick={handleGenerate} disabled={generating} data-testid="button-generate-predictions" className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 text-[10px] font-display hover:bg-yellow-500/30 transition-colors disabled:opacity-50">
-                {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />} AUTO
-              </button>
-              <button onClick={handleResolve} disabled={resolving} data-testid="button-resolve-predictions" className="flex items-center gap-1 px-2 py-1 bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 text-[10px] font-display hover:bg-cyan-500/30 transition-colors disabled:opacity-50">
-                {resolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} RESOLVE
-              </button>
-            </div>
-          </div>
+        <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+          {liveMarkets.length > 0 && (
+            <>
+              <div className="font-display text-[9px] text-muted-foreground flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                TRENDING MARKETS
+              </div>
+              {liveMarkets.map(m => {
+                const yesOdds = Math.round((m.outcomePrices[0] || 0.5) * 100);
+                const noOdds = 100 - yesOdds;
+                const imported = isImported(m.id);
+                const importedPred = imported ? getImportedPrediction(m.id) : null;
+                const localPool = importedPred ? importedPred.poolYes + importedPred.poolNo : 0;
+                return (
+                  <div key={m.id} className="p-3 border border-border bg-black/30 space-y-2" data-testid={`market-${m.id}`}>
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs text-white font-semibold leading-tight flex-1">{m.question}</span>
+                      <span className="text-[9px] font-display px-1.5 py-0.5 bg-green-500/20 text-green-400 shrink-0">LIVE</span>
+                    </div>
 
-          {predictions.length === 0 ? (
-            <div className="text-center py-6 space-y-2">
-              <div className="text-muted-foreground text-xs">No markets yet.</div>
-              <button onClick={handleGenerate} disabled={generating} data-testid="button-generate-first" className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 text-[10px] font-display hover:bg-yellow-500/30 transition-colors disabled:opacity-50">
-                {generating ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : "GENERATE FROM LIVE MARKET DATA"}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-              {predictions.map(p => (
+                    <div className="flex gap-0.5 h-3">
+                      <div className="bg-green-500/60 transition-all" style={{ width: `${yesOdds}%` }} />
+                      <div className="bg-red-500/60 transition-all" style={{ width: `${noOdds}%` }} />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-green-400 font-display" data-testid={`odds-yes-${m.id}`}>YES {yesOdds}%</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <TrendingUp className="w-3 h-3" />
+                          <span data-testid={`vol-${m.id}`}>{formatVolume(m.volume)}</span>
+                        </div>
+                        {localPool > 0 && (
+                          <span className="text-purple-400 text-[9px] font-display">{localPool.toLocaleString()} $PUNCH</span>
+                        )}
+                        {m.endDate && (
+                          <div className="flex items-center gap-0.5 text-yellow-400">
+                            <Clock className="w-3 h-3" />
+                            <span className="font-display">{timeLeft(m.endDate)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-red-400 font-display" data-testid={`odds-no-${m.id}`}>NO {noOdds}%</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleImportAndBet(m)}
+                      disabled={importingId === m.id}
+                      data-testid={`bet-btn-${m.id}`}
+                      className="w-full py-1.5 border border-purple-500/50 text-purple-400 text-[10px] font-display hover:bg-purple-500/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                    >
+                      {importingId === m.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : imported ? (
+                        "BET AGAIN"
+                      ) : (
+                        "PLACE BET"
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {activeLocalPreds.length > 0 && (
+            <>
+              <div className="font-display text-[9px] text-muted-foreground flex items-center gap-1.5 mt-2">
+                <DollarSign className="w-3 h-3" />
+                PRICE PREDICTIONS
+                {resolvedCount > 0 && <span className="text-gray-500">({resolvedCount} resolved)</span>}
+              </div>
+              {predictions.filter(p => p.category !== 'live').map(p => (
                 <div key={p.id} className="p-3 border border-border bg-black/30 space-y-2" data-testid={`prediction-card-${p.id}`}>
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-xs text-white font-semibold leading-tight">{p.title}</span>
@@ -414,12 +416,6 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
                         <span className="text-muted-foreground">Target: </span>
                         <span className="text-purple-400 font-display" data-testid={`target-price-${p.id}`}>{formatPrice(p.targetPrice)}</span>
                       </div>
-                      {p.priceAtCreation && (
-                        <div>
-                          <span className="text-muted-foreground">Start: </span>
-                          <span className="text-gray-400 font-display">{formatPrice(p.priceAtCreation)}</span>
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -428,12 +424,14 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
                     <div className="bg-red-500/60 transition-all" style={{ width: `${p.oddsNo}%` }} />
                   </div>
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-green-400 font-display">YES {p.oddsYes}%</span>
+                    <span className="text-green-400 font-display">YES {Math.round(p.oddsYes)}%</span>
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>{totalPool(p).toLocaleString()} $PUNCH</span>
-                      </div>
+                      {totalPool(p) > 0 && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <TrendingUp className="w-3 h-3" />
+                          <span>{totalPool(p).toLocaleString()} $PUNCH</span>
+                        </div>
+                      )}
                       {p.expiresAt && p.status === 'active' && (
                         <div className="flex items-center gap-0.5 text-yellow-400">
                           <Clock className="w-3 h-3" />
@@ -441,7 +439,7 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
                         </div>
                       )}
                     </div>
-                    <span className="text-red-400 font-display">NO {p.oddsNo}%</span>
+                    <span className="text-red-400 font-display">NO {Math.round(p.oddsNo)}%</span>
                   </div>
                   {p.status === 'active' && (
                     <button onClick={() => { setBetModal(p); setBetSide("yes"); }} data-testid={`button-bet-${p.id}`} className="w-full py-1.5 border border-purple-500/50 text-purple-400 text-[10px] font-display hover:bg-purple-500/10 transition-colors">
@@ -450,9 +448,18 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
                   )}
                 </div>
               ))}
+            </>
+          )}
+
+          {liveMarkets.length === 0 && predictions.length === 0 && (
+            <div className="text-center py-6 space-y-2">
+              <div className="text-muted-foreground text-xs">No markets yet.</div>
+              <button onClick={handleGenerate} disabled={generating} data-testid="button-generate-first" className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 text-[10px] font-display hover:bg-yellow-500/30 transition-colors disabled:opacity-50">
+                {generating ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : "GENERATE FROM LIVE MARKET DATA"}
+              </button>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

@@ -747,6 +747,33 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/predictions/import", async (req, res) => {
+    try {
+      const { externalId, question, oddsYes, endDate, volume } = req.body;
+      if (!externalId || !question) return res.status(400).json({ error: "externalId and question are required" });
+
+      const existing = await storage.getAllPredictions();
+      const alreadyImported = existing.find(p => p.description?.includes(`[EXT:${externalId}]`));
+      if (alreadyImported) return res.json(alreadyImported);
+
+      const odds = Math.round(oddsYes || 50);
+      const pred = await storage.createPrediction({
+        title: question,
+        description: `[EXT:${externalId}] Volume: $${Math.round((volume || 0) / 1000)}K`,
+        category: "live",
+        oddsYes: odds,
+        oddsNo: 100 - odds,
+        poolYes: 0,
+        poolNo: 0,
+        status: "active",
+        expiresAt: endDate ? new Date(endDate) : undefined,
+      });
+      res.status(201).json(pred);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to import market" });
+    }
+  });
+
   app.post("/api/predictions/:id/bet", async (req, res) => {
     try {
       const predictionId = parseInt(req.params.id);
