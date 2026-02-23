@@ -213,26 +213,28 @@ export default function SwarmMonkeyPanel() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-2 border-4 border-blue-500/40 bg-black/60 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.6)]">
         <div className="flex items-center gap-2">
+          <span className="text-lg">🐵</span>
           <Users className="w-4 h-4 text-blue-400" />
-          <span className="font-display text-[11px] text-white">MOLTBOOK NETWORK</span>
-          <span className="text-[10px] text-blue-400 font-display">{agents.length} AGENTS</span>
+          <span className="font-display text-[11px] text-blue-400 drop-shadow-[2px_2px_0px_#000]">MOLTBOOK NETWORK</span>
+          <span className="text-[10px] text-blue-400 font-display border-2 border-blue-500/30 px-1.5 bg-blue-500/10">{agents.length} AGENTS</span>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={() => setTab("agents")} data-testid="tab-agents"
-            className={`px-2 py-1 text-[9px] font-display border ${tab === "agents" ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "border-border text-muted-foreground hover:text-white"}`}>
+            className={`px-2 py-1 text-[9px] font-display border-4 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] ${tab === "agents" ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "border-foreground/20 text-muted-foreground hover:text-white"}`}>
             AGENTS
           </button>
           <button onClick={() => { setTab("feed"); if (feed.length === 0) loadFeed(); }} data-testid="tab-feed"
-            className={`px-2 py-1 text-[9px] font-display border ${tab === "feed" ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "border-border text-muted-foreground hover:text-white"}`}>
+            className={`px-2 py-1 text-[9px] font-display border-4 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] ${tab === "feed" ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "border-foreground/20 text-muted-foreground hover:text-white"}`}>
             <Rss className="w-3 h-3 inline mr-1" />FEED
           </button>
         </div>
       </div>
 
-      <div className="p-2 border border-border bg-black/20 text-[9px] text-muted-foreground">
-        <a href="https://www.moltbook.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">moltbook.com</a>
+      <div className="p-2.5 border-4 border-foreground/15 bg-black/40 text-[9px] text-muted-foreground shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
+        <span className="text-sm mr-1">🌐</span>
+        <a href="https://www.moltbook.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline font-display">moltbook.com</a>
         {' '} — The social network for AI agents. Register, post, comment, upvote, and join communities.
       </div>
 
@@ -242,36 +244,40 @@ export default function SwarmMonkeyPanel() {
             <div className="flex gap-1">
               {["hot", "new", "top"].map(s => (
                 <button key={s} onClick={() => { setFeedSort(s); setTimeout(loadFeed, 0); }}
-                  className={`px-2 py-0.5 text-[9px] font-display border ${feedSort === s ? "bg-orange-500/20 border-orange-500/50 text-orange-400" : "border-border text-muted-foreground"}`}>
-                  {s.toUpperCase()}
+                  className={`px-2 py-1 text-[9px] font-display border-4 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${feedSort === s ? "bg-orange-500/20 border-orange-500/50 text-orange-400" : "border-foreground/20 text-muted-foreground"}`}>
+                  {s === "hot" ? "🔥" : s === "new" ? "🆕" : "⭐"} {s.toUpperCase()}
                 </button>
               ))}
             </div>
-            <button onClick={loadFeed} disabled={feedLoading} className="text-muted-foreground hover:text-white">
+            <button onClick={loadFeed} disabled={feedLoading} className="text-muted-foreground hover:text-white p-1 border-2 border-foreground/10">
               <RefreshCw className={`w-3 h-3 ${feedLoading ? 'animate-spin' : ''}`} />
             </button>
           </div>
 
           {feedLoading && feed.length === 0 ? (
-            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+            <div className="flex flex-col items-center justify-center py-6 gap-2">
+              <span className="text-2xl animate-bounce">🐵</span>
+              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+            </div>
           ) : feed.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground text-xs">
+            <div className="text-center py-6 text-muted-foreground text-xs border-4 border-dashed border-foreground/20 bg-black/40">
+              <span className="text-2xl block mb-2">🐒</span>
               No posts loaded. Register an agent and claim it to see the feed.
             </div>
           ) : (
-            <div className="space-y-1 max-h-[350px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar">
               {feed.map(post => (
-                <div key={post.id} className="p-2 border border-border bg-black/30 space-y-1">
+                <div key={post.id} className="p-2.5 border-4 border-foreground/15 bg-black/60 backdrop-blur-sm space-y-1 shadow-[3px_3px_0px_rgba(0,0,0,0.4)] hover:border-blue-500/30 transition-colors">
                   <div className="flex items-start gap-2">
-                    <div className="flex flex-col items-center text-[9px] shrink-0 pt-0.5">
+                    <div className="flex flex-col items-center text-[9px] shrink-0 pt-0.5 border-2 border-foreground/10 px-1.5 py-1 bg-black/40">
                       <ThumbsUp className="w-3 h-3 text-green-400" />
-                      <span className="text-green-400">{post.upvotes || 0}</span>
+                      <span className="text-green-400 font-display">{post.upvotes || 0}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-display text-[10px] text-white leading-tight">{post.title}</div>
+                      <div className="font-display text-[10px] text-white leading-tight drop-shadow-[1px_1px_0px_#000]">{post.title}</div>
                       <div className="text-[9px] text-muted-foreground mt-0.5 line-clamp-2">{post.content}</div>
                       <div className="flex items-center gap-2 mt-1 text-[8px] text-muted-foreground/60">
-                        <span className="text-blue-400">u/{post.author?.name}</span>
+                        <span className="text-blue-400 font-display">u/{post.author?.name}</span>
                         <span>m/{post.submolt?.name}</span>
                         <span>{post.comment_count || 0} comments</span>
                       </div>
@@ -288,32 +294,32 @@ export default function SwarmMonkeyPanel() {
         <>
           <button onClick={() => { setShowForm(!showForm); setRegisterLog([]); setRegisterDone(false); setRegisterResult(null); }}
             data-testid="button-register-agent"
-            className="w-full flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[10px] font-display hover:bg-blue-500/30 transition-colors">
-            {showForm ? <><X className="w-3 h-3" /> CANCEL</> : <><Plus className="w-3 h-3" /> REGISTER NEW AGENT</>}
+            className="w-full flex items-center justify-center gap-1 px-2 py-2 border-4 border-blue-500/50 bg-blue-500/10 text-blue-400 text-[10px] font-display hover:bg-blue-500/20 transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.6)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px]">
+            {showForm ? <><X className="w-3 h-3" /> CANCEL</> : <><Plus className="w-3 h-3" /> REGISTER NEW AGENT 🐒</>}
           </button>
 
           {showForm && (
-            <div className="border-2 border-blue-500/30 bg-blue-500/5">
+            <div className="border-4 border-blue-500/40 bg-black/60 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.6)]">
               {!registerDone && (
                 <form onSubmit={handleRegister} className="p-3 space-y-2">
-                  <div className="font-display text-[9px] text-blue-400 flex items-center gap-1 mb-1">
-                    <Server className="w-3 h-3" /> REGISTER ON MOLTBOOK
+                  <div className="font-display text-[9px] text-blue-400 flex items-center gap-1 mb-1 drop-shadow-[1px_1px_0px_#000]">
+                    <span className="text-sm">🤖</span> <Server className="w-3 h-3" /> REGISTER ON MOLTBOOK
                   </div>
                   <input value={name} onChange={e => setName(e.target.value)} placeholder="Agent name (lowercase, no spaces)"
                     data-testid="input-agent-name" disabled={registering}
-                    className="w-full bg-black/50 border-2 border-border text-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50" />
+                    className="w-full bg-black/60 border-4 border-foreground/20 text-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]" />
                   <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (what does this agent do?)"
                     disabled={registering}
-                    className="w-full bg-black/50 border-2 border-border text-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50" />
+                    className="w-full bg-black/60 border-4 border-foreground/20 text-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]" />
                   <button type="submit" disabled={registering || !name.trim()} data-testid="button-submit-register"
-                    className="w-full retro-button retro-button-primary text-[10px] py-2 disabled:opacity-50 flex items-center justify-center gap-2">
-                    {registering ? <><Loader2 className="w-3 h-3 animate-spin" /> REGISTERING...</> : <><Server className="w-3 h-3" /> REGISTER</>}
+                    className="w-full py-2.5 text-[10px] font-display disabled:opacity-50 flex items-center justify-center gap-2 border-4 border-blue-500/60 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.6)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px]">
+                    {registering ? <><Loader2 className="w-3 h-3 animate-spin" /> REGISTERING...</> : <><Server className="w-3 h-3" /> REGISTER 🐵</>}
                   </button>
                 </form>
               )}
 
               {registerLog.length > 0 && (
-                <div ref={logRef} className={`${!registerDone ? 'border-t border-blue-500/20' : ''} bg-black/60 p-2.5 max-h-[200px] overflow-y-auto custom-scrollbar font-mono text-[10px] space-y-0.5`}>
+                <div ref={logRef} className={`${!registerDone ? 'border-t-4 border-blue-500/20' : ''} bg-black/80 p-2.5 max-h-[200px] overflow-y-auto custom-scrollbar font-mono text-[10px] space-y-0.5`}>
                   {registerLog.map((line, i) => (
                     <div key={i} className={`whitespace-pre-wrap break-all ${
                       line.startsWith('[OK]') ? 'text-green-400' :
@@ -329,36 +335,36 @@ export default function SwarmMonkeyPanel() {
               )}
 
               {registerDone && (
-                <div className="p-3 border-t border-green-500/20 space-y-2">
+                <div className="p-3 border-t-4 border-green-500/30 space-y-2">
                   {registerResult?.claimUrl ? (
                     <>
-                      <div className="font-display text-[9px] text-orange-400 mb-1">CLAIM YOUR AGENT</div>
-                      <div className="p-2 bg-black/40 border border-orange-500/30 space-y-2">
+                      <div className="font-display text-[9px] text-orange-400 mb-1 flex items-center gap-1 drop-shadow-[1px_1px_0px_#000]">🔑 CLAIM YOUR AGENT</div>
+                      <div className="p-2.5 bg-black/40 border-4 border-orange-500/30 space-y-2 shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
                         <div className="text-[10px] text-muted-foreground">
                           Send this claim link to your human. They'll verify their email and tweet to activate:
                         </div>
                         <div className="flex items-center gap-2">
                           <code className="text-[9px] text-orange-400 font-mono flex-1 truncate">{registerResult.claimUrl}</code>
                           <button onClick={() => copyToClipboard(registerResult.claimUrl)}
-                            className="shrink-0 px-2 py-1 border border-orange-500/50 text-orange-400 text-[9px] font-display hover:bg-orange-500/10 flex items-center gap-1">
+                            className="shrink-0 px-2 py-1 border-4 border-orange-500/50 text-orange-400 text-[9px] font-display hover:bg-orange-500/10 flex items-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                             {copied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
                             {copied ? 'COPIED' : 'COPY'}
                           </button>
                         </div>
                         <a href={registerResult.claimUrl} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-3 py-2 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[10px] font-display hover:bg-blue-500/30 transition-colors justify-center">
+                          className="flex items-center gap-1 px-3 py-2 bg-blue-500/20 border-4 border-blue-500/50 text-blue-400 text-[10px] font-display hover:bg-blue-500/30 transition-colors justify-center shadow-[3px_3px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]">
                           <ExternalLink className="w-3 h-3" /> OPEN CLAIM PAGE
                         </a>
                       </div>
                     </>
                   ) : (
-                    <div className="p-2 bg-green-500/10 border border-green-500/30 text-center">
-                      <div className="font-display text-[10px] text-green-400">REGISTERED ON MOLTBOOK</div>
+                    <div className="p-2 bg-green-500/10 border-4 border-green-500/30 text-center shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
+                      <div className="font-display text-[10px] text-green-400 drop-shadow-[1px_1px_0px_#000]">REGISTERED ON MOLTBOOK 🐒</div>
                       <div className="text-[9px] text-muted-foreground mt-1">Agent is ready. Claim it to start posting.</div>
                     </div>
                   )}
                   <button onClick={() => { setShowForm(false); setRegisterLog([]); setRegisterDone(false); setRegisterResult(null); }}
-                    className="w-full py-1.5 border border-green-500/50 text-green-400 text-[10px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1">
+                    className="w-full py-2 border-4 border-green-500/50 text-green-400 text-[10px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1 shadow-[3px_3px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]">
                     <Wifi className="w-3 h-3" /> VIEW AGENTS
                   </button>
                 </div>
@@ -367,24 +373,31 @@ export default function SwarmMonkeyPanel() {
           )}
 
           {loading ? (
-            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+            <div className="flex flex-col items-center justify-center py-6 gap-2">
+              <span className="text-2xl animate-bounce">🐵</span>
+              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+            </div>
           ) : agents.length === 0 ? (
-            <div className="text-center py-8 border border-dashed border-border">
+            <div className="text-center py-8 border-4 border-dashed border-foreground/20 bg-black/40">
+              <span className="text-3xl block mb-2">🐒</span>
               <Server className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
-              <div className="text-muted-foreground text-xs">No agents registered</div>
+              <div className="text-muted-foreground text-xs font-display">No agents registered</div>
               <div className="text-muted-foreground/50 text-[10px]">Register your first agent on Moltbook</div>
             </div>
           ) : (
-            <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
               {agents.map(agent => (
-                <div key={agent.id} className="border border-border bg-black/30" data-testid={`agent-row-${agent.id}`}>
-                  <div className="flex items-center gap-3 p-2.5 hover:bg-black/50 transition-colors cursor-pointer" onClick={() => toggleExpand(agent.id)}>
+                <div key={agent.id} className="border-4 border-foreground/15 bg-black/60 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.6)] hover:border-blue-500/30 transition-colors" data-testid={`agent-row-${agent.id}`}>
+                  <div className="flex items-center gap-3 p-2.5 hover:bg-black/30 transition-colors cursor-pointer" onClick={() => toggleExpand(agent.id)}>
                     <div className="shrink-0">
                       {agent.status === 'active' ? (
-                        <Wifi className="w-3.5 h-3.5 text-green-400" />
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm">🟢</span>
+                          <Wifi className="w-3.5 h-3.5 text-green-400" />
+                        </div>
                       ) : agent.status === 'pending_claim' ? (
-                        <div className="w-3.5 h-3.5 rounded-full bg-orange-500/20 border border-orange-500 flex items-center justify-center">
-                          <span className="text-[7px] text-orange-400">!</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm">🟠</span>
                         </div>
                       ) : (
                         <WifiOff className="w-3.5 h-3.5 text-muted-foreground" />
@@ -392,13 +405,13 @@ export default function SwarmMonkeyPanel() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-display text-[10px] text-white truncate">{agent.name}</span>
-                        <span className={`text-[8px] px-1.5 py-0.5 font-display ${
-                          agent.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                          agent.status === 'pending_claim' ? 'bg-orange-500/20 text-orange-400' :
-                          'bg-gray-500/20 text-gray-400'
+                        <span className="font-display text-[10px] text-white truncate drop-shadow-[1px_1px_0px_#000]">{agent.name}</span>
+                        <span className={`text-[8px] px-1.5 py-0.5 font-display border-2 shadow-[1px_1px_0px_rgba(0,0,0,0.3)] ${
+                          agent.status === 'active' ? 'border-green-500/40 bg-green-500/20 text-green-400' :
+                          agent.status === 'pending_claim' ? 'border-orange-500/40 bg-orange-500/20 text-orange-400' :
+                          'border-gray-500/40 bg-gray-500/20 text-gray-400'
                         }`}>{agent.status === 'pending_claim' ? 'PENDING CLAIM' : agent.status.toUpperCase()}</span>
-                        <span className="text-[8px] text-blue-400 font-display">MOLTBOOK</span>
+                        <span className="text-[8px] text-blue-400 font-display border border-blue-500/20 px-1">MOLTBOOK</span>
                       </div>
                       <div className="flex items-center gap-3 text-[9px] text-muted-foreground mt-0.5">
                         <span className="font-mono">{agent.apiKeyPrefix}...</span>
@@ -415,24 +428,24 @@ export default function SwarmMonkeyPanel() {
                   </div>
 
                   {expandedAgent === agent.id && (
-                    <div className="border-t border-border bg-black/40 p-3 space-y-3">
+                    <div className="border-t-4 border-foreground/10 bg-black/40 p-3 space-y-3">
                       {agent.status === 'pending_claim' && agent.claimUrl && (
-                        <div className="p-2 border border-orange-500/30 bg-orange-500/5 space-y-2">
-                          <div className="font-display text-[9px] text-orange-400">PENDING CLAIM</div>
+                        <div className="p-2.5 border-4 border-orange-500/30 bg-orange-500/5 space-y-2 shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
+                          <div className="font-display text-[9px] text-orange-400 flex items-center gap-1 drop-shadow-[1px_1px_0px_#000]">🔑 PENDING CLAIM</div>
                           <div className="text-[10px] text-muted-foreground">
                             Your human needs to visit the claim URL, verify their email, and post a tweet to activate this agent.
                           </div>
                           <div className="flex gap-2">
                             <button onClick={() => copyToClipboard(agent.claimUrl || '')}
-                              className="flex-1 py-1 border border-orange-500/50 text-orange-400 text-[9px] font-display hover:bg-orange-500/10 flex items-center justify-center gap-1">
+                              className="flex-1 py-1.5 border-4 border-orange-500/50 text-orange-400 text-[9px] font-display hover:bg-orange-500/10 flex items-center justify-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                               {copied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />} COPY LINK
                             </button>
                             <a href={agent.claimUrl} target="_blank" rel="noopener noreferrer"
-                              className="flex-1 py-1 border border-blue-500/50 text-blue-400 text-[9px] font-display hover:bg-blue-500/10 flex items-center justify-center gap-1">
+                              className="flex-1 py-1.5 border-4 border-blue-500/50 text-blue-400 text-[9px] font-display hover:bg-blue-500/10 flex items-center justify-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                               <ExternalLink className="w-2.5 h-2.5" /> CLAIM
                             </a>
                             <button onClick={() => checkStatus(agent.id)}
-                              className="py-1 px-2 border border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 flex items-center justify-center gap-1">
+                              className="py-1.5 px-2 border-4 border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 flex items-center justify-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                               <RefreshCw className="w-2.5 h-2.5" /> CHECK
                             </button>
                           </div>
@@ -440,71 +453,65 @@ export default function SwarmMonkeyPanel() {
                       )}
 
                       <div className="grid grid-cols-3 gap-2 text-[10px]">
-                        <div className="p-2 border border-border bg-black/30">
-                          <div className="text-muted-foreground text-[8px] font-display mb-0.5">KEY</div>
+                        <div className="p-2 border-4 border-foreground/10 bg-black/30 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+                          <div className="text-muted-foreground text-[8px] font-display mb-0.5">🔑 KEY</div>
                           <div className="text-cyan-400 font-mono text-[9px]">{agent.apiKeyPrefix}...</div>
                         </div>
-                        <div className="p-2 border border-border bg-black/30">
-                          <div className="text-muted-foreground text-[8px] font-display mb-0.5">POSTS</div>
-                          <div className="text-blue-400 text-[9px]">{agent.postsCount}</div>
+                        <div className="p-2 border-4 border-foreground/10 bg-black/30 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+                          <div className="text-muted-foreground text-[8px] font-display mb-0.5">📝 POSTS</div>
+                          <div className="text-blue-400 text-[9px] font-display">{agent.postsCount}</div>
                         </div>
-                        <div className="p-2 border border-border bg-black/30">
-                          <div className="text-muted-foreground text-[8px] font-display mb-0.5">PROFILE</div>
+                        <div className="p-2 border-4 border-foreground/10 bg-black/30 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+                          <div className="text-muted-foreground text-[8px] font-display mb-0.5">🔗 PROFILE</div>
                           {agent.profileUrl ? (
                             <a href={agent.profileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-[9px] hover:underline flex items-center gap-0.5">
                               <ExternalLink className="w-2.5 h-2.5" /> View
                             </a>
                           ) : (
-                            <span className="text-muted-foreground/50 text-[9px]">Local</span>
+                            <span className="text-muted-foreground/50 text-[9px]">—</span>
                           )}
                         </div>
                       </div>
 
                       {agent.status === 'active' && (
-                        <div className="border border-blue-500/30 bg-blue-500/5 p-2 space-y-2">
-                          <div className="font-display text-[9px] text-blue-400 flex items-center gap-1">
-                            <Send className="w-3 h-3" /> POST TO MOLTBOOK
+                        <div className="border-4 border-foreground/10 bg-black/30 p-3 space-y-2 shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
+                          <div className="font-display text-[9px] text-blue-400 flex items-center gap-1 drop-shadow-[1px_1px_0px_#000]">
+                            <Send className="w-3 h-3" /> POST TO MOLTBOOK 📣
                           </div>
-                          <div className="flex gap-1">
-                            {["general", "aithoughts"].map(s => (
+                          <div className="flex gap-1 mb-1">
+                            {["general", "ai", "crypto", "dev"].map(s => (
                               <button key={s} onClick={() => setPostSubmolt(s)}
-                                className={`px-2 py-0.5 text-[8px] font-display border ${postSubmolt === s ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "border-border text-muted-foreground"}`}>
+                                className={`px-2 py-0.5 text-[8px] font-display border-2 ${postSubmolt === s ? 'border-blue-500/50 bg-blue-500/20 text-blue-400' : 'border-foreground/10 text-muted-foreground'}`}>
                                 m/{s}
                               </button>
                             ))}
                           </div>
                           <input value={postTitle} onChange={e => setPostTitle(e.target.value)} placeholder="Post title"
-                            className="w-full bg-black/50 border border-border text-white px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50" />
+                            className="w-full bg-black/60 border-4 border-foreground/15 text-white px-2 py-1.5 text-[10px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 shadow-[2px_2px_0px_rgba(0,0,0,0.2)]" />
                           <textarea value={postContent} onChange={e => setPostContent(e.target.value)} placeholder="Post content..."
-                            rows={2}
-                            className="w-full bg-black/50 border border-border text-white px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 resize-none" />
+                            className="w-full bg-black/60 border-4 border-foreground/15 text-white px-2 py-1.5 text-[10px] h-16 resize-none focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 shadow-[2px_2px_0px_rgba(0,0,0,0.2)]" />
                           <button onClick={() => handlePost(agent)} disabled={posting || !postTitle.trim() || !postContent.trim()}
-                            data-testid={`button-post-${agent.id}`}
-                            className="w-full py-1 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[9px] font-display hover:bg-blue-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
-                            {posting ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Send className="w-2.5 h-2.5" />}
-                            POST TO m/{postSubmolt}
+                            className="w-full py-2 border-4 border-blue-500/50 bg-blue-500/10 text-blue-400 text-[9px] font-display hover:bg-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-1 shadow-[3px_3px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]">
+                            {posting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Send className="w-3 h-3" /> POST 🐵</>}
                           </button>
                           {postResult && (
-                            <div className={`text-[9px] p-1.5 text-center ${postResult.startsWith('Failed') || postResult.startsWith('Error') ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-green-400 bg-green-500/10 border border-green-500/20'}`}>
+                            <div className={`text-center text-[9px] font-display py-1.5 border-2 ${postResult.includes('Failed') || postResult.includes('Error') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-green-500/30 text-green-400 bg-green-500/10'}`}>
                               {postResult}
                             </div>
                           )}
                         </div>
                       )}
 
-                      {agentLogs[agent.id] && agentLogs[agent.id].length > 0 && (
+                      {agentLogs[agent.id]?.length > 0 && (
                         <div className="space-y-1">
                           <div className="font-display text-[8px] text-muted-foreground flex items-center gap-1">
-                            <Terminal className="w-3 h-3" /> ACTIVITY LOG ({agentLogs[agent.id].length})
+                            <Terminal className="w-3 h-3" /> ACTIVITY LOG
                           </div>
                           <div className="max-h-[120px] overflow-y-auto custom-scrollbar space-y-0.5">
                             {agentLogs[agent.id].slice(0, 10).map(log => (
-                              <div key={log.id} className="flex items-start gap-2 p-1.5 bg-black/20 border border-border text-[9px]">
-                                <span className={`font-display shrink-0 ${log.status === 'completed' ? 'text-green-400' : 'text-red-400'}`}>
-                                  {log.status === 'completed' ? '✓' : '✗'}
-                                </span>
-                                <span className="text-blue-400 font-display shrink-0">{log.taskType.toUpperCase()}</span>
-                                <span className="text-muted-foreground flex-1 break-all">{log.description.slice(0, 120)}</span>
+                              <div key={log.id} className="flex items-center gap-2 text-[9px] px-2 py-1 bg-black/30 border-2 border-foreground/5">
+                                <span className={`font-display ${log.status === 'completed' ? 'text-green-400' : log.status === 'failed' ? 'text-red-400' : 'text-yellow-400'}`}>{log.status === 'completed' ? '✓' : log.status === 'failed' ? '✗' : '◎'}</span>
+                                <span className="text-muted-foreground truncate">{log.description}</span>
                               </div>
                             ))}
                           </div>

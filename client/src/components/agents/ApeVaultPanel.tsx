@@ -53,6 +53,8 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
 
   const timeSinceRefresh = lastRefresh > 0 ? Math.floor((Date.now() - lastRefresh) / 60000) : null;
 
+  const apyColor = (apy: number) => apy >= 20 ? 'text-green-400' : apy >= 5 ? 'text-yellow-400' : 'text-orange-400';
+
   const handleStake = async (vault: VaultPosition) => {
     const amt = parseFloat(stakeAmount[vault.id] || "0");
     if (amt <= 0) return;
@@ -95,24 +97,29 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-orange-400" /></div>
+      <div className="flex flex-col items-center justify-center py-8 gap-3">
+        <div className="text-2xl animate-bounce">🦍</div>
+        <Loader2 className="w-5 h-5 animate-spin text-orange-400" />
+        <span className="text-[10px] text-orange-400 font-display drop-shadow-[2px_2px_0px_#000] tracking-widest">LOADING VAULTS...</span>
+      </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-2 border-4 border-orange-500/40 bg-black/60 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.6)]">
         <div className="flex items-center gap-2">
+          <span className="text-lg">🦍</span>
           <Cpu className="w-4 h-4 text-orange-400" />
-          <span className="font-display text-[11px] text-white">SOLANA DEFI VAULTS</span>
-          <span className="text-[8px] text-muted-foreground/60 font-mono">via DeFi Llama</span>
+          <span className="font-display text-[11px] text-orange-400 drop-shadow-[2px_2px_0px_#000]">SOLANA DEFI VAULTS</span>
+          <span className="text-[8px] text-muted-foreground/60 font-mono border border-foreground/10 px-1">DeFi Llama</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
             data-testid="button-refresh-vaults"
-            className="p-1 border border-orange-500/30 text-orange-400 hover:bg-orange-500/10 transition-colors disabled:opacity-50"
+            className="p-1.5 border-4 border-orange-500/40 text-orange-400 hover:bg-orange-500/20 transition-colors disabled:opacity-50 shadow-[3px_3px_0px_rgba(0,0,0,0.6)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
           >
             <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -122,16 +129,18 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
         </div>
       </div>
 
-      <div className="flex items-center gap-3 text-[10px]">
+      <div className="flex items-center gap-3 text-[10px] p-2 border-4 border-foreground/10 bg-black/40 shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
+        <span className="text-sm">🍌</span>
         {totalStaked > 0 && (
-          <span className="font-display text-orange-400">{totalStaked.toFixed(2)} STAKED</span>
+          <span className="font-display text-orange-400 drop-shadow-[1px_1px_0px_#000]">{totalStaked.toFixed(2)} STAKED</span>
         )}
         <span className="text-muted-foreground font-display">AVG APY: <span className="text-green-400">{avgApy.toFixed(1)}%</span></span>
         <span className="text-muted-foreground font-display">{vaults.length} POOLS</span>
       </div>
 
       {wallet.connected && wallet.publicKey && (
-        <div className="flex items-center gap-2 p-2 border border-orange-500/20 bg-orange-500/5">
+        <div className="flex items-center gap-2 p-2 border-4 border-orange-500/30 bg-orange-500/10 shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
+          <span className="text-sm">🐒</span>
           <Wallet className="w-3 h-3 text-orange-400" />
           <span className="text-[9px] text-orange-400 font-display">STAKING AS:</span>
           <span className="text-[9px] text-white font-mono">{wallet.publicKey.slice(0, 8)}...{wallet.publicKey.slice(-4)}</span>
@@ -146,36 +155,45 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
 
       <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar">
         {vaults.map(v => (
-          <div key={v.id} className="p-3 border border-border bg-black/30" data-testid={`vault-${v.id}`}>
+          <div key={v.id} className="p-3 border-4 border-foreground/20 bg-black/60 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.6)] hover:border-orange-500/40 transition-colors" data-testid={`vault-${v.id}`}>
             <div className="flex items-center justify-between mb-2">
-              <div>
-                <span className="font-display text-xs text-white" data-testid={`text-vault-name-${v.id}`}>{v.vaultName}</span>
-                <span className="text-[9px] text-muted-foreground ml-2" data-testid={`text-vault-protocol-${v.id}`}>{v.protocol}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{v.protocol.includes('Jito') || v.protocol.includes('Marinade') ? '🥩' : '🏦'}</span>
+                <div>
+                  <span className="font-display text-xs text-white drop-shadow-[1px_1px_0px_#000]" data-testid={`text-vault-name-${v.id}`}>{v.vaultName}</span>
+                  <span className="text-[9px] text-muted-foreground ml-2 border border-foreground/10 px-1" data-testid={`text-vault-protocol-${v.id}`}>{v.protocol}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-green-400">
-                <Percent className="w-3 h-3" />
-                <span className="font-display text-sm" data-testid={`text-vault-apy-${v.id}`}>{v.apy}%</span>
+              <div className="flex items-center gap-1.5 px-2 py-1 border-4 border-foreground/10 bg-black/40 shadow-[2px_2px_0px_rgba(0,0,0,0.4)]">
+                <Percent className="w-3 h-3 text-green-400" />
+                <span className={`font-display text-sm ${apyColor(v.apy)} drop-shadow-[1px_1px_0px_#000]`} data-testid={`text-vault-apy-${v.id}`}>{v.apy}%</span>
               </div>
             </div>
 
             <div className="flex items-center gap-4 text-[10px] mb-2">
-              <span className="text-muted-foreground">TVL: <span className="text-white" data-testid={`text-vault-tvl-${v.id}`}>{formatTVL(v.tvl)}</span></span>
-              {v.stakedAmount > 0 && <span className="text-orange-400 font-display">YOUR STAKE: {v.stakedAmount} {v.token}</span>}
+              <span className="text-muted-foreground">TVL: <span className="text-white font-display" data-testid={`text-vault-tvl-${v.id}`}>{formatTVL(v.tvl)}</span></span>
+              {v.stakedAmount > 0 && (
+                <span className="text-orange-400 font-display border-2 border-orange-500/30 px-1.5 py-0.5 bg-orange-500/10">YOUR STAKE: {v.stakedAmount} {v.token}</span>
+              )}
             </div>
 
-            <div className="flex gap-1.5">
+            <div className="w-full h-1.5 bg-black/60 border-2 border-foreground/10 mb-2">
+              <div className={`h-full ${v.apy >= 20 ? 'bg-green-500' : v.apy >= 5 ? 'bg-yellow-500' : 'bg-orange-500'} transition-all`} style={{ width: `${Math.min(v.apy, 100)}%` }} />
+            </div>
+
+            <div className="flex gap-2">
               <input
                 value={stakeAmount[v.id] || ""}
                 onChange={e => setStakeAmount(prev => ({ ...prev, [v.id]: e.target.value }))}
                 placeholder={`Amount (${v.token})`}
                 type="number"
-                className="flex-1 bg-black/50 border border-border text-white px-2 py-1 text-[10px] focus:outline-none focus:border-orange-500 placeholder:text-muted-foreground/50"
+                className="flex-1 bg-black/60 border-4 border-foreground/20 text-white px-2 py-1.5 text-[10px] focus:outline-none focus:border-orange-500 placeholder:text-muted-foreground/50 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]"
               />
               <button
                 onClick={() => handleStake(v)}
                 disabled={staking === `stake-${v.id}` || !stakeAmount[v.id]}
                 data-testid={`button-stake-${v.id}`}
-                className="px-2 py-1 border border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors flex items-center gap-1 disabled:opacity-50"
+                className="px-3 py-1.5 border-4 border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors flex items-center gap-1 disabled:opacity-50 shadow-[2px_2px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
               >
                 {staking === `stake-${v.id}` ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <><ArrowDown className="w-2.5 h-2.5" /> STAKE</>}
               </button>
@@ -184,7 +202,7 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
                   onClick={() => handleUnstake(v)}
                   disabled={staking === `unstake-${v.id}`}
                   data-testid={`button-unstake-${v.id}`}
-                  className="px-2 py-1 border border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors flex items-center gap-1 disabled:opacity-50"
+                  className="px-3 py-1.5 border-4 border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors flex items-center gap-1 disabled:opacity-50 shadow-[2px_2px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
                 >
                   {staking === `unstake-${v.id}` ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <><ArrowUp className="w-2.5 h-2.5" /> EXIT</>}
                 </button>

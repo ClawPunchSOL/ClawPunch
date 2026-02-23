@@ -101,53 +101,55 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 gap-2">
+      <div className="flex flex-col items-center justify-center py-8 gap-3">
+        <div className="text-2xl animate-bounce">🍌</div>
         <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
-        <span className="text-[10px] text-muted-foreground font-display">SCANNING DEXSCREENER...</span>
+        <span className="text-[10px] text-yellow-400 font-display drop-shadow-[2px_2px_0px_#000] tracking-widest">SCANNING DEXSCREENER...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-2 border-4 border-yellow-500/40 bg-black/60 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.6)]">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-yellow-400" />
-          <span className="font-display text-[11px] text-white">VIRAL SCANNER</span>
-          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-lg">🐒</span>
+          <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />
+          <span className="font-display text-[11px] text-yellow-400 drop-shadow-[2px_2px_0px_#000]">VIRAL SCANNER</span>
+          <div className="w-2 h-2 bg-green-400 animate-pulse shadow-[0_0_6px_rgba(74,222,128,0.8)]" />
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-muted-foreground font-display">
             {tokens.length} TRENDING
           </span>
           <button onClick={handleRefresh} disabled={refreshing} data-testid="button-refresh-trends"
-            className="flex items-center gap-1 px-2 py-0.5 border border-yellow-500/30 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/10 transition-colors disabled:opacity-50">
+            className="flex items-center gap-1 px-3 py-1 border-4 border-yellow-500/50 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/20 transition-colors disabled:opacity-50 shadow-[3px_3px_0px_rgba(0,0,0,0.6)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]">
             <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'SCANNING' : 'SCAN'}
           </button>
         </div>
       </div>
 
-      <div className="flex gap-1">
+      <div className="flex gap-2">
         <button
           onClick={() => setActiveTab("solana")}
           data-testid="tab-solana-trending"
-          className={`flex-1 py-1.5 text-[10px] font-display border-2 transition-colors ${activeTab === "solana" ? "border-yellow-500 bg-yellow-500/20 text-yellow-400" : "border-border text-muted-foreground hover:border-yellow-500/30"}`}
+          className={`flex-1 py-2 text-[10px] font-display border-4 transition-colors shadow-[3px_3px_0px_rgba(0,0,0,0.6)] ${activeTab === "solana" ? "border-yellow-500 bg-yellow-500/20 text-yellow-400" : "border-foreground/30 text-muted-foreground hover:border-yellow-500/30"}`}
         >
           <Flame className="w-3 h-3 inline mr-1" />SOLANA VIRAL ({tokens.length})
         </button>
         <button
           onClick={() => setActiveTab("global")}
           data-testid="tab-global-trending"
-          className={`flex-1 py-1.5 text-[10px] font-display border-2 transition-colors ${activeTab === "global" ? "border-yellow-500 bg-yellow-500/20 text-yellow-400" : "border-border text-muted-foreground hover:border-yellow-500/30"}`}
+          className={`flex-1 py-2 text-[10px] font-display border-4 transition-colors shadow-[3px_3px_0px_rgba(0,0,0,0.6)] ${activeTab === "global" ? "border-yellow-500 bg-yellow-500/20 text-yellow-400" : "border-foreground/30 text-muted-foreground hover:border-yellow-500/30"}`}
         >
           <BarChart3 className="w-3 h-3 inline mr-1" />GLOBAL TREND ({globalTrends.length})
         </button>
       </div>
 
-
       {wallet.connected && wallet.publicKey && (
-        <div className="flex items-center gap-2 px-2 py-1.5 border border-yellow-500/20 bg-yellow-500/5">
+        <div className="flex items-center gap-2 px-3 py-2 border-4 border-yellow-500/30 bg-yellow-500/10 shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
+          <span className="text-sm">🦍</span>
           <Wallet className="w-3 h-3 text-yellow-400" />
           <span className="text-[9px] text-yellow-400 font-display">CONNECTED:</span>
           <span className="text-[9px] text-white font-mono">{shortAddress(wallet.publicKey)}</span>
@@ -159,57 +161,57 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
 
       <button
         onClick={() => setShowRawData(!showRawData)}
-        className="w-full flex items-center justify-between px-2 py-1.5 border border-border bg-black/20 hover:bg-black/40 transition-colors"
+        className="w-full flex items-center justify-between px-3 py-2 border-4 border-foreground/20 bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-colors shadow-[3px_3px_0px_rgba(0,0,0,0.4)]"
         data-testid="toggle-raw-data"
       >
-        <span className="text-[9px] text-muted-foreground font-display">RAW TOKEN DATA ({tokens.length} tokens)</span>
+        <span className="text-[9px] text-muted-foreground font-display flex items-center gap-1">🍌 RAW TOKEN DATA ({tokens.length} tokens)</span>
         {showRawData ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
       </button>
 
       {showRawData && (
         <>
           {activeTab === "solana" && (
-            <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
               {tokens.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground text-xs">
-                  No trending tokens found. Hit SCAN to refresh.
+                <div className="text-center py-6 text-muted-foreground text-xs border-4 border-dashed border-foreground/20 bg-black/40">
+                  No trending tokens found. Hit SCAN to refresh. 🐒
                 </div>
               ) : (
                 <>
-                  <div className="text-[8px] text-muted-foreground/60 px-1">
+                  <div className="text-[8px] text-muted-foreground/60 px-1 font-display">
                     Live from DexScreener — most boosted Solana tokens right now
                   </div>
                   {tokens.map((t, i) => {
                     const isHot = t.priceChange5m > 5 || t.priceChange1h > 10;
                     const isDumping = t.priceChange1h < -15;
                     return (
-                      <div key={t.address} className={`p-2.5 border bg-black/30 hover:bg-black/50 transition-colors ${isHot ? 'border-yellow-500/40' : isDumping ? 'border-red-500/30' : 'border-border'}`} data-testid={`trending-token-${t.address}`}>
-                        <div className="flex items-center justify-between mb-1.5">
+                      <div key={t.address} className={`p-3 border-4 bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-all shadow-[4px_4px_0px_rgba(0,0,0,0.6)] ${isHot ? 'border-yellow-500/60' : isDumping ? 'border-red-500/50' : 'border-foreground/20'}`} data-testid={`trending-token-${t.address}`}>
+                        <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-muted-foreground font-display">#{i + 1}</span>
-                            <span className="font-display text-xs text-white">${t.symbol}</span>
+                            <span className="text-[9px] text-muted-foreground font-display bg-black/40 px-1.5 py-0.5 border-2 border-foreground/10">#{i + 1}</span>
+                            <span className="font-display text-xs text-white drop-shadow-[1px_1px_0px_#000]">${t.symbol}</span>
                             <span className="text-[9px] text-muted-foreground truncate max-w-[100px]">{t.name}</span>
-                            {isHot && <Flame className="w-3 h-3 text-orange-400" />}
+                            {isHot && <span className="text-sm animate-pulse">🔥</span>}
                             {t.socials.includes("twitter") && <Twitter className="w-2.5 h-2.5 text-blue-400/60" />}
                             {t.socials.includes("telegram") && <MessageCircle className="w-2.5 h-2.5 text-blue-400/60" />}
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-display text-yellow-400">{formatPrice(t.price)}</span>
-                            <span className="text-[8px] text-muted-foreground/50 font-display">BOOST:{t.boostAmount}</span>
+                            <span className="text-[10px] font-display text-yellow-400 drop-shadow-[1px_1px_0px_#000]">{formatPrice(t.price)}</span>
+                            <span className="text-[8px] text-muted-foreground/50 font-display border border-foreground/10 px-1">BOOST:{t.boostAmount}</span>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between mb-1.5 text-[9px]">
+                        <div className="flex items-center justify-between mb-2 text-[9px]">
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-black/40 border-2 border-foreground/10">
                               <span className="text-muted-foreground">5m:</span>
                               <ChangeTag val={t.priceChange5m} />
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-black/40 border-2 border-foreground/10">
                               <span className="text-muted-foreground">1h:</span>
                               <ChangeTag val={t.priceChange1h} />
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-black/40 border-2 border-foreground/10">
                               <span className="text-muted-foreground">24h:</span>
                               <ChangeTag val={t.priceChange24h} />
                             </div>
@@ -219,28 +221,28 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
                         <div className="flex items-center justify-between text-[9px] mb-2">
                           <div className="flex items-center gap-3">
                             {t.volume24h > 0 && (
-                              <span className="text-muted-foreground">Vol: <span className="text-white">{formatCompact(t.volume24h)}</span></span>
+                              <span className="text-muted-foreground">Vol: <span className="text-white font-display">{formatCompact(t.volume24h)}</span></span>
                             )}
                             {t.liquidity > 0 && (
-                              <span className="text-muted-foreground">Liq: <span className="text-white">{formatCompact(t.liquidity)}</span></span>
+                              <span className="text-muted-foreground">Liq: <span className="text-white font-display">{formatCompact(t.liquidity)}</span></span>
                             )}
                             {t.marketCap > 0 && (
-                              <span className="text-muted-foreground">MCap: <span className="text-white">{formatCompact(t.marketCap)}</span></span>
+                              <span className="text-muted-foreground">MCap: <span className="text-white font-display">{formatCompact(t.marketCap)}</span></span>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-2">
                           <a href={t.dexUrl} target="_blank" rel="noopener noreferrer" data-testid={`dex-link-${t.address}`}
-                            className="flex-1 py-1 border border-yellow-500/50 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/10 transition-colors flex items-center justify-center gap-1">
+                            className="flex-1 py-1.5 border-4 border-yellow-500/50 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/10 transition-colors flex items-center justify-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                             <ExternalLink className="w-2.5 h-2.5" /> CHART
                           </a>
                           <a href={`https://jup.ag/swap/SOL-${t.address}`} target="_blank" rel="noopener noreferrer" data-testid={`buy-link-${t.address}`}
-                            className="flex-1 py-1 border border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1">
+                            className="flex-1 py-1.5 border-4 border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                             <TrendingUp className="w-2.5 h-2.5" /> BUY
                           </a>
                           <a href={`https://jup.ag/swap/${t.address}-SOL`} target="_blank" rel="noopener noreferrer" data-testid={`sell-link-${t.address}`}
-                            className="flex-1 py-1 border border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1">
+                            className="flex-1 py-1.5 border-4 border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                             <TrendingDown className="w-2.5 h-2.5" /> SELL
                           </a>
                         </div>
@@ -252,30 +254,30 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
             </div>
           )}
           {activeTab === "global" && (
-            <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
               {globalTrends.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground text-xs">
-                  Loading global trends...
+                <div className="text-center py-6 text-muted-foreground text-xs border-4 border-dashed border-foreground/20 bg-black/40">
+                  Loading global trends... 🌍
                 </div>
               ) : (
                 <>
-                  <div className="text-[8px] text-muted-foreground/60 px-1">
+                  <div className="text-[8px] text-muted-foreground/60 px-1 font-display">
                     CoinGecko trending — what the world is searching right now
                   </div>
                   {globalTrends.map((t, i) => (
-                    <div key={t.id} className="p-2.5 border border-border bg-black/30 hover:bg-black/50 transition-colors" data-testid={`global-trend-${t.id}`}>
+                    <div key={t.id} className="p-3 border-4 border-foreground/20 bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-all shadow-[4px_4px_0px_rgba(0,0,0,0.6)]" data-testid={`global-trend-${t.id}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] text-muted-foreground font-display">#{i + 1}</span>
-                          {t.thumb && <img src={t.thumb} alt="" className="w-4 h-4 rounded-full" />}
-                          <span className="font-display text-xs text-white">{t.symbol}</span>
+                          <span className="text-[9px] text-muted-foreground font-display bg-black/40 px-1.5 py-0.5 border-2 border-foreground/10">#{i + 1}</span>
+                          {t.thumb && <img src={t.thumb} alt="" className="w-5 h-5 border-2 border-foreground/20" style={{ imageRendering: 'pixelated' }} />}
+                          <span className="font-display text-xs text-white drop-shadow-[1px_1px_0px_#000]">{t.symbol}</span>
                           <span className="text-[9px] text-muted-foreground">{t.name}</span>
                           {t.marketCapRank && (
-                            <span className="text-[8px] text-muted-foreground/50">Rank #{t.marketCapRank}</span>
+                            <span className="text-[8px] text-muted-foreground/50 border border-foreground/10 px-1">Rank #{t.marketCapRank}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {t.price > 0 && <span className="text-[10px] font-display text-yellow-400">{formatPrice(t.price)}</span>}
+                          {t.price > 0 && <span className="text-[10px] font-display text-yellow-400 drop-shadow-[1px_1px_0px_#000]">{formatPrice(t.price)}</span>}
                           <ChangeTag val={t.priceChange24h} />
                         </div>
                       </div>
