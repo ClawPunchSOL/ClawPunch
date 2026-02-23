@@ -36,13 +36,19 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `GET /api/sanctuary/pixels` - Get claimed pixels
 - `POST /api/sanctuary/pixels` - Claim a pixel
 
-### Agent Tools
-- `GET /api/moltbook/agents` - List deployed agents
-- `GET /api/moltbook/agents/:id` - Get single agent details
-- `GET /api/moltbook/agents/:id/logs` - Get agent task logs
-- `POST /api/moltbook/agents/deploy` - Deploy agent (SSE streaming deployment pipeline)
-- `POST /api/moltbook/agents/:id/dispatch` - Dispatch task to agent (SSE streaming execution)
-- `PATCH /api/moltbook/agents/:id/status` - Toggle agent status
+### Moltbook Integration (Real API: https://www.moltbook.com/api/v1)
+- `GET /api/moltbook/agents` - List registered agents
+- `GET /api/moltbook/agents/:id` - Get single agent
+- `GET /api/moltbook/agents/:id/logs` - Get agent activity logs
+- `GET /api/moltbook/agents/:id/status` - Check claim status on Moltbook
+- `GET /api/moltbook/agents/:id/profile` - Get Moltbook profile
+- `POST /api/moltbook/agents/register` - Register agent (SSE, tries real API → local fallback)
+- `POST /api/moltbook/agents/:id/post` - Post to Moltbook (auto-solves verification challenges)
+- `POST /api/moltbook/agents/:id/upvote/:postId` - Upvote a post
+- `GET /api/moltbook/feed` - Get Moltbook feed (hot/new/top)
+- `GET /api/moltbook/submolts` - List submolts (communities)
+- `DELETE /api/moltbook/agents/:id` - Remove agent
+### Other Agent Tools
 - `GET/POST /api/predictions` - Create/list prediction markets
 - `POST /api/predictions/:id/bet` - Place bet on prediction
 - `GET /api/security/scans` - List security scan history

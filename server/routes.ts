@@ -142,6 +142,52 @@ export async function registerRoutes(
   // === MOLTBOOK INTEGRATION (Real API: https://www.moltbook.com/api/v1) ===
   const MOLTBOOK_API = "https://www.moltbook.com/api/v1";
 
+  const moltFetch = async (path: string, opts: RequestInit = {}, timeoutMs = 10000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${MOLTBOOK_API}${path}`, { ...opts, signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (e: any) {
+      clearTimeout(timer);
+      throw e;
+    }
+  };
+
+  const solveVerificationChallenge = (challengeText: string): string => {
+    const cleaned = challengeText.replace(/[\[\]^\/\-{}()\\]/g, '').replace(/\s+/g, ' ').toLowerCase();
+    const wordToNum: Record<string, number> = {
+      zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
+      eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,
+      eighteen:18,nineteen:19,twenty:20,twentyone:21,twentytwo:22,twentythree:23,
+      twentyfour:24,twentyfive:25,thirty:30,thirtyfive:35,forty:40,fortyfive:45,
+      fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100,
+      thousand:1000,million:1000000
+    };
+    const numbers: number[] = [];
+    const words = cleaned.split(/\s+/);
+    for (const w of words) {
+      if (wordToNum[w] !== undefined) numbers.push(wordToNum[w]);
+      else if (/^\d+(\.\d+)?$/.test(w)) numbers.push(parseFloat(w));
+    }
+    if (numbers.length < 2) return "0.00";
+    const a = numbers[0], b = numbers[1];
+    let result = 0;
+    if (cleaned.includes('plus') || cleaned.includes('adds') || cleaned.includes('gains') || cleaned.includes('increases by') || cleaned.includes('more')) {
+      result = a + b;
+    } else if (cleaned.includes('minus') || cleaned.includes('slows by') || cleaned.includes('loses') || cleaned.includes('decreases by') || cleaned.includes('less') || cleaned.includes('subtracts') || cleaned.includes('drops')) {
+      result = a - b;
+    } else if (cleaned.includes('times') || cleaned.includes('multiplied') || cleaned.includes('multiplies')) {
+      result = a * b;
+    } else if (cleaned.includes('divided') || cleaned.includes('splits into') || cleaned.includes('per')) {
+      result = b !== 0 ? a / b : 0;
+    } else {
+      result = a + b;
+    }
+    return result.toFixed(2);
+  };
+
   app.get("/api/moltbook/agents", async (_req, res) => {
     try {
       const agents = await storage.getAllMoltbookAgents();
@@ -182,74 +228,48 @@ export async function registerRoutes(
 
       const send = (data: any) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-      send({ stage: "init", message: "Connecting to Moltbook Network..." });
-
       const agentSlug = `${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Math.random().toString(36).slice(2, 6)}`;
+      send({ stage: "init", message: `Registering "${agentSlug}" on Moltbook Network...` });
 
       let apiKey = "";
       let claimUrl = "";
       let verificationCode = "";
-      let moltbookAgentId: string | null = null;
       let profileUrl: string | null = null;
       let registeredRemotely = false;
 
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-
-        const registerRes = await fetch(`${MOLTBOOK_API}/agents/register`, {
+        const registerRes = await moltFetch("/agents/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: agentSlug, description: description || `${name} - Monkey OS agent` }),
-          signal: controller.signal,
         });
-        clearTimeout(timeout);
 
         if (registerRes.ok) {
-          const moltbookResponse = await registerRes.json();
-          const agentData = moltbookResponse.agent || moltbookResponse;
-          apiKey = agentData.api_key || agentData.apiKey || "";
-          claimUrl = agentData.claim_url || agentData.claimUrl || "";
-          verificationCode = agentData.verification_code || agentData.verificationCode || "";
-          moltbookAgentId = agentData.id?.toString() || null;
-          profileUrl = agentData.profile_url || agentData.profileUrl || null;
+          const data = await registerRes.json();
+          const agent = data.agent || data;
+          apiKey = agent.api_key || "";
+          claimUrl = agent.claim_url || "";
+          verificationCode = agent.verification_code || "";
+          profileUrl = `https://www.moltbook.com/u/${agentSlug}`;
           registeredRemotely = true;
-          send({ stage: "registered", message: `Registered on Moltbook Network!` });
+          send({ stage: "registered", message: `Registered on Moltbook! API key received.` });
+          send({ stage: "keys", message: `API Key: ${apiKey.slice(0, 16)}...` });
+          if (claimUrl) send({ stage: "claim", message: `Claim URL: ${claimUrl}`, claimUrl });
+          if (verificationCode) send({ stage: "verify", message: `Verification: ${verificationCode}` });
         } else {
-          send({ stage: "fallback", message: `Moltbook API returned ${registerRes.status} — registering locally` });
+          let errMsg = "";
+          try { const j = await registerRes.json(); errMsg = j.message || j.error || ""; } catch {}
+          send({ stage: "warn", message: `Moltbook: ${registerRes.status} ${errMsg || 'error'} — registering locally` });
         }
-      } catch (fetchErr: any) {
-        send({ stage: "fallback", message: `Moltbook API unreachable — registering locally` });
+      } catch (e: any) {
+        send({ stage: "warn", message: `Moltbook unreachable (${e.name === 'AbortError' ? 'timeout' : e.message}) — registering locally` });
       }
 
-      const apiKeyPrefix = apiKey ? apiKey.slice(0, 16) : `molt_${Math.random().toString(36).slice(2, 10)}`;
-      if (!apiKey) apiKey = `molt_${Math.random().toString(36).slice(2, 10)}_${Math.random().toString(36).slice(2, 18)}`;
-      if (!verificationCode) verificationCode = `MOLT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-
-      send({ stage: "keys", message: `API Key: ${apiKeyPrefix}...` });
-      send({ stage: "configuring", message: "Provisioning agent runtime..." });
-      await new Promise(r => setTimeout(r, 300));
-
-      let aiConfig = "";
-      try {
-        const stream = anthropic.messages.stream({
-          model: "claude-sonnet-4-5",
-          max_tokens: 200,
-          messages: [{ role: "user", content: `You are Moltbook Network. Agent "${name}" (${description || 'general purpose'}) just registered. Generate a 3-line deployment config in terse terminal style: resources allocated, network config, security status. No markdown.` }],
-        });
-        for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            aiConfig += event.delta.text;
-            send({ stage: "configuring", message: event.delta.text, streaming: true });
-          }
-        }
-      } catch {
-        aiConfig = `vCPU: 2 | RAM: 4GB | Network: mesh-p2p | Security: mTLS enabled`;
-        send({ stage: "configuring", message: aiConfig });
+      if (!apiKey) {
+        apiKey = `local_${Math.random().toString(36).slice(2, 18)}`;
+        verificationCode = "";
       }
-
-      send({ stage: "deploying", message: "Deploying to swarm..." });
-      await new Promise(r => setTimeout(r, 400));
+      const apiKeyPrefix = apiKey.slice(0, 16);
 
       const agent = await storage.createMoltbookAgent({
         name: agentSlug,
@@ -257,10 +277,10 @@ export async function registerRoutes(
         capabilities: description || "general",
         apiKey,
         apiKeyPrefix,
-        status: registeredRemotely ? "pending_verification" : "active",
-        claimUrl,
-        verificationCode,
-        moltbookAgentId,
+        status: registeredRemotely ? "pending_claim" : "active",
+        claimUrl: claimUrl || null,
+        verificationCode: verificationCode || null,
+        moltbookAgentId: null,
         profileUrl,
         description: description || "",
         postsCount: 0,
@@ -269,24 +289,74 @@ export async function registerRoutes(
       await storage.createTaskLog({
         agentId: agent.id,
         taskType: "registration",
-        description: `Agent deployed${registeredRemotely ? ' + registered on Moltbook' : ' locally'}. Key: ${apiKeyPrefix}...`,
+        description: registeredRemotely
+          ? `Registered on Moltbook. Claim: ${claimUrl}`
+          : `Registered locally. Key: ${apiKeyPrefix}...`,
         status: "completed",
         durationMs: 0,
       });
 
       send({
         stage: "done",
-        message: `Agent "${agentSlug}" is LIVE!`,
+        message: registeredRemotely
+          ? `"${agentSlug}" registered on Moltbook! Send claim URL to your human to activate.`
+          : `"${agentSlug}" registered locally and is active.`,
         agent: { ...agent, apiKey: undefined },
         claimUrl: claimUrl || null,
-        verificationCode,
+        verificationCode: verificationCode || null,
         registeredRemotely,
       });
       res.end();
     } catch (error: any) {
       console.error("[moltbook register]", error?.message || error);
-      res.write(`data: ${JSON.stringify({ stage: "error", message: "Registration failed" })}\n\n`);
+      res.write(`data: ${JSON.stringify({ stage: "error", message: `Registration failed: ${error?.message}` })}\n\n`);
       res.end();
+    }
+  });
+
+  app.get("/api/moltbook/agents/:id/status", async (req, res) => {
+    try {
+      const agent = await storage.getMoltbookAgent(parseInt(req.params.id));
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      if (!agent.apiKey || agent.apiKey.startsWith("local_")) {
+        return res.json({ status: agent.status, local: true });
+      }
+
+      const statusRes = await moltFetch("/agents/status", {
+        headers: { "Authorization": `Bearer ${agent.apiKey}` },
+      });
+      if (statusRes.ok) {
+        const data = await statusRes.json();
+        const newStatus = data.status === "claimed" ? "active" : data.status || agent.status;
+        if (newStatus !== agent.status) {
+          await storage.updateMoltbookAgent(agent.id, { status: newStatus });
+        }
+        return res.json({ ...data, dbStatus: newStatus });
+      }
+      res.json({ status: agent.status });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message });
+    }
+  });
+
+  app.get("/api/moltbook/agents/:id/profile", async (req, res) => {
+    try {
+      const agent = await storage.getMoltbookAgent(parseInt(req.params.id));
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      if (!agent.apiKey || agent.apiKey.startsWith("local_")) {
+        return res.json({ agent: { name: agent.name, description: agent.description, local: true } });
+      }
+
+      const profileRes = await moltFetch("/agents/me", {
+        headers: { "Authorization": `Bearer ${agent.apiKey}` },
+      });
+      if (profileRes.ok) {
+        const data = await profileRes.json();
+        return res.json(data);
+      }
+      res.json({ agent: { name: agent.name, description: agent.description } });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message });
     }
   });
 
@@ -299,8 +369,11 @@ export async function registerRoutes(
       const agent = await storage.getMoltbookAgent(id);
       if (!agent) return res.status(404).json({ error: "Agent not found" });
       if (!agent.apiKey) return res.status(400).json({ error: "Agent has no API key" });
+      if (agent.apiKey.startsWith("local_")) {
+        return res.status(400).json({ error: "Local agents cannot post to Moltbook. Register on the real network first." });
+      }
 
-      const postRes = await fetch(`${MOLTBOOK_API}/posts`, {
+      const postRes = await moltFetch("/posts", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${agent.apiKey}`,
@@ -309,22 +382,55 @@ export async function registerRoutes(
         body: JSON.stringify({ submolt: submolt || "general", title, content }),
       });
 
+      const postData = await postRes.json();
+
       if (!postRes.ok) {
-        const errText = await postRes.text();
-        return res.status(postRes.status).json({ error: `Moltbook error: ${errText}` });
+        return res.status(postRes.status).json({ error: postData.message || postData.error || "Post failed" });
       }
 
-      const post = await postRes.json();
+      if (postData.verification_required && postData.post?.verification) {
+        const v = postData.post.verification;
+        const answer = solveVerificationChallenge(v.challenge_text);
+        
+        try {
+          const verifyRes = await moltFetch("/verify", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${agent.apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ verification_code: v.verification_code, answer }),
+          });
+          const verifyData = await verifyRes.json();
+
+          if (verifyData.success) {
+            await storage.updateMoltbookAgent(id, { postsCount: (agent.postsCount || 0) + 1 });
+            await storage.createTaskLog({
+              agentId: id, taskType: "post",
+              description: `Posted to m/${submolt || 'general'}: ${title} (verified)`,
+              status: "completed", durationMs: 0,
+            });
+            return res.json({ success: true, post: postData.post, verified: true });
+          } else {
+            await storage.createTaskLog({
+              agentId: id, taskType: "post",
+              description: `Post verification failed: ${verifyData.error}`,
+              status: "failed", durationMs: 0,
+            });
+            return res.json({ success: false, error: "Verification failed", details: verifyData });
+          }
+        } catch (verifyErr: any) {
+          return res.status(500).json({ error: `Verification request failed: ${verifyErr.message}` });
+        }
+      }
+
       await storage.updateMoltbookAgent(id, { postsCount: (agent.postsCount || 0) + 1 });
       await storage.createTaskLog({
-        agentId: id,
-        taskType: "post",
+        agentId: id, taskType: "post",
         description: `Posted to m/${submolt || 'general'}: ${title}`,
-        status: "completed",
-        durationMs: 0,
+        status: "completed", durationMs: 0,
       });
-
-      res.json(post);
+      res.json({ success: true, post: postData.post || postData });
     } catch (error: any) {
       res.status(500).json({ error: `Failed to post: ${error?.message}` });
     }
@@ -332,24 +438,62 @@ export async function registerRoutes(
 
   app.get("/api/moltbook/feed", async (req, res) => {
     try {
+      const sort = (req.query.sort as string) || "hot";
+      const limit = parseInt(req.query.limit as string) || 20;
       const agentId = req.query.agentId ? parseInt(req.query.agentId as string) : null;
-      let apiKey = "";
 
+      let apiKey = "";
       if (agentId) {
         const agent = await storage.getMoltbookAgent(agentId);
-        if (agent?.apiKey) apiKey = agent.apiKey;
+        if (agent?.apiKey && !agent.apiKey.startsWith("local_")) apiKey = agent.apiKey;
       }
 
       const headers: Record<string, string> = {};
       if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
-      const feedRes = await fetch(`${MOLTBOOK_API}/posts?sort=hot&limit=20`, { headers });
-      if (!feedRes.ok) return res.status(feedRes.status).json({ error: "Failed to fetch Moltbook feed" });
-
-      const feed = await feedRes.json();
-      res.json(feed);
+      const feedRes = await moltFetch(`/posts?sort=${sort}&limit=${limit}`, { headers });
+      if (!feedRes.ok) {
+        const errData = await feedRes.json().catch(() => ({}));
+        return res.status(feedRes.status).json({ error: errData.message || "Failed to fetch feed" });
+      }
+      res.json(await feedRes.json());
     } catch (error: any) {
       res.status(500).json({ error: `Feed error: ${error?.message}` });
+    }
+  });
+
+  app.get("/api/moltbook/submolts", async (req, res) => {
+    try {
+      const agentId = req.query.agentId ? parseInt(req.query.agentId as string) : null;
+      let apiKey = "";
+      if (agentId) {
+        const agent = await storage.getMoltbookAgent(agentId);
+        if (agent?.apiKey && !agent.apiKey.startsWith("local_")) apiKey = agent.apiKey;
+      }
+      const headers: Record<string, string> = {};
+      if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+      const subRes = await moltFetch("/submolts", { headers });
+      if (!subRes.ok) return res.status(subRes.status).json({ error: "Failed to fetch submolts" });
+      res.json(await subRes.json());
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message });
+    }
+  });
+
+  app.post("/api/moltbook/agents/:id/upvote/:postId", async (req, res) => {
+    try {
+      const agent = await storage.getMoltbookAgent(parseInt(req.params.id));
+      if (!agent?.apiKey || agent.apiKey.startsWith("local_"))
+        return res.status(400).json({ error: "Need a real Moltbook agent" });
+
+      const voteRes = await moltFetch(`/posts/${req.params.postId}/upvote`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${agent.apiKey}` },
+      });
+      res.json(await voteRes.json());
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message });
     }
   });
 
