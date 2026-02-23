@@ -40,7 +40,23 @@ export const moltbookAgents = pgTable("moltbook_agents", {
   status: text("status").notNull().default("active"),
   apiKeyPrefix: text("api_key_prefix").notNull(),
   capabilities: text("capabilities").notNull(),
+  endpoint: text("endpoint").notNull().default("https://moltbook.network/v1"),
+  region: text("region").notNull().default("us-east-1"),
+  tasksCompleted: integer("tasks_completed").notNull().default(0),
+  tasksFailed: integer("tasks_failed").notNull().default(0),
+  uptimeSeconds: integer("uptime_seconds").notNull().default(0),
+  lastHeartbeat: timestamp("last_heartbeat").default(sql`CURRENT_TIMESTAMP`).notNull(),
   registeredAt: timestamp("registered_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const agentTaskLogs = pgTable("agent_task_logs", {
+  id: serial("id").primaryKey(),
+  agentId: integer("agent_id").notNull(),
+  taskType: text("task_type").notNull(),
+  description: text("description").notNull(),
+  status: text("status").notNull().default("completed"),
+  durationMs: integer("duration_ms").notNull().default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export const predictions = pgTable("predictions", {
