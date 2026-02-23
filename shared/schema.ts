@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,14 +8,6 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
@@ -41,24 +33,89 @@ export const sanctuaryPixels = pgTable("sanctuary_pixels", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertConversationSchema = createInsertSchema(conversations).omit({
-  id: true,
-  createdAt: true,
+export const moltbookAgents = pgTable("moltbook_agents", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  status: text("status").notNull().default("active"),
+  apiKeyPrefix: text("api_key_prefix").notNull(),
+  capabilities: text("capabilities").notNull(),
+  registeredAt: timestamp("registered_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertMessageSchema = createInsertSchema(messages).omit({
-  id: true,
-  createdAt: true,
+export const predictions = pgTable("predictions", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull().default("crypto"),
+  oddsYes: real("odds_yes").notNull().default(50),
+  oddsNo: real("odds_no").notNull().default(50),
+  poolYes: real("pool_yes").notNull().default(0),
+  poolNo: real("pool_no").notNull().default(0),
+  status: text("status").notNull().default("active"),
+  resolvedOutcome: text("resolved_outcome"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertSanctuaryPixelSchema = createInsertSchema(sanctuaryPixels).omit({
-  id: true,
-  createdAt: true,
+export const predictionBets = pgTable("prediction_bets", {
+  id: serial("id").primaryKey(),
+  predictionId: integer("prediction_id").notNull().references(() => predictions.id, { onDelete: "cascade" }),
+  side: text("side").notNull(),
+  amount: real("amount").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+export const securityScans = pgTable("security_scans", {
+  id: serial("id").primaryKey(),
+  contractAddress: text("contract_address").notNull(),
+  tokenName: text("token_name"),
+  safetyScore: integer("safety_score").notNull(),
+  mintAuth: text("mint_auth").notNull(),
+  freezeAuth: text("freeze_auth").notNull(),
+  lpLocked: text("lp_locked").notNull(),
+  holderDistribution: text("holder_distribution").notNull(),
+  verdict: text("verdict").notNull(),
+  scannedAt: timestamp("scanned_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const repoScans = pgTable("repo_scans", {
+  id: serial("id").primaryKey(),
+  repoUrl: text("repo_url").notNull(),
+  repoName: text("repo_name").notNull(),
+  legitScore: integer("legit_score").notNull(),
+  commitCount: integer("commit_count").notNull(),
+  contributorCount: integer("contributor_count").notNull(),
+  findings: text("findings").notNull(),
+  recommendation: text("recommendation").notNull(),
+  scannedAt: timestamp("scanned_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).pick({ username: true, password: true });
+export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true });
+export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
+export const insertSanctuaryPixelSchema = createInsertSchema(sanctuaryPixels).omit({ id: true, createdAt: true });
+export const insertMoltbookAgentSchema = createInsertSchema(moltbookAgents).omit({ id: true, registeredAt: true });
+export const insertPredictionSchema = createInsertSchema(predictions).omit({ id: true, createdAt: true, resolvedOutcome: true });
+export const insertPredictionBetSchema = createInsertSchema(predictionBets).omit({ id: true, createdAt: true });
+export const insertSecurityScanSchema = createInsertSchema(securityScans).omit({ id: true, scannedAt: true });
+export const insertRepoScanSchema = createInsertSchema(repoScans).omit({ id: true, scannedAt: true });
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type SanctuaryPixel = typeof sanctuaryPixels.$inferSelect;
 export type InsertSanctuaryPixel = z.infer<typeof insertSanctuaryPixelSchema>;
+export type MoltbookAgent = typeof moltbookAgents.$inferSelect;
+export type InsertMoltbookAgent = z.infer<typeof insertMoltbookAgentSchema>;
+export type Prediction = typeof predictions.$inferSelect;
+export type InsertPrediction = z.infer<typeof insertPredictionSchema>;
+export type PredictionBet = typeof predictionBets.$inferSelect;
+export type InsertPredictionBet = z.infer<typeof insertPredictionBetSchema>;
+export type SecurityScan = typeof securityScans.$inferSelect;
+export type InsertSecurityScan = z.infer<typeof insertSecurityScanSchema>;
+export type RepoScan = typeof repoScans.$inferSelect;
+export type InsertRepoScan = z.infer<typeof insertRepoScanSchema>;

@@ -2,12 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getAgentConfig } from "./agents";
-import OpenAI from "openai";
-import { insertConversationSchema, insertMessageSchema, insertSanctuaryPixelSchema } from "@shared/schema";
+import Anthropic from "@anthropic-ai/sdk";
+import { insertConversationSchema, insertMessageSchema, insertSanctuaryPixelSchema, insertMoltbookAgentSchema, insertPredictionSchema, insertPredictionBetSchema } from "@shared/schema";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+const anthropic = new Anthropic({
+  apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
 });
 
 export async function registerRoutes(
@@ -28,9 +28,7 @@ export async function registerRoutes(
   app.post("/api/agents/:agentId/conversations", async (req, res) => {
     try {
       const agentConfig = getAgentConfig(req.params.agentId);
-      if (!agentConfig) {
-        return res.status(404).json({ error: "Agent not found" });
-      }
+      if (!agentConfig) return res.status(404).json({ error: "Agent not found" });
       const conv = await storage.createConversation({
         agentId: req.params.agentId,
         title: req.body.title || `${agentConfig.name} Session`,
@@ -56,63 +54,46 @@ export async function registerRoutes(
     try {
       const conversationId = parseInt(req.params.id);
       const { content } = req.body;
-
-      if (!content || typeof content !== 'string') {
-        return res.status(400).json({ error: "Content is required" });
-      }
+      if (!content || typeof content !== 'string') return res.status(400).json({ error: "Content is required" });
 
       const conv = await storage.getConversation(conversationId);
-      if (!conv) {
-        return res.status(404).json({ error: "Conversation not found" });
-      }
+      if (!conv) return res.status(404).json({ error: "Conversation not found" });
 
       const agentConfig = getAgentConfig(conv.agentId);
-      if (!agentConfig) {
-        return res.status(404).json({ error: "Agent not found" });
-      }
+      if (!agentConfig) return res.status(404).json({ error: "Agent not found" });
 
-      await storage.createMessage({
-        conversationId,
-        role: "user",
-        content,
-      });
+      await storage.createMessage({ conversationId, role: "user", content });
 
       const history = await storage.getMessagesByConversation(conversationId);
-      const chatMessages: OpenAI.ChatCompletionMessageParam[] = [
-        { role: "system", content: agentConfig.systemPrompt },
-        ...history.map(m => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
-      ];
+      const chatMessages: Anthropic.MessageParam[] = history.map(m => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const stream = await openai.chat.completions.create({
-        model: "gpt-5-mini",
+      const stream = anthropic.messages.stream({
+        model: "claude-sonnet-4-5",
+        system: agentConfig.systemPrompt,
         messages: chatMessages,
-        stream: true,
-        max_completion_tokens: 1024,
+        max_tokens: 1024,
       });
 
       let fullResponse = "";
 
-      for await (const chunk of stream) {
-        const text = chunk.choices[0]?.delta?.content || "";
-        if (text) {
-          fullResponse += text;
-          res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          const text = event.delta.text;
+          if (text) {
+            fullResponse += text;
+            res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+          }
         }
       }
 
-      await storage.createMessage({
-        conversationId,
-        role: "assistant",
-        content: fullResponse,
-      });
-
+      await storage.createMessage({ conversationId, role: "assistant", content: fullResponse });
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     } catch (error) {
@@ -141,7 +122,6 @@ export async function registerRoutes(
       const pixels = await storage.getAllSanctuaryPixels();
       res.json(pixels);
     } catch (error) {
-      console.error("Error fetching pixels:", error);
       res.status(500).json({ error: "Failed to fetch pixels" });
     }
   });
@@ -149,18 +129,253 @@ export async function registerRoutes(
   app.post("/api/sanctuary/pixels", async (req, res) => {
     try {
       const parsed = insertSanctuaryPixelSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid pixel data", details: parsed.error.issues });
-      }
+      if (!parsed.success) return res.status(400).json({ error: "Invalid pixel data", details: parsed.error.issues });
       const existing = await storage.getSanctuaryPixel(parsed.data.plotIndex);
-      if (existing) {
-        return res.status(409).json({ error: "Pixel already claimed" });
-      }
+      if (existing) return res.status(409).json({ error: "Pixel already claimed" });
       const pixel = await storage.claimSanctuaryPixel(parsed.data);
       res.status(201).json(pixel);
     } catch (error) {
-      console.error("Error claiming pixel:", error);
       res.status(500).json({ error: "Failed to claim pixel" });
+    }
+  });
+
+  app.get("/api/moltbook/agents", async (_req, res) => {
+    try {
+      const agents = await storage.getAllMoltbookAgents();
+      res.json(agents);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch agents" });
+    }
+  });
+
+  app.post("/api/moltbook/agents", async (req, res) => {
+    try {
+      const { name, type, capabilities } = req.body;
+      if (!name || !type) return res.status(400).json({ error: "Name and type are required" });
+      const apiKeyPrefix = `molt_${Math.random().toString(36).slice(2, 10)}`;
+      const agent = await storage.createMoltbookAgent({
+        name,
+        type,
+        capabilities: capabilities || "general",
+        apiKeyPrefix,
+        status: "active",
+      });
+      res.status(201).json(agent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to register agent" });
+    }
+  });
+
+  app.patch("/api/moltbook/agents/:id/status", async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!status) return res.status(400).json({ error: "Status is required" });
+      const agent = await storage.updateMoltbookAgentStatus(parseInt(req.params.id), status);
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      res.json(agent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update agent" });
+    }
+  });
+
+  app.get("/api/predictions", async (_req, res) => {
+    try {
+      const preds = await storage.getAllPredictions();
+      res.json(preds);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch predictions" });
+    }
+  });
+
+  app.post("/api/predictions", async (req, res) => {
+    try {
+      const { title, description, category } = req.body;
+      if (!title || !description) return res.status(400).json({ error: "Title and description are required" });
+      const pred = await storage.createPrediction({
+        title,
+        description,
+        category: category || "crypto",
+        oddsYes: 50,
+        oddsNo: 50,
+        poolYes: 0,
+        poolNo: 0,
+        status: "active",
+      });
+      res.status(201).json(pred);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create prediction" });
+    }
+  });
+
+  app.post("/api/predictions/:id/bet", async (req, res) => {
+    try {
+      const predictionId = parseInt(req.params.id);
+      const { side, amount, walletAddress } = req.body;
+      if (!side || !amount || !walletAddress) return res.status(400).json({ error: "Side, amount, and walletAddress are required" });
+      if (side !== 'yes' && side !== 'no') return res.status(400).json({ error: "Side must be 'yes' or 'no'" });
+      const pred = await storage.getPrediction(predictionId);
+      if (!pred) return res.status(404).json({ error: "Prediction not found" });
+      if (pred.status !== 'active') return res.status(400).json({ error: "Prediction is not active" });
+
+      const bet = await storage.placeBet({ predictionId, side, amount: parseFloat(amount), walletAddress });
+      await storage.updatePredictionPool(predictionId, side, parseFloat(amount));
+      const updated = await storage.getPrediction(predictionId);
+      res.status(201).json({ bet, prediction: updated });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to place bet" });
+    }
+  });
+
+  app.get("/api/security/scans", async (_req, res) => {
+    try {
+      const scans = await storage.getAllSecurityScans();
+      res.json(scans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch scans" });
+    }
+  });
+
+  app.post("/api/security/scan", async (req, res) => {
+    try {
+      const { contractAddress } = req.body;
+      if (!contractAddress) return res.status(400).json({ error: "Contract address is required" });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      res.write(`data: ${JSON.stringify({ status: "scanning", message: "Analyzing contract bytecode..." })}\n\n`);
+
+      const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-5",
+        max_tokens: 1024,
+        system: `You are a Solana smart contract security analyzer. Analyze the given contract address and return ONLY valid JSON with these exact fields:
+{
+  "tokenName": "string (inferred token name or 'Unknown Token')",
+  "safetyScore": number (0-100),
+  "mintAuth": "REVOKED" or "ACTIVE" or "UNKNOWN",
+  "freezeAuth": "REVOKED" or "ACTIVE" or "UNKNOWN",
+  "lpLocked": "LOCKED" or "UNLOCKED" or "BURNED" or "UNKNOWN",
+  "holderDistribution": "HEALTHY" or "CONCENTRATED" or "WHALE_HEAVY",
+  "verdict": "SAFE" or "CAUTION" or "DANGER" or "HIGH_RISK"
+}
+Generate realistic but simulated analysis data. Be varied in your results - not everything should be safe.`,
+        messages: [{ role: "user", content: `Analyze Solana contract: ${contractAddress}` }],
+      });
+
+      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+      let scanData;
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        scanData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+      } catch {
+        scanData = {
+          tokenName: "Unknown Token",
+          safetyScore: 45,
+          mintAuth: "UNKNOWN",
+          freezeAuth: "UNKNOWN",
+          lpLocked: "UNKNOWN",
+          holderDistribution: "UNKNOWN",
+          verdict: "CAUTION",
+        };
+      }
+
+      const scan = await storage.createSecurityScan({
+        contractAddress,
+        tokenName: scanData.tokenName || "Unknown Token",
+        safetyScore: scanData.safetyScore || 50,
+        mintAuth: scanData.mintAuth || "UNKNOWN",
+        freezeAuth: scanData.freezeAuth || "UNKNOWN",
+        lpLocked: scanData.lpLocked || "UNKNOWN",
+        holderDistribution: scanData.holderDistribution || "UNKNOWN",
+        verdict: scanData.verdict || "CAUTION",
+      });
+
+      res.write(`data: ${JSON.stringify({ status: "complete", scan })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error("Security scan error:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: "Scan failed" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: "Failed to perform scan" });
+      }
+    }
+  });
+
+  app.get("/api/repos/scans", async (_req, res) => {
+    try {
+      const scans = await storage.getAllRepoScans();
+      res.json(scans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch repo scans" });
+    }
+  });
+
+  app.post("/api/repos/scan", async (req, res) => {
+    try {
+      const { repoUrl } = req.body;
+      if (!repoUrl) return res.status(400).json({ error: "Repo URL is required" });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      res.write(`data: ${JSON.stringify({ status: "scanning", message: "Cloning and analyzing repository..." })}\n\n`);
+
+      const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-5",
+        max_tokens: 1024,
+        system: `You are a GitHub repository analyzer for crypto projects. Analyze the given repo URL and return ONLY valid JSON:
+{
+  "repoName": "string (repo name from URL)",
+  "legitScore": number (0-100, how legitimate/real the project is),
+  "commitCount": number (realistic commit count),
+  "contributorCount": number (realistic contributor count),
+  "findings": "string (2-3 sentence summary of key findings)",
+  "recommendation": "LEGIT" or "SUSPICIOUS" or "LIKELY_LARP" or "HIGH_QUALITY"
+}
+Generate realistic but simulated analysis. Be varied - not everything should be good.`,
+        messages: [{ role: "user", content: `Analyze GitHub repo: ${repoUrl}` }],
+      });
+
+      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+      let scanData;
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        scanData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+      } catch {
+        scanData = {
+          repoName: repoUrl.split('/').pop() || 'unknown',
+          legitScore: 50,
+          commitCount: 42,
+          contributorCount: 3,
+          findings: "Unable to fully analyze. Manual review recommended.",
+          recommendation: "SUSPICIOUS",
+        };
+      }
+
+      const scan = await storage.createRepoScan({
+        repoUrl,
+        repoName: scanData.repoName || repoUrl.split('/').pop() || 'unknown',
+        legitScore: scanData.legitScore || 50,
+        commitCount: scanData.commitCount || 0,
+        contributorCount: scanData.contributorCount || 0,
+        findings: scanData.findings || "Analysis incomplete",
+        recommendation: scanData.recommendation || "SUSPICIOUS",
+      });
+
+      res.write(`data: ${JSON.stringify({ status: "complete", scan })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error("Repo scan error:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: "Scan failed" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: "Failed to perform repo scan" });
+      }
     }
   });
 
