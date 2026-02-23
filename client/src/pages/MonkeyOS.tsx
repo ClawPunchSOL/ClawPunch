@@ -505,10 +505,100 @@ export default function MonkeyOS() {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col overflow-hidden relative z-10"
+            className="flex-1 flex flex-col overflow-hidden relative z-10 agent-view-flicker"
           >
-            <div className="relative shrink-0 border-b-4 border-foreground bg-black/90 backdrop-blur-md z-10"
-              style={{ boxShadow: '0 4px 0px rgba(255,255,255,0.05)' }}
+            <div className="absolute inset-0 z-0 pixel-art-rendering opacity-15 bg-repeat-x bg-[auto_100%] bg-center"
+              style={{ backgroundImage: `url(${bgJungle})` }}
+            />
+
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <motion.div
+                  key={`agent-banana-${i}`}
+                  className="absolute text-xl drop-shadow-[0_0_8px_rgba(255,255,0,0.2)]"
+                  style={{
+                    left: `${10 + i * 12}%`,
+                    top: `${20 + (i % 3) * 25}%`,
+                  }}
+                  animate={{
+                    y: [0, -15 - Math.random() * 10, 0],
+                    rotate: [0, 10, -10, 0],
+                    opacity: [0.15, 0.3, 0.15],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 3 + i * 0.5,
+                    ease: "easeInOut",
+                    delay: i * 0.4,
+                  }}
+                >
+                  🍌
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={`data-col-${i}`}
+                  className="data-stream-col"
+                  style={{
+                    left: `${8 + i * 8}%`,
+                    color: activeAgent.glowColor,
+                    ['--rain-speed' as any]: `${6 + Math.random() * 6}s`,
+                    ['--rain-delay' as any]: `${Math.random() * 4}s`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <motion.div
+                  key={`particle-${i}`}
+                  className="absolute w-1 h-1"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    backgroundColor: activeAgent.glowColor,
+                    boxShadow: `0 0 4px ${activeAgent.glowColor}`,
+                  }}
+                  animate={{
+                    y: [0, -(10 + Math.random() * 20), 0],
+                    x: [0, (Math.random() - 0.5) * 15, 0],
+                    opacity: [0, 0.6, 0],
+                    scale: [0.5, 1.2, 0.5],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 2 + Math.random() * 3,
+                    ease: "easeInOut",
+                    delay: Math.random() * 3,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="crt-overlay" />
+            <div className="crt-scanline" />
+            <div className="crt-vignette" />
+
+            <div className="absolute bottom-20 right-4 z-[5] hidden lg:block pointer-events-none">
+              <motion.img
+                src={activeAgent.avatar}
+                className="w-24 h-24 pixel-art-rendering opacity-20"
+                style={{ filter: `drop-shadow(0 0 20px ${activeAgent.glowColor})` }}
+                animate={{
+                  y: [0, -15, 0],
+                  rotate: [-3, 3, -3],
+                  opacity: [0.12, 0.22, 0.12],
+                }}
+                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+              />
+            </div>
+
+            <div className="relative shrink-0 border-b-4 border-foreground bg-black/80 backdrop-blur-md z-20 energy-border"
+              style={{ boxShadow: `0 4px 0px rgba(255,255,255,0.05), 0 6px 30px ${activeAgent.glowColor}15` }}
             >
               <div className="flex items-center justify-between px-4 md:px-6 py-3">
                 <div className="flex items-center gap-4">
@@ -520,7 +610,9 @@ export default function MonkeyOS() {
                       animate={{ y: [0, -3, 0] }}
                       transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                     />
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${activeAgent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${activeAgent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`}
+                      style={{ boxShadow: `0 0 8px ${activeAgent.glowColor}` }}
+                    />
                   </div>
                   <div>
                     <h1 className="font-display text-base md:text-xl text-white drop-shadow-[3px_3px_0px_rgba(0,0,0,1)]" data-testid="text-agent-name">
@@ -561,7 +653,7 @@ export default function MonkeyOS() {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col min-h-0 relative">
+            <div className="flex-1 flex flex-col min-h-0 relative z-10">
               <AnimatePresence mode="wait">
                 {activeTab === 'intel' ? (
                   <motion.div
@@ -585,9 +677,11 @@ export default function MonkeyOS() {
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
-                    className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6"
+                    className="flex-1 overflow-y-auto custom-scrollbar relative"
                   >
-                    {renderToolPanel()}
+                    <div className="relative z-10 p-4 md:p-6">
+                      {renderToolPanel()}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -598,17 +692,21 @@ export default function MonkeyOS() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="border-t-4 border-foreground bg-black/90 backdrop-blur-md overflow-hidden shrink-0"
+                    className="border-t-4 border-foreground bg-black/85 backdrop-blur-md overflow-hidden shrink-0 relative z-20"
+                    style={{ boxShadow: `inset 0 4px 20px ${activeAgent.glowColor}10` }}
                   >
                     <div className="relative">
                       <button
                         onClick={() => { setShowChat(false); setChatResponse(''); }}
-                        className="absolute top-2 right-2 text-muted-foreground/40 hover:text-white z-10 border border-border p-1 hover:bg-white/10"
+                        className="absolute top-2 right-2 text-muted-foreground/40 hover:text-white z-10 border-2 border-border p-1 hover:bg-white/10 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                       <div className="p-4 max-h-[200px] overflow-y-auto custom-scrollbar">
-                        <div className="font-display text-[9px] text-primary/60 mb-2 tracking-widest">AGENT RESPONSE</div>
+                        <div className="font-display text-[9px] text-primary/60 mb-2 tracking-widest flex items-center gap-2">
+                          <span className="text-sm">🐒</span> AGENT RESPONSE
+                          <div className="flex-1 h-[2px] bg-gradient-to-r from-primary/20 to-transparent" />
+                        </div>
                         <div className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap font-sans pr-6">
                           {chatResponse}
                           {isStreaming && (
@@ -622,8 +720,11 @@ export default function MonkeyOS() {
               </AnimatePresence>
             </div>
 
-            <div className="shrink-0 border-t-4 border-foreground bg-black/90 backdrop-blur-md z-10 relative">
-              <form onSubmit={handleSend} className="flex items-center gap-3 p-3 md:p-4">
+            <div className="shrink-0 border-t-4 border-foreground bg-black/85 backdrop-blur-md z-20 relative energy-border">
+              <div className="absolute inset-0 pointer-events-none" style={{
+                background: `linear-gradient(90deg, transparent, ${activeAgent.glowColor}08, transparent)`,
+              }} />
+              <form onSubmit={handleSend} className="flex items-center gap-3 p-3 md:p-4 relative z-10">
                 <div className="flex-1 relative">
                   <div className={`absolute left-3 top-1/2 -translate-y-1/2 font-display text-base ${activeAgent.statusColor}`}>
                     {">"}

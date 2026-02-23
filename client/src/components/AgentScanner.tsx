@@ -197,7 +197,7 @@ export default function AgentScanner({ agentType, accentColor = "yellow", label 
 
   return (
     <div className={`relative ${fullHeight ? 'flex flex-col flex-1 min-h-0' : ''}`} style={{
-      background: 'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(10,15,10,0.98) 100%)',
+      background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(10,15,10,0.9) 100%)',
     }}>
       <div className="flex items-center justify-between px-5 md:px-6 py-3 border-b-4 border-foreground shrink-0 relative z-10 bg-black/80">
         <div className="flex items-center gap-3 min-w-0">
