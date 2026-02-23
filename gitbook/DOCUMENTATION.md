@@ -173,15 +173,13 @@ Ape Vault replaces emotional, discretionary trading with cold, algorithmic, cond
 * **Cron-like Architecture via Moltbook Relayers:** Because Monkey OS is strictly client-side and volatile, Ape Vault utilizes the experimental Moltbook Relayer Network for asynchronous execution. You sign a delegated execution permit (utilizing Solana's experimental Session Keys or a localized multi-sig escrow). This allows the decentralized relayer network to execute the transaction automatically, but *only* when the strict predefined on-chain conditions are cryptographically met.
 * **Auto-Staking & Yield Maximization:** Ape Vault autonomously sweeps idle SOL balances into liquid staking derivatives (like JitoSOL or mSOL) to maximize baseline yield, while maintaining sufficient liquidity for upcoming DCA orders.
 
-### VII. Jungle Messenger (Encrypted OTC & Social Layer)
-A fully decentralized, end-to-end encrypted messaging protocol built natively on top of Solana's messaging primitives (integrating Dialect or XMTP standards).
+### VII. Repo Ape (Automated Market Maker Sniper)
+Repo Ape is a hyper-aggressive, zero-latency sniper bot built directly into the OS taskbar, designed to target new liquidity pools the absolute millisecond they launch on decentralized exchanges.
 
-* **Wallet-to-Wallet Comms:** Send encrypted text, payloads, or transaction intents directly to `.sol` domains, Bonfida usernames, or raw public keys.
-* **Cryptographic Guarantees:** Messages are encrypted using the public key of the recipient (Curve25519 standard), ensuring that only the possessor of the private key can decrypt and read the payload.
-* **Trustless OTC Deal Flow:** Jungle Messenger enables seamless Over-The-Counter (OTC) atomic swaps without middlemen. 
-  * User A sends a message proposing a trade: "I will trade 100,000 $ClawPunch for 5 SOL."
-  * Jungle Messenger parses the intent and automatically generates a localized Escrow Smart Contract payload attached to the message.
-  * If User B accepts, both parties deposit their assets into the trustless escrow program, which atomically swaps them in a single atomic transaction. If either party fails to deposit, the assets are securely refunded.
+* **Mempool Monitoring:** Bypasses standard RPC polling by maintaining dedicated WebSocket connections to specialized validator nodes, monitoring the Solana mempool for `initializeMarket` instructions on Raydium and Orca.
+* **Zero-Block Execution:** When a target token's liquidity pool is initialized, Repo Ape formulates and signs the buy transaction locally, attaching maximum dynamic priority fees to ensure inclusion in the exact same block as the LP provision.
+* **Sniper Protection & Bribes:** To outmaneuver MEV (Miner Extractable Value) searchers, Repo Ape integrates directly with Jito block builders. It utilizes private mempools and automated bundle bribes, ensuring your transaction is executed atomically without being front-run by predatory sandwich bots.
+* **Auto-Sell Parameters:** Users can configure trailing stop-losses, taking initial principal out at +100% and letting the "moon bag" ride, completely removing human emotion from the most volatile moments of token discovery.
 
 ---
 
