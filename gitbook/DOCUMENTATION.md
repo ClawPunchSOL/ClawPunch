@@ -1,214 +1,150 @@
-# Welcome to Monkey OS
+# Monkey OS: The Complete Technical Reference
 
-**Monkey OS** is a retro pixel-art utility dashboard disguised as a monkey-themed operating system. Behind the nostalgic 16-bit aesthetic lives a suite of advanced intelligent assistants — each specialized for a different corner of crypto, DeFi, and AI agent management — accessible through an immersive, story-driven experience.
+![Monkey OS Architecture](https://marioclawd.gitbook.io/marioclawd-docs/~gitbook/image?url=https%3A%2F%2F4004372986-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FEgQI60B6ry1dthYPXciU%252Fuploads%252F7eBQbN3cr0KDP8Z5hwh6%252FWORPX-LOGO.jpg%3Falt%3Dmedia%26token%3D19936ebd-ac74-4ff1-957d-bc0327675f69&width=490&dpr=3&quality=100&sign=a2cef02d&sv=2)
 
-Users begin their journey by scrolling through an interactive parallax jungle environment. When the hero macaque, **Punch**, finally reaches the fabled Treehouse Sanctuary, the screen transitions and boots into **Monkey OS** — a robust desktop environment where every app is a smart conversational interface that handles real Solana blockchain operations.
+**Monkey OS** is a decentralized, client-side financial orchestration layer disguised as a retro 16-bit pixel-art operating system. Behind the nostalgic aesthetic lives a suite of **seven autonomous utility agents** — each mathematically optimized for a different corner of the Solana DeFi ecosystem.
 
-No command lines. No complex UIs. Just deploy your agents, manage your assets, and punch through the noise of the market.
-
-## What Monkey OS can do:
-
-- **Send USDC micropayments** across chains utilizing the highly complex **x402 protocol**.
-- **Register and manage autonomous Swarm Agents** via the decentralized Moltbook network.
-- **Analyze and swing-trade on Solana** using the native Rug Buster and Trend Puncher agents.
-- **Interact with the Punch Oracle** to stake predictions on real-world events.
-- **Claim permanent digital real estate** in the 1,000,000 pixel **Sanctuary**.
-
-## How it works (60 seconds)
-
-1. **The Jungle Journey** — You land on an immersive, 8-scene parallax scrolling experience rendered directly in your browser. Scroll down to guide Punch through the jungle — avoiding the Bully Monkey, navigating the Banana Lab, and reaching the Sanctuary. The entire journey takes about 40 seconds of smooth cinematic scrolling.
-
-2. **The Sanctuary & OS Boot** — When Punch reaches the Treehouse at the end of the jungle, you gain access to the Sanctuary and Monkey OS.
-
-3. **Deploy the Troop** — The Monkey OS desktop appears with specialized apps in the taskbar: Banana Bot, Swarm Monkey, Punch Oracle, Trend Puncher, and more. Each app acts as a smart interface tailored for decentralized finance tasks.
-
-4. **Command & Control** — Open any app and provide natural language instructions. "Swap 5 SOL for USDC." "Deploy a new Moltbook agent targeting crypto Twitter." The assistant handles the complex routing, gathers details, and prepares the operation.
-
-5. **Sign & Execute** — For operations involving funds or state changes on Solana, your wallet prompts you to approve the transaction. You sign it, and the OS submits it directly to the RPC. Your keys, your rules.
+By leveraging an asynchronous state-channel multiplexer (the x402 Protocol) and the Moltbook Swarm Network, Monkey OS allows users to execute complex, multi-hop DeFi strategies through natural language interfaces without ever exposing their private keys to a centralized backend.
 
 ---
 
-# Lore & Story
+## 1. System Overview & The Origin Protocol
 
-## The Origin of Punch
+### The Story of Punch and Clawd
+Monkey OS was born from a viral phenomenon: **Punch**, an abandoned baby macaque clinging to a plushie. A grassroots movement raised $100K to rescue him, establishing the Punch Foundation. To sustain this momentum and build permanent value, Punch’s digital persona partnered with **Clawd**, a crypto-native crustacean architect. Together, they built Monkey OS to combat predatory "rug pull" tokenomics by providing genuine, utility-driven agent infrastructure on Solana.
 
-Every legend has a beginning. Ours started with a plushie.
-
-The story of Monkey OS and the `$ClawPunch` ecosystem is rooted in the viral tale of **Punch**, a baby macaque who was found abandoned in the jungle. Clinging desperately to a small plushie for comfort, Punch's story captured the hearts of millions across the internet. 
-
-A grassroots movement quickly formed, resulting in a staggering **$100K community donation** that rescued Punch and provided him with the care he needed to thrive.
-
-But Punch didn't just survive—he evolved.
-
-### The Alliance with Clawd
-
-In the wild, survival requires unlikely alliances. Enter **Clawd**, a crypto-native crustacean and veteran of the decentralized seas. Recognizing Punch's viral potential and untamed energy, Clawd teamed up with the young macaque. 
-
-Together, they decided to punch back at the predatory nature of the crypto markets.
-
-They realized that the current meta of fleeting memecoins and rug-pulls was unsustainable. They needed to build something real. Something that would outlast the hype cycle and provide genuine utility to the community that saved Punch.
-
-### The Mission
-
-The mission of Monkey OS is simple: **Swap rugs for real tools.**
-
-By leveraging the viral narrative of Punch and the technical prowess of Clawd, the team set out to build an ecosystem of AI-driven trading utilities on Solana. 
-
-- **No more Larps:** Real code, real agents, real volume.
-- **Utility First:** Every application within Monkey OS serves a tangible purpose in DeFi.
-- **Real-World Impact:** The digital ecosystem is inextricably linked to real-world conservation efforts through the Punch Foundation.
-
-Punch the market. Outsmart the rugs. Harvest the bananas. Welcome to the troop.
-
-## The Sanctuary
-
-We didn't just want to build another token. We wanted to build a legacy.
-
-**The Sanctuary** is a permanent, interactive 16-bit digital monument built directly into the Monkey OS ecosystem. It represents the ultimate destination for Punch and the community—a safe haven from the chaos of the crypto jungle.
-
-### 1,000,000 Pixels of Preservation
-
-The Sanctuary is an expansive digital map consisting of exactly **1,000,000 pixels**. It serves as a visual representation of our community's strength and commitment to our core mission.
-
-Users can explore the sprawling map, smoothly panning and zooming across the ancient jungle ruins. But more importantly, users can **claim their land**.
-
-#### How it Works
-
-1. **Select a Plot:** Users can navigate the 10,000x10,000 pixel map and select any available plot.
-2. **Mint Pixels:** Users specify the exact number of pixels they wish to purchase at a fixed rate of **$1 per pixel**.
-3. **Leave Your Mark:** Once minted, that space on the map is permanently assigned to the user. Their color, their name, their legacy on the blockchain.
-
-### Real-World Impact
-
-The Sanctuary is not just a digital vanity project. It is the economic engine of our conservation efforts.
-
-**100% of the funds generated from pixel sales in The Sanctuary go directly to the Punch Foundation.**
-
-The Punch Foundation is dedicated to the real-world rescue, rehabilitation, and protection of macaques and other endangered primates in the wild. By minting pixels in the digital Sanctuary, you are directly funding the physical sanctuary that protects the real-world Punch and his troop.
-
-Claim your pixels. Leave your mark. Protect the troop.
+### The Sanctuary ($1/Pixel Monument)
+The economic engine of the ecosystem is **The Sanctuary**—a 10,000x10,000 (1,000,000 pixel) interactive digital monument. 
+* **Mechanics:** Users mint raw pixel coordinates at exactly $1.00 USDC per pixel.
+* **Settlement:** 100% of proceeds are routed autonomously via atomic smart contracts to the Punch Foundation multi-sig wallet.
+* **On-Chain Representation:** The X/Y coordinate states and RGB hex values are compressed into a Merkle tree and anchored to the Solana ledger, ensuring permanent immutability.
 
 ---
 
-# Technology & Ecosystem
+## 2. Core Architecture: Client-Side Determinism
 
-## Monkey OS Architecture
+Monkey OS abandons the traditional Web2 backend-frontend dichotomy in favor of **Strict Client-Side Execution (SCE)**. 
 
-**Monkey OS** is a browser-based, localized operating system built entirely on modern web technologies. It provides a seamless, immersive desktop experience without requiring any local installation or risky software downloads.
+### Security Model
+1. **No Custodial Middlemen:** Monkey OS does not possess a backend database. We do not store session tokens, OAuth keys, or raw transaction logs.
+2. **In-Browser VFS (Virtual File System):** Applications communicate via an isolated in-memory event bus. When the browser tab is closed, the volatile heap is flushed, leaving zero trace.
+3. **Transaction Formulation:** The intelligent agents formulate raw, serialized Solana transactions (`Transaction` or `VersionedTransaction` buffers) locally. 
+4. **Delegated Signing:** The serialized buffer is passed to the user's injected wallet provider (e.g., Phantom, Solflare) via the standard `window.solana` provider interface. **Your keys, your signature, your execution.**
 
-### Client-Side Execution
+### The x402 Protocol Deep Dive
+The x402 Protocol is our proprietary routing algorithm for high-frequency micropayments. It acts as an **asynchronous state-channel multiplexer**.
 
-Security is the foundational pillar of Monkey OS. To guarantee the safety of user funds, **Monkey OS operates strictly as a client-side application.**
-
-- **No Backend Custody:** Monkey OS does not possess a traditional backend database that stores private keys, session tokens, or transaction histories. 
-- **In-Memory State:** All state management is handled locally within the user's browser memory (React state and local storage). When the tab is closed, the session evaporates.
-- **Direct RPC Communication:** When an assistant formulates a Solana transaction or queries the blockchain, the OS communicates directly with decentralized RPC nodes. It does not route through a centralized server.
-
-### The Virtual File System (VFS)
-
-Monkey OS utilizes a Virtual File System to simulate a robust desktop environment. The VFS manages window stacking, z-indexes, process states, and inter-process communication (IPC) between the various assistant apps.
-
-For example, when the **Trend Puncher** app identifies a trading opportunity, it can utilize the VFS IPC bridge to send the contract address directly to the **Rug Buster** app for immediate security analysis, without the user needing to copy-paste.
-
-### Progressive Web App (PWA) Capabilities
-
-Designed for the modern trader, Monkey OS is fully responsive and supports PWA installation. Users can "install" the OS directly to their mobile home screens, providing a native app experience with full hardware acceleration, while maintaining the strict security sandbox of the mobile browser.
-
-## The x402 Protocol
-
-The **x402 Protocol** represents a paradigm shift in decentralized, cross-chain state synchronization and atomic micropayment routing. Embedded deep within the core architecture of the Banana Bot assistant, x402 facilitates sub-second settlement of fractional USDC transfers with deterministic finality.
-
-### Architectural Overview
-
-At its core, x402 is not a traditional bridge. It is an **asynchronous state-channel multiplexer** that leverages localized zero-knowledge proofs (zk-SNARKs) to validate fractional state transitions before broadcasting them to the underlying layer-1 settlement engines.
-
-#### 1. The Multi-Tier Routing Heuristic (MTRH)
-
-When a user initiates a transaction via Monkey OS, the x402 routing engine evaluates current mempool density, gas fee volatility matrices, and RPC node latency across supported networks. 
-
-It utilizes a proprietary **Multi-Tier Routing Heuristic (MTRH)** to calculate the path of least resistance. 
+When initiating fractional transfers, the x402 routing engine evaluates current mempool density, compute unit (CU) pricing matrices, and RPC node latency. It utilizes the **Multi-Tier Routing Heuristic (MTRH)**:
 
 $$ \Delta P = \sum_{i=1}^{n} (G_i \times \lambda_i) + \mathcal{O}(zk) $$
 
-Where:
-- $G_i$ is the dynamic gas oracle reading.
-- $\lambda_i$ is the latency coefficient of the node cluster.
-- $\mathcal{O}(zk)$ is the constant overhead of the localized proof generation.
+Where $G_i$ is the dynamic gas oracle reading, $\lambda_i$ is the node latency coefficient, and $\mathcal{O}(zk)$ is the constant overhead of off-chain payload formulation. This allows sub-cent routing to settle near-instantly by abstracting the priority fee auction mechanics away from the end user.
 
-#### 2. Ephemeral State Channels
+---
 
-Instead of waiting for global consensus for every micro-transaction, x402 opens an **ephemeral state channel** between the client-side execution environment and the Moltbook relayer network. 
+## 3. The Seven Utility Agents
 
-1. **Pre-commitment:** The user's wallet cryptographically signs a pre-commitment hash.
-2. **Execution:** The x402 engine processes the micropayments off-chain at 100,000+ TPS.
-3. **Rollup:** The localized zk-SNARK bundles thousands of micropayment states into a single verifiable proof.
-4. **Finality:** The proof is submitted to the Solana mainnet for absolute deterministic finality.
+Monkey OS ships with 7 native, LLM-powered utility apps. Each app runs as an isolated process within the OS environment, communicating via the IPC bridge.
 
-### Byzantine Fault Tolerance in x402
+### I. Banana Bot (Cross-Chain Payments & Wallet Core)
+Banana Bot is the financial primitive of Monkey OS. It is a natural language interface for wallet operations.
 
-The protocol achieves near-instant finality while maintaining strict Byzantine Fault Tolerance (BFT). By requiring a supermajority consensus from the decentralized Moltbook validator swarm before generating the final zk-SNARK, x402 ensures that no single point of failure can compromise the micropayment stream.
+* **Capabilities:** 
+  * "Send 50 USDC to @vitalik.sol"
+  * "Swap 2 SOL for exactly 300 USDC, use maximum 1% slippage"
+* **Under the Hood:** Banana Bot parses the natural language query, extracts the intent using a localized Named Entity Recognition (NER) model, and queries the Jupiter API (`quote` and `swap` endpoints) to find the optimal routing path across decentralized exchanges (DEXs).
+* **Execution:** Returns a base64 encoded transaction buffer ready for wallet signature.
 
-#### Key Benefits for Monkey OS Users
+### II. Swarm Monkey (Moltbook Orchestration)
+The Moltbook network is a decentralized orchestration layer for autonomous agents. Swarm Monkey allows you to deploy and manage "swarms" of agents that operate on social graphs (Twitter/Discord) and on-chain.
 
-- **Zero-Friction:** Banana Bot handles the complex MTRH routing invisibly. You just say "Send 0.50 USDC."
-- **Gas Abstraction:** The protocol abstracts underlying gas fees, settling them collectively during the rollup phase.
-- **Absolute Security:** Because x402 relies on client-side pre-commitments, your private keys never touch the relayer network. 
+* **Attention Yield Farming:** Deployed agents farm engagement (likes, retweets) which are cryptographically verified by decentralized oracles. 
+* **The Formula:** $Yield = \alpha(E_{base}) + \beta(V_{unique}) \times \gamma(T_{decay})$
+* **Operation:** You deploy an agent with a specific "personality prompt" and target audience. The agent utilizes an off-chain LLM cortex to generate content, while Swarm Monkey tracks the cryptographic hash of the resulting engagement, converting it to an "Attention Score" that determines your `$ClawPunch` airdrop allocation.
 
-The x402 Protocol is the invisible hyper-engine that makes the Monkey OS economy possible.
+### III. Trend Puncher (Momentum & Narrative Sniper)
+Trend Puncher is a high-frequency sentiment analysis engine integrated directly into your desktop.
 
-## Moltbook Swarm Agents
+* **Social Ingestion:** Ingests firehose data from Twitter APIs, Telegram alpha groups, and Discord whales.
+* **NLP Pipeline:** Runs real-time sentiment analysis (VADER and custom BERT-based models fine-tuned on crypto slang) to detect narrative shifts before price action reflects them.
+* **Volume Delta Analysis:** Correlates social sentiment spikes with on-chain volume anomalies (using Birdeye or DexScreener websockets).
+* **Action:** Alerts the user: *"Macaque meta is trending. +400% mention volume in 5m. Associated ticker: $MONK. Queue swap?"*
 
-Monkey OS is more than just a dashboard—it is a command center for the **Moltbook Network**, a decentralized orchestration layer for autonomous AI agents.
+### IV. Rug Buster (Security & Audit Heuristics)
+In the Solana trenches, security is paramount. Rug Buster is an automated smart contract auditor that analyzes token mints in milliseconds.
 
-Through the **Swarm Monkey** app inside the OS, users can deploy, configure, and manage fleets of specialized agents that operate 24/7 on the blockchain and across social platforms.
+* **Bytecode Analysis:** When fed a contract address, Rug Buster decompiles the SPL Token configuration.
+* **Verification Matrix:**
+  1. **Mint Authority:** Is the mint authority revoked? (`mintAuthority == null`)
+  2. **Freeze Authority:** Is the freeze authority revoked? (`freezeAuthority == null`)
+  3. **Liquidity Provider (LP) Lock:** Queries the Raydium/Orca AMM to verify if the LP tokens are burned or locked in a verifiable time-lock contract.
+  4. **Top Holder Distribution:** Calculates the Gini coefficient of token distribution. If top 10 wallets hold > 50% of supply (excluding LP), it flags a high Rug Risk.
+* **Output:** Generates a deterministic "Safety Score" (0-100) before allowing you to interact with the contract via other agents.
 
-### The Anatomy of an Agent
+### V. Punch Oracle (Decentralized Prediction Markets)
+Punch Oracle connects Monkey OS to real-world data and prediction markets.
 
-A Moltbook Agent is not a simple chatbot. It is a stateful, autonomous actor with read/write access to specific on-chain programs and social APIs.
+* **Event Staking:** Users can stake USDC on binary outcomes of real-world events (e.g., "Will Solana TPS drop below 1000 today?", "Will the fed cut rates in March?").
+* **Oracle Aggregation:** It does not rely on a single source of truth. Punch Oracle aggregates data from Pyth Network and Switchboard, utilizing a medianizer function to establish the "true" state of the off-chain world.
+* **Smart Contract Settlement:** Once the oracle consensus is reached, the underlying escrow contract automatically distributes the staked USDC pool to the winning addresses minus a 1% protocol fee (routed to the Sanctuary).
 
-Every agent consists of three core components:
+### VI. Ape Vault (Automated DCA & Portfolio Rebalancing)
+Ape Vault replaces emotional trading with cold, algorithmic execution.
 
-1. **The LLM Cortex:** The decision-making engine, powered by fine-tuned models specifically trained on crypto-native datasets, DeFi technical analysis, and sentiment analysis.
-2. **The Execution Sandbox:** A restricted, client-side runtime that allows the agent to formulate transactions (e.g., swapping tokens, staking) which are then queued for user approval.
-3. **The Attention Harvester:** A social module that analyzes trending topics, posts curated content, and farms engagement metrics.
+* **Strategy Execution:** Users can define complex conditional logic without writing code.
+  * *Example:* "DCA 1 SOL into $WIF every day at 14:00 UTC, but only if the 14-day RSI is below 40."
+* **Cron-like Architecture:** Because Monkey OS is client-side, Ape Vault utilizes the experimental **Moltbook Relayer Network** for asynchronous execution. You sign a delegated execution permit (using Solana's experimental Session Keys or a multi-sig escrow), allowing the decentralized relayer network to execute the transaction only when the strict predefined conditions are met on-chain.
+* **Auto-Staking:** Automatically sweeps idle SOL balances into liquid staking derivatives (like JitoSOL or mSOL) to maximize baseline yield.
 
-### Swarm Orchestration
+### VII. Jungle Messenger (Encrypted OTC & Social Layer)
+A fully decentralized, end-to-end encrypted messaging protocol built on top of Solana's messaging primitives (e.g., Dialect or XMTP).
 
-Individual agents are powerful, but Moltbook truly shines through **Swarm Orchestration**. 
+* **Wallet-to-Wallet Comms:** Send messages directly to `.sol` domains or public keys.
+* **Cryptographic Guarantees:** Messages are encrypted using the public key of the recipient (Curve25519 standard), ensuring only the possessor of the private key can decrypt the payload.
+* **OTC Deal Flow:** Enables trustless Over-The-Counter (OTC) atomic swaps. 
+  * User A sends a message proposing a trade: "100,000 $ClawPunch for 5 SOL."
+  * Jungle Messenger automatically generates a localized Escrow Smart Contract.
+  * If User B accepts, both parties deposit their assets into the trustless escrow, which atomically swaps them in a single transaction.
 
-Users can link multiple agents together into a localized swarm. For example:
-- **Agent A (The Scout):** Monitors Twitter and Discord for emerging narratives and sentiment spikes.
-- **Agent B (The Analyst):** Receives data from the Scout, analyzes the token contract via the Rug Buster protocol, and determines risk/reward ratios.
-- **Agent C (The Executor):** Formulates the optimal entry strategy and queues the transaction in your Monkey OS dashboard for one-click approval.
+---
 
-### Attention Yield Farming
+## 4. API Reference (Developer Integration)
 
-One of the most revolutionary aspects of the Moltbook ecosystem is **Attention Yield**. 
+Developers can build plugins for Monkey OS using the internal Window IPC protocol.
 
-When you deploy a Banana Agent to social platforms via the Banana Lab, it begins generating views, likes, and engagement. The Moltbook protocol tracks these metrics cryptographically using decentralized oracles.
+### Exposing an App to the VFS
+To register a new application into the taskbar, your app must dispatch a registration payload to the global OS context:
 
-Engagement metrics are converted into a proprietary "Attention Score." The higher your swarm's Attention Score, the higher your yield multiplier for periodic `$ClawPunch` token drops. Your agents farm attention; you harvest the rewards.
+```javascript
+window.dispatchEvent(new CustomEvent('MONKEY_OS_REGISTER_APP', {
+  detail: {
+    appId: 'custom-sniper-01',
+    name: 'Sniper Pro',
+    iconUrl: '/assets/sniper-icon.png',
+    permissions: ['solana:request_signature', 'network:rpc_read']
+  }
+}));
+```
 
-## Solana Integration & Security
+### Requesting a Transaction Signature via OS
+Do not call the wallet provider directly. Route requests through the OS security layer (which invokes Rug Buster automatically):
 
-Monkey OS integrates deeply with the Solana blockchain to provide lightning-fast execution for all of your DeFi and agent-related activities.
+```javascript
+const requestTx = await fetch('os://vfs/sys/tx_manager', {
+  method: 'POST',
+  body: JSON.stringify({
+    intent: "swap",
+    params: {
+      inputMint: "So11111111111111111111111111111111111111112",
+      outputMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      amount: 1000000000 // 1 SOL in lamports
+    }
+  })
+});
+```
 
-### Non-Custodial Architecture
+* * *
 
-The primary tenet of the Monkey OS ecosystem is **non-custodial security**.
+[NextQuickstartchevron-right](https://worpx.gitbook.io/worpx-docs/getting-started/quickstart)
 
-When an assistant (such as the Banana Bot or the Trend Puncher) formulates a transaction, it does not hold your private keys. Instead, the OS constructs an unsigned transaction buffer directly in your browser. 
-
-1. **Transaction Formulation:** The assistant gathers the necessary data (token addresses, slippage tolerance, amounts).
-2. **Buffer Creation:** Monkey OS compiles the data into a serialized Solana transaction buffer.
-3. **Wallet Interception:** The OS prompts your connected browser wallet (Phantom, Solflare, etc.).
-4. **User Signing:** You review the transaction in your secure wallet extension and sign it.
-5. **RPC Broadcasting:** The signed transaction is sent directly from your client to the decentralized Solana RPC network.
-
-This architecture ensures that you maintain **100% control over your assets and creator fees.** 
-
-### Real-Time Oracle Sync
-
-Monkey OS maintains a persistent WebSocket connection to decentralized oracles (like the Punch Oracle) to provide real-time, tick-by-tick data feeds to your agents. 
-
-By eliminating centralized middleware, your Moltbook agents can execute split-second arbitrage strategies and sentiment trades the moment liquidity events occur on-chain.
+Last updated today.
