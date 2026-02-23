@@ -52,6 +52,7 @@ export default function SwarmMonkeyPanel() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [deploying, setDeploying] = useState(false);
+  const [deployDone, setDeployDone] = useState(false);
   const [deployLog, setDeployLog] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [type, setType] = useState("monitor");
@@ -118,14 +119,11 @@ export default function SwarmMonkeyPanel() {
                 return [...prev, `[CONFIG] ${streamingConfig}`];
               });
             } else if (data.stage === "live" && data.agent) {
-              setDeployLog(prev => [...prev, `[LIVE] ✓ ${data.message}`]);
+              setDeployLog(prev => [...prev, `[LIVE] ✓ ${data.message}`, `[LIVE] Endpoint: ${data.agent.endpoint}`, `[LIVE] API Key: ${data.agent.apiKeyPrefix}••••••`, `[LIVE] Region: ${data.agent.region}`, ``, `[READY] Agent is online and accepting tasks.`]);
               setAgents(prev => [data.agent, ...prev]);
+              setDeployDone(true);
               setName("");
               setCapabilities("");
-              setTimeout(() => {
-                setShowForm(false);
-                setDeployLog([]);
-              }, 2000);
             } else if (data.error) {
               setDeployLog(prev => [...prev, `[ERROR] ${data.error}`]);
             } else {
@@ -141,6 +139,8 @@ export default function SwarmMonkeyPanel() {
       setDeployLog(prev => [...prev, `[ERROR] Deployment failed`]);
     } finally {
       setDeploying(false);
+      const freshAgents = await fetch("/api/moltbook/agents").then(r => r.json()).catch(() => null);
+      if (freshAgents) setAgents(freshAgents);
     }
   };
 
@@ -239,51 +239,68 @@ export default function SwarmMonkeyPanel() {
           <span className="text-[10px] text-blue-400 font-display">{activeCount}/{agents.length} ACTIVE</span>
           {totalTasks > 0 && <span className="text-[9px] text-muted-foreground font-display">| {totalTasks} TASKS</span>}
         </div>
-        <button onClick={() => { setShowForm(!showForm); setDeployLog([]); }} data-testid="button-deploy-agent"
+        <button onClick={() => { setShowForm(!showForm); setDeployLog([]); setDeployDone(false); }} data-testid="button-deploy-agent"
           className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[10px] font-display hover:bg-blue-500/30 transition-colors">
           {showForm ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-          {showForm ? 'CANCEL' : 'DEPLOY NEW'}
+          {showForm ? (deployDone ? 'CLOSE' : 'CANCEL') : 'DEPLOY NEW'}
         </button>
       </div>
 
       {showForm && (
         <div className="border-2 border-blue-500/30 bg-blue-500/5">
-          <form onSubmit={handleDeploy} className="p-3 space-y-2">
-            <div className="font-display text-[9px] text-blue-400 flex items-center gap-1 mb-1">
-              <Server className="w-3 h-3" /> DEPLOYMENT CONFIGURATION
-            </div>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Agent name (e.g. AlphaApe)"
-              data-testid="input-agent-name" disabled={deploying}
-              className="w-full bg-black/50 border-2 border-border text-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50" />
-            <div className="grid grid-cols-3 gap-2">
-              <select value={type} onChange={e => setType(e.target.value)} data-testid="select-agent-type" disabled={deploying}
-                className="bg-black/50 border-2 border-border text-white px-2 py-2 text-[11px] focus:outline-none focus:border-blue-500 disabled:opacity-50">
-                {AGENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-              <select value={region} onChange={e => setRegion(e.target.value)} data-testid="select-region" disabled={deploying}
-                className="bg-black/50 border-2 border-border text-white px-2 py-2 text-[11px] focus:outline-none focus:border-blue-500 disabled:opacity-50">
-                {REGIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-              <input value={capabilities} onChange={e => setCapabilities(e.target.value)} placeholder="Capabilities"
-                disabled={deploying} className="bg-black/50 border-2 border-border text-white px-2 py-2 text-[11px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50" />
-            </div>
-            <button type="submit" disabled={deploying || !name.trim()} data-testid="button-submit-deploy"
-              className="w-full retro-button retro-button-primary text-[10px] py-2 disabled:opacity-50 flex items-center justify-center gap-2">
-              {deploying ? <><Loader2 className="w-3 h-3 animate-spin" /> DEPLOYING...</> : <><Zap className="w-3 h-3" /> DEPLOY TO MOLTBOOK NETWORK</>}
-            </button>
-          </form>
+          {!deployDone && (
+            <form onSubmit={handleDeploy} className="p-3 space-y-2">
+              <div className="font-display text-[9px] text-blue-400 flex items-center gap-1 mb-1">
+                <Server className="w-3 h-3" /> DEPLOYMENT CONFIGURATION
+              </div>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Agent name (e.g. AlphaApe)"
+                data-testid="input-agent-name" disabled={deploying}
+                className="w-full bg-black/50 border-2 border-border text-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50" />
+              <div className="grid grid-cols-3 gap-2">
+                <select value={type} onChange={e => setType(e.target.value)} data-testid="select-agent-type" disabled={deploying}
+                  className="bg-black/50 border-2 border-border text-white px-2 py-2 text-[11px] focus:outline-none focus:border-blue-500 disabled:opacity-50">
+                  {AGENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+                <select value={region} onChange={e => setRegion(e.target.value)} data-testid="select-region" disabled={deploying}
+                  className="bg-black/50 border-2 border-border text-white px-2 py-2 text-[11px] focus:outline-none focus:border-blue-500 disabled:opacity-50">
+                  {REGIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+                <input value={capabilities} onChange={e => setCapabilities(e.target.value)} placeholder="Capabilities"
+                  disabled={deploying} className="bg-black/50 border-2 border-border text-white px-2 py-2 text-[11px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 disabled:opacity-50" />
+              </div>
+              <button type="submit" disabled={deploying || !name.trim()} data-testid="button-submit-deploy"
+                className="w-full retro-button retro-button-primary text-[10px] py-2 disabled:opacity-50 flex items-center justify-center gap-2">
+                {deploying ? <><Loader2 className="w-3 h-3 animate-spin" /> DEPLOYING...</> : <><Zap className="w-3 h-3" /> DEPLOY TO MOLTBOOK NETWORK</>}
+              </button>
+            </form>
+          )}
 
           {deployLog.length > 0 && (
-            <div ref={deployLogRef} className="border-t border-blue-500/20 bg-black/60 p-2 max-h-[180px] overflow-y-auto custom-scrollbar font-mono text-[10px] space-y-0.5">
+            <div ref={deployLogRef} className={`${!deployDone ? 'border-t border-blue-500/20' : ''} bg-black/60 p-2.5 max-h-[250px] overflow-y-auto custom-scrollbar font-mono text-[10px] space-y-0.5`}>
+              {deployDone && (
+                <div className="font-display text-[9px] text-green-400 flex items-center gap-1 mb-2 pb-1.5 border-b border-green-500/20">
+                  <Activity className="w-3 h-3" /> DEPLOYMENT LOG
+                </div>
+              )}
               {deployLog.map((line, i) => (
                 <div key={i} className={`whitespace-pre-wrap break-all ${
-                  line.startsWith('[LIVE]') ? 'text-green-400' :
+                  line === '' ? 'h-1' :
+                  line.startsWith('[LIVE]') || line.startsWith('[READY]') ? 'text-green-400' :
                   line.startsWith('[ERROR]') || line.startsWith('[FAIL]') ? 'text-red-400' :
                   line.startsWith('[CONFIG]') ? 'text-yellow-300' :
                   'text-blue-300'
                 }`}>{line}</div>
               ))}
               {deploying && <span className="inline-block w-2 h-3 bg-blue-400 animate-pulse" />}
+            </div>
+          )}
+
+          {deployDone && (
+            <div className="p-2 border-t border-green-500/20">
+              <button onClick={() => { setShowForm(false); setDeployLog([]); setDeployDone(false); }}
+                className="w-full py-1.5 border border-green-500/50 text-green-400 text-[10px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1">
+                <Wifi className="w-3 h-3" /> VIEW DEPLOYED AGENTS
+              </button>
             </div>
           )}
         </div>
