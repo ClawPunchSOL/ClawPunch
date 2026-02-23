@@ -198,7 +198,7 @@ export async function registerRoutes(
       let aiConfig = "";
       try {
         const stream = anthropic.messages.stream({
-          model: "claude-sonnet-4-5-20250514",
+          model: "claude-sonnet-4-5",
           max_tokens: 300,
           messages: [{ role: "user", content: `You are the Moltbook Network deployment system. An agent named "${name}" (type: ${type}, capabilities: ${capabilities || "general"}) is being deployed to ${selectedRegion}. Generate a brief deployment config report (3-5 lines) in a terminal/log style. Include: allocated resources (vCPU, RAM), network endpoint, security policy, and heartbeat interval. Keep it terse and technical like real infrastructure logs. No markdown.` }],
         });
@@ -281,7 +281,7 @@ export async function registerRoutes(
         };
 
         const stream = anthropic.messages.stream({
-          model: "claude-sonnet-4-5-20250514",
+          model: "claude-sonnet-4-5",
           max_tokens: 300,
           messages: [{ role: "user", content: taskPrompts[taskType] || taskPrompts.analyze }],
         });
@@ -291,7 +291,8 @@ export async function registerRoutes(
             send({ stage: "executing", message: event.delta.text, streaming: true });
           }
         }
-      } catch {
+      } catch (aiError: any) {
+        console.error("[dispatch] AI error:", aiError?.message || aiError);
         result = `Task completed with default handler. No anomalies detected.`;
         send({ stage: "executing", message: result });
       }
