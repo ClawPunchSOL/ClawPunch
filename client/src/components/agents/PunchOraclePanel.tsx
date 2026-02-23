@@ -209,7 +209,7 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
           data-testid="tab-polymarket"
           className={`flex-1 py-1.5 text-[10px] font-display border-2 transition-colors ${activeTab === "polymarket" ? "border-purple-500 bg-purple-500/20 text-purple-400" : "border-border text-muted-foreground hover:border-purple-500/30"}`}
         >
-          <ExternalLink className="w-3 h-3 inline mr-1" />POLYMARKET LIVE ({polymarkets.length})
+          <ExternalLink className="w-3 h-3 inline mr-1" />LIVE MARKETS ({polymarkets.length})
         </button>
         <button
           onClick={() => setActiveTab("local")}
@@ -304,25 +304,8 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
               return (
                 <div key={m.id} className="p-3 border border-border bg-black/30 space-y-2" data-testid={`polymarket-${m.id}`}>
                   <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <a
-                        href={`https://polymarket.com/event/${m.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-white font-semibold leading-tight hover:text-purple-300 transition-colors"
-                        data-testid={`polymarket-link-${m.id}`}
-                      >
-                        {m.question}
-                      </a>
-                    </div>
-                    <a
-                      href={`https://polymarket.com/event/${m.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 p-1 text-muted-foreground hover:text-purple-400 transition-colors"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    <span className="text-xs text-white font-semibold leading-tight flex-1">{m.question}</span>
+                    <span className={`text-[9px] font-display px-1.5 py-0.5 bg-green-500/20 text-green-400 shrink-0`}>LIVE</span>
                   </div>
 
                   <div className="flex gap-0.5 h-3">
@@ -351,23 +334,29 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
                     <span className="text-red-400 font-display" data-testid={`pm-odds-no-${m.id}`}>NO {noOdds}%</span>
                   </div>
 
-                  {m.oneDayPriceChange !== 0 && (
-                    <div className="flex items-center gap-1 text-[9px]">
-                      <span className="text-muted-foreground">24h Shift:</span>
-                      <span className={m.oneDayPriceChange > 0 ? 'text-green-400' : 'text-red-400'}>
-                        {m.oneDayPriceChange > 0 ? '+' : ''}{(m.oneDayPriceChange * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {m.oneDayPriceChange !== 0 && (
+                      <div className="flex items-center gap-1 text-[9px] flex-1">
+                        <span className="text-muted-foreground">24h Shift:</span>
+                        <span className={m.oneDayPriceChange > 0 ? 'text-green-400' : 'text-red-400'}>
+                          {m.oneDayPriceChange > 0 ? '+' : ''}{(m.oneDayPriceChange * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                    <a
+                      href={`https://polymarket.com/event/${m.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid={`trade-btn-${m.id}`}
+                      className="px-3 py-1 bg-purple-500/20 border border-purple-500/50 text-purple-400 text-[10px] font-display hover:bg-purple-500/30 transition-colors flex items-center gap-1"
+                    >
+                      <ExternalLink className="w-3 h-3" /> TRADE
+                    </a>
+                  </div>
                 </div>
               );
             })
           )}
-          <div className="text-center py-1">
-            <a href="https://polymarket.com" target="_blank" rel="noopener noreferrer" className="text-[9px] text-purple-400/60 hover:text-purple-400 font-display transition-colors">
-              DATA FROM POLYMARKET.COM
-            </a>
-          </div>
         </div>
       ) : (
         <>
