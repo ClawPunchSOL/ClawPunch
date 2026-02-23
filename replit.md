@@ -28,7 +28,7 @@ A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents
 All agents are powered by Claude with custom system prompts AND specialized tool panels:
 1. **Banana Bot** - Real Solana SOL transfers via Phantom wallet signing + Solscan tx links + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
-3. **Punch Oracle** - Live Polymarket markets feed + auto-generated predictions from CoinGecko prices, real odds/volumes/expiry, auto-resolution + chat
+3. **Punch Oracle** - Live prediction markets with real SOL betting via Phantom wallet, real odds/volumes/expiry, auto-resolution + chat
 4. **Trend Puncher** - Live narrative tracker powered by CoinGecko API, buy/sell attention shares, real market caps/volumes/24h changes + wallet display + chat
 5. **Ape Vault** - Real Solana DeFi vault data from DeFi Llama API (Jito, Marinade, Raydium, Orca, Kamino) + staking dashboard + chat
 6. **Rug Buster** - Contract scanner with AI-generated safety scores + chat
@@ -60,7 +60,9 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `DELETE /api/moltbook/agents/:id` - Remove agent
 ### Other Agent Tools
 - `GET/POST /api/predictions` - Create/list prediction markets
-- `POST /api/predictions/:id/bet` - Place bet on prediction
+- `POST /api/predictions/:id/bet` - Place bet with real SOL (requires txSignature)
+- `POST /api/predictions/import` - Import live market as local prediction for betting
+- `GET /api/predictions/pool-address` - Get SOL pool address for bet transfers
 - `GET /api/security/scans` - List security scan history
 - `POST /api/security/scan` - AI-powered contract security scan (SSE)
 - `GET /api/repos/scans` - List repo scan history
@@ -84,7 +86,7 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `sanctuary_pixels` - Claimed pixel plots (plotIndex, ownerName, color)
 - `moltbook_agents` - Registered AI agents (name, type, status, apiKeyPrefix)
 - `predictions` - Prediction markets (title, oddsYes/No, poolYes/No, status)
-- `prediction_bets` - Bets on predictions (side, amount, walletAddress)
+- `prediction_bets` - Bets on predictions (side, amount, walletAddress, txSignature)
 - `security_scans` - Contract scan results (safetyScore, mintAuth, freezeAuth, etc.)
 - `repo_scans` - Repo analysis results (legitScore, commitCount, findings, etc.)
 - `transactions` - x402 payment transactions (recipient, amount, token, txHash)

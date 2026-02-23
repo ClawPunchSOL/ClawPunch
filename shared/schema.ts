@@ -85,6 +85,7 @@ export const predictionBets = pgTable("prediction_bets", {
   side: text("side").notNull(),
   amount: real("amount").notNull(),
   walletAddress: text("wallet_address").notNull(),
+  txSignature: text("tx_signature"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

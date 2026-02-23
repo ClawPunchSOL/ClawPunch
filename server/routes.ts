@@ -774,17 +774,24 @@ export async function registerRoutes(
     }
   });
 
+  const POOL_WALLET = "11111111111111111111111111111112";
+
+  app.get("/api/predictions/pool-address", (_req, res) => {
+    res.json({ address: POOL_WALLET });
+  });
+
   app.post("/api/predictions/:id/bet", async (req, res) => {
     try {
       const predictionId = parseInt(req.params.id);
-      const { side, amount, walletAddress } = req.body;
+      const { side, amount, walletAddress, txSignature } = req.body;
       if (!side || !amount || !walletAddress) return res.status(400).json({ error: "Side, amount, and walletAddress are required" });
       if (side !== 'yes' && side !== 'no') return res.status(400).json({ error: "Side must be 'yes' or 'no'" });
+      if (!txSignature) return res.status(400).json({ error: "Transaction signature required - bet must be sent on-chain" });
       const pred = await storage.getPrediction(predictionId);
       if (!pred) return res.status(404).json({ error: "Prediction not found" });
       if (pred.status !== 'active') return res.status(400).json({ error: "Prediction is not active" });
 
-      const bet = await storage.placeBet({ predictionId, side, amount: parseFloat(amount), walletAddress });
+      const bet = await storage.placeBet({ predictionId, side, amount: parseFloat(amount), walletAddress, txSignature });
       await storage.updatePredictionPool(predictionId, side, parseFloat(amount));
       const updated = await storage.getPrediction(predictionId);
       res.status(201).json({ bet, prediction: updated });
