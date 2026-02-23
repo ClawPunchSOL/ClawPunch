@@ -13,7 +13,9 @@ import {
   Cpu,
   ShieldAlert,
   FileCode,
-  Loader2
+  Loader2,
+  Menu,
+  X
 } from "lucide-react";
 
 import bananaBot from "@/assets/images/banana-bot.png";
@@ -45,7 +47,7 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-green-500',
     icon: <CircleDollarSign className="w-3 h-3 text-green-500" />,
     description: 'x402 Micropayments & Transfers',
-    placeholder: "Command... (e.g., 'Tip 50 USDC to @user for their meme')",
+    placeholder: "Command... (e.g., 'Tip 50 USDC to @user')",
     systemMessage: 'SYSTEM INITIALIZED. X402 PROTOCOL ONLINE. READY TO SEND BANANAS.'
   },
   'swarm-monkey': {
@@ -56,7 +58,7 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-blue-500',
     icon: <Users className="w-3 h-3 text-blue-500" />,
     description: 'Moltbook Agent Manager',
-    placeholder: "Command... (e.g., 'Register new agent AlphaApe on Moltbook')",
+    placeholder: "Command... (e.g., 'Register agent AlphaApe')",
     systemMessage: 'MOLTBOOK CONNECTION ESTABLISHED. SWARM MANAGEMENT READY.'
   },
   'punch-oracle': {
@@ -67,7 +69,7 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-purple-500',
     icon: <Terminal className="w-3 h-3 text-purple-500" />,
     description: 'Prediction Markets Assistant',
-    placeholder: "Command... (e.g., 'Stake 1000 PUNCH that SOL hits $300 by March')",
+    placeholder: "Command... (e.g., 'Stake 1000 PUNCH on SOL')",
     systemMessage: 'ORACLES SYNCED. PREDICTION MARKETS LIVE. PUNCH YOUR PREDICTION.'
   },
   'trend-puncher': {
@@ -78,7 +80,7 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-yellow-500',
     icon: <Zap className="w-3 h-3 text-yellow-500" />,
     description: 'Attention Market Trading',
-    placeholder: "Command... (e.g., 'Buy $500 of attention shares on #Punch')",
+    placeholder: "Command... (e.g., 'Buy attention on #Punch')",
     systemMessage: 'ATTENTION MARKETS SCANNING. TREND ANALYSIS ACTIVE.'
   },
   'vault-swinger': {
@@ -89,7 +91,7 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-orange-500',
     icon: <Cpu className="w-3 h-3 text-orange-500" />,
     description: 'Yield & Treasury Manager',
-    placeholder: "Command... (e.g., 'Stake all PUNCH in the high-yield vault')",
+    placeholder: "Command... (e.g., 'Stake all PUNCH')",
     systemMessage: 'DEFI VAULTS CONNECTED. TREASURY MANAGER STANDING BY.'
   },
   'rug-buster': {
@@ -100,7 +102,7 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-red-500',
     icon: <ShieldAlert className="w-3 h-3 text-red-500" />,
     description: 'Solana Rug-Pull Detection',
-    placeholder: "Command... (e.g., 'Scan contract Address... for rug risk')",
+    placeholder: "Command... (e.g., 'Scan contract for rug risk')",
     systemMessage: 'SECURITY SCANNERS ONLINE. READY TO BUST RUGS VIA X402 PAYMENTS.'
   },
   'repo-ape': {
@@ -111,7 +113,7 @@ const AGENTS: Record<AgentId, Agent> = {
     statusColor: 'text-cyan-500',
     icon: <FileCode className="w-3 h-3 text-cyan-500" />,
     description: 'GitHub Scanner & LARP Scoring',
-    placeholder: "Command... (e.g., 'Score github.com/user/repo for AI LARP')",
+    placeholder: "Command... (e.g., 'Score github.com/user/repo')",
     systemMessage: 'REPO ANALYSIS PROTOCOL ENGAGED. AWAITING TARGET GITHUB URL.'
   }
 };
@@ -121,6 +123,7 @@ interface ChatMessage {
   sender: 'user' | 'agent' | 'system';
   text: string;
   time: string;
+  isStreaming?: boolean;
 }
 
 export default function MonkeyOS() {
@@ -136,7 +139,10 @@ export default function MonkeyOS() {
   });
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const streamingMsgIdRef = useRef<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const activeAgent = AGENTS[activeAgentId];
   const currentMessages = messagesMap[activeAgentId];
@@ -144,6 +150,12 @@ export default function MonkeyOS() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentMessages]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const getOrCreateConversation = useCallback(async (agentId: AgentId): Promise<number> => {
     if (conversationIds[agentId]) {
@@ -154,55 +166,58 @@ export default function MonkeyOS() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: `${AGENTS[agentId].name} Session` }),
     });
+    if (!res.ok) throw new Error('Failed to create conversation');
     const conv = await res.json();
     setConversationIds(prev => ({ ...prev, [agentId]: conv.id }));
     return conv.id;
   }, [conversationIds]);
 
+  const handleAgentSelect = (agentId: AgentId) => {
+    setActiveAgentId(agentId);
+    setSidebarOpen(false);
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
     
+    const targetAgentId = activeAgentId;
     const userText = input;
-    const userMsg: ChatMessage = { 
-      id: Date.now(), 
-      sender: 'user', 
-      text: userText, 
-      time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-    };
+    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const userMsg: ChatMessage = { id: Date.now(), sender: 'user', text: userText, time: now };
 
     setMessagesMap(prev => ({
       ...prev,
-      [activeAgentId]: [...prev[activeAgentId], userMsg]
+      [targetAgentId]: [...prev[targetAgentId], userMsg]
     }));
     setInput('');
     setIsStreaming(true);
 
     const streamingMsgId = Date.now() + 1;
+    streamingMsgIdRef.current = streamingMsgId;
     const streamingMsg: ChatMessage = {
-      id: streamingMsgId,
-      sender: 'agent',
-      text: '',
-      time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      id: streamingMsgId, sender: 'agent', text: '', time: now, isStreaming: true,
     };
 
     setMessagesMap(prev => ({
       ...prev,
-      [activeAgentId]: [...prev[activeAgentId], streamingMsg]
+      [targetAgentId]: [...prev[targetAgentId], streamingMsg]
     }));
 
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
-      const convId = await getOrCreateConversation(activeAgentId);
+      const convId = await getOrCreateConversation(targetAgentId);
       
       const res = await fetch(`/api/conversations/${convId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: userText }),
+        signal: abortController.signal,
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to send message');
-      }
+      if (!res.ok) throw new Error('Failed to send message');
 
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No reader');
@@ -225,67 +240,104 @@ export default function MonkeyOS() {
             const data = JSON.parse(line.slice(6));
             if (data.content) {
               accumulated += data.content;
+              const capturedText = accumulated;
               setMessagesMap(prev => ({
                 ...prev,
-                [activeAgentId]: prev[activeAgentId].map(m => 
-                  m.id === streamingMsgId ? { ...m, text: accumulated } : m
+                [targetAgentId]: prev[targetAgentId].map(m => 
+                  m.id === streamingMsgId ? { ...m, text: capturedText } : m
                 )
               }));
             }
-            if (data.error) {
-              throw new Error(data.error);
-            }
+            if (data.error) throw new Error(data.error);
           } catch (parseErr) {
             if (parseErr instanceof SyntaxError) continue;
             throw parseErr;
           }
         }
       }
+
+      setMessagesMap(prev => ({
+        ...prev,
+        [targetAgentId]: prev[targetAgentId].map(m => 
+          m.id === streamingMsgId ? { ...m, isStreaming: false } : m
+        )
+      }));
     } catch (err) {
+      if ((err as Error).name === 'AbortError') return;
       console.error('Chat error:', err);
       setMessagesMap(prev => ({
         ...prev,
-        [activeAgentId]: prev[activeAgentId].map(m => 
+        [targetAgentId]: prev[targetAgentId].map(m => 
           m.id === streamingMsgId 
-            ? { ...m, text: m.text || 'ERROR: Connection lost. Retrying...' } 
+            ? { ...m, text: m.text || 'ERROR: Connection lost. Try again.', isStreaming: false } 
             : m
         )
       }));
     } finally {
       setIsStreaming(false);
+      streamingMsgIdRef.current = null;
+      abortControllerRef.current = null;
     }
   };
 
   return (
     <div className="h-screen w-screen bg-[#0a0a0a] flex flex-col font-sans text-foreground overflow-hidden">
-      <header className="h-12 border-b-4 border-border bg-card flex items-center justify-between px-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <Terminal className="text-primary w-5 h-5" />
+      <header className="h-12 border-b-4 border-border bg-card flex items-center justify-between px-3 md:px-4 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3">
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            className="md:hidden text-primary p-1"
+            data-testid="button-menu"
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <Terminal className="text-primary w-5 h-5 hidden md:block" />
           <span className="font-display text-xs text-primary" data-testid="text-os-version">MONKEY OS v1.0.4</span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 md:gap-6">
           <div className="flex items-center gap-2 text-yellow-400">
             <Banana className="w-4 h-4 fill-current" />
             <span className="font-display text-xs" data-testid="text-banana-balance">1,420</span>
           </div>
           <button onClick={() => setLocation('/')} className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2" data-testid="button-exit">
             <LogOut className="w-4 h-4" />
-            <span className="font-display text-[10px]">EXIT</span>
+            <span className="font-display text-[10px] hidden sm:inline">EXIT</span>
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-72 border-r-4 border-border bg-card/50 flex flex-col shrink-0">
-          <div className="p-4 border-b-2 border-border">
+      <div className="flex flex-1 overflow-hidden relative">
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/60 z-30 md:hidden" 
+            onClick={() => setSidebarOpen(false)} 
+          />
+        )}
+
+        <aside className={`
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+          md:translate-x-0 
+          fixed md:relative 
+          z-40 
+          w-72 
+          h-[calc(100vh-48px)]
+          border-r-4 border-border bg-card/95 md:bg-card/50 
+          flex flex-col shrink-0 
+          transition-transform duration-200 ease-out
+          backdrop-blur-lg md:backdrop-blur-none
+        `}>
+          <div className="p-4 border-b-2 border-border flex items-center justify-between">
             <h2 className="font-display text-[10px] text-muted-foreground">ACTIVE TROOP</h2>
+            <button onClick={() => setSidebarOpen(false)} className="md:hidden text-muted-foreground">
+              <X className="w-4 h-4" />
+            </button>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
             {(Object.values(AGENTS) as Agent[]).map((agent) => (
               <button 
                 key={agent.id}
-                onClick={() => setActiveAgentId(agent.id as AgentId)}
+                onClick={() => handleAgentSelect(agent.id as AgentId)}
                 data-testid={`button-agent-${agent.id}`}
                 className={`w-full flex items-center gap-3 p-3 retro-container transition-all ${
                   activeAgentId === agent.id ? 'border-primary ring-2 ring-primary/20 bg-black/40' : 'border-border opacity-60 hover:opacity-100 bg-transparent'
@@ -326,32 +378,32 @@ export default function MonkeyOS() {
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col bg-background/90 relative">
+        <main className="flex-1 flex flex-col bg-background/90 relative w-full">
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
           
-          <div className="p-6 border-b-2 border-border flex items-center justify-between shrink-0 z-10 bg-black/40 backdrop-blur-md">
-            <div className="flex items-center gap-4">
-              <img src={activeAgent.avatar} className="w-12 h-12 pixel-art-rendering drop-shadow-[0_0_10px_rgba(255,200,0,0.3)]" />
-              <div>
-                <h1 className="font-display text-xl text-white mb-1 flex items-center gap-3" data-testid="text-agent-name">
+          <div className="p-3 md:p-6 border-b-2 border-border flex items-center justify-between shrink-0 z-10 bg-black/40 backdrop-blur-md">
+            <div className="flex items-center gap-3 md:gap-4 min-w-0">
+              <img src={activeAgent.avatar} className="w-8 h-8 md:w-12 md:h-12 pixel-art-rendering drop-shadow-[0_0_10px_rgba(255,200,0,0.3)] shrink-0" />
+              <div className="min-w-0">
+                <h1 className="font-display text-sm md:text-xl text-white mb-0.5 md:mb-1 truncate" data-testid="text-agent-name">
                   {activeAgent.name}
                 </h1>
-                <p className="text-muted-foreground text-sm font-sans" data-testid="text-agent-desc">{activeAgent.description}</p>
+                <p className="text-muted-foreground text-xs md:text-sm font-sans truncate" data-testid="text-agent-desc">{activeAgent.description}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-3 py-1 bg-black border-2 border-border rounded-none">
+            <div className="flex items-center gap-2 md:gap-4 shrink-0">
+              <div className="flex items-center gap-2 px-2 md:px-3 py-1 bg-black border-2 border-border rounded-none">
                  <div className={`w-2 h-2 rounded-full animate-pulse ${activeAgent.statusColor.replace('text-', 'bg-')}`} />
-                 <span className="font-display text-[10px] text-muted-foreground uppercase" data-testid="text-agent-status">{activeAgent.status}</span>
+                 <span className="font-display text-[10px] text-muted-foreground uppercase hidden sm:inline" data-testid="text-agent-status">{activeAgent.status}</span>
               </div>
-              <button className="retro-button retro-button-secondary text-[10px] py-2 px-3 flex items-center gap-2" data-testid="button-power-up">
+              <button className="retro-button retro-button-secondary text-[10px] py-2 px-3 items-center gap-2 hidden md:flex" data-testid="button-power-up">
                 <Zap className="w-3 h-3" />
                 POWER UP
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 z-10 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6 z-10 custom-scrollbar">
             <AnimatePresence initial={false} mode="popLayout">
               {currentMessages.map((msg) => (
                 <motion.div 
@@ -362,7 +414,7 @@ export default function MonkeyOS() {
                   data-testid={`chat-message-${msg.sender}-${msg.id}`}
                 >
                   <div className={`
-                    max-w-[80%] p-4 rounded-none border-2 shadow-[2px_2px_0px_#000]
+                    max-w-[90%] md:max-w-[80%] p-3 md:p-4 rounded-none border-2 shadow-[2px_2px_0px_#000]
                     ${msg.sender === 'user' 
                       ? 'bg-primary text-primary-foreground border-primary' 
                       : msg.sender === 'system'
@@ -370,16 +422,23 @@ export default function MonkeyOS() {
                         : 'bg-[#1a1a1a] text-white border-secondary'
                     }
                   `}>
-                    <p className={`whitespace-pre-wrap ${msg.sender === 'system' ? '' : 'text-sm md:text-base leading-relaxed font-sans'}`}>
-                      {msg.text || (msg.sender === 'agent' && isStreaming ? '' : msg.text)}
-                      {msg.sender === 'agent' && isStreaming && !msg.text && (
-                        <span className="inline-flex items-center gap-2 text-muted-foreground">
-                          <Loader2 className="w-3 h-3 animate-spin" /> Processing...
+                    <p className={`whitespace-pre-wrap break-words ${msg.sender === 'system' ? '' : 'text-sm md:text-base leading-relaxed font-sans'}`}>
+                      {msg.text}
+                      {msg.sender === 'agent' && msg.isStreaming && msg.text && (
+                        <span className="inline-block w-2 h-4 bg-primary ml-0.5 animate-blink align-middle" />
+                      )}
+                      {msg.sender === 'agent' && msg.isStreaming && !msg.text && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="retro-dots">
+                            <span className="inline-block w-1.5 h-1.5 bg-primary rounded-none animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="inline-block w-1.5 h-1.5 bg-primary rounded-none animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="inline-block w-1.5 h-1.5 bg-primary rounded-none animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
                         </span>
                       )}
                     </p>
                   </div>
-                  <span className="text-[10px] font-display text-muted-foreground mt-2 px-1">
+                  <span className="text-[10px] font-display text-muted-foreground mt-1.5 md:mt-2 px-1">
                     {msg.sender !== 'system' && (msg.sender === 'user' ? 'YOU ' : `${activeAgent.name.replace(' ', '_')} `)} 
                     [{msg.time}]
                   </span>
@@ -389,10 +448,10 @@ export default function MonkeyOS() {
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-4 border-t-2 border-border bg-card shrink-0 z-10">
-            <form onSubmit={handleSend} className="flex gap-4">
+          <div className="p-2 md:p-4 border-t-2 border-border bg-card shrink-0 z-10">
+            <form onSubmit={handleSend} className="flex gap-2 md:gap-4">
               <div className="flex-1 relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-display text-sm animate-pulse">
+                <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-primary font-display text-sm animate-pulse">
                   {">"}
                 </div>
                 <input 
@@ -402,16 +461,16 @@ export default function MonkeyOS() {
                   placeholder={activeAgent.placeholder}
                   disabled={isStreaming}
                   data-testid="input-chat"
-                  className="w-full bg-background border-4 border-border text-white px-10 py-4 focus:outline-none focus:border-primary font-sans text-sm shadow-[inset_2px_2px_0px_rgba(0,0,0,0.5)] placeholder:text-muted-foreground/50 transition-colors disabled:opacity-50"
+                  className="w-full bg-background border-4 border-border text-white px-8 md:px-10 py-3 md:py-4 focus:outline-none focus:border-primary font-sans text-sm shadow-[inset_2px_2px_0px_rgba(0,0,0,0.5)] placeholder:text-muted-foreground/50 transition-colors disabled:opacity-50"
                 />
               </div>
               <button 
                 type="submit" 
                 disabled={!input.trim() || isStreaming}
                 data-testid="button-send"
-                className="retro-button retro-button-primary flex items-center justify-center w-16 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="retro-button retro-button-primary flex items-center justify-center w-12 md:w-16 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isStreaming ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                {isStreaming ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Send className="w-4 h-4 md:w-5 md:h-5" />}
               </button>
             </form>
           </div>
@@ -431,6 +490,13 @@ export default function MonkeyOS() {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: var(--color-primary); 
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .animate-blink {
+          animation: blink 0.8s step-end infinite;
         }
       `}</style>
     </div>
