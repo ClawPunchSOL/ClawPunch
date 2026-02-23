@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getAgentConfig } from "./agents";
 import Anthropic from "@anthropic-ai/sdk";
-import { insertConversationSchema, insertMessageSchema, insertSanctuaryPixelSchema, insertMoltbookAgentSchema, insertPredictionSchema, insertPredictionBetSchema } from "@shared/schema";
+import { insertConversationSchema, insertMessageSchema, insertSanctuaryPixelSchema, insertMoltbookAgentSchema, insertPredictionSchema, insertPredictionBetSchema, insertTransactionSchema } from "@shared/schema";
 
 const anthropic = new Anthropic({
   apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
@@ -376,6 +376,142 @@ Generate realistic but simulated analysis. Be varied - not everything should be 
       } else {
         res.status(500).json({ error: "Failed to perform repo scan" });
       }
+    }
+  });
+
+  // === TRANSACTIONS (Banana Bot) ===
+  app.get("/api/transactions", async (_req, res) => {
+    try {
+      const txs = await storage.getAllTransactions();
+      res.json(txs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+  });
+
+  app.post("/api/transactions", async (req, res) => {
+    try {
+      const { recipient, amount, token } = req.body;
+      if (!recipient || !amount) return res.status(400).json({ error: "Recipient and amount are required" });
+      const txHash = `${Math.random().toString(36).slice(2, 8)}...${Math.random().toString(36).slice(2, 6)}`;
+      const tx = await storage.createTransaction({
+        recipient,
+        amount: parseFloat(amount),
+        token: token || "USDC",
+        status: "confirmed",
+        txHash,
+        protocol: "x402",
+      });
+      res.status(201).json(tx);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create transaction" });
+    }
+  });
+
+  // === ATTENTION POSITIONS (Trend Puncher) ===
+  app.get("/api/attention/positions", async (_req, res) => {
+    try {
+      let positions = await storage.getAllAttentionPositions();
+      if (positions.length === 0) {
+        const seeds = [
+          { narrative: "#AI", virality: 94, momentum: "up", currentPrice: 2.45 },
+          { narrative: "#Solana", virality: 87, momentum: "up", currentPrice: 1.82 },
+          { narrative: "#RWA", virality: 72, momentum: "flat", currentPrice: 0.94 },
+          { narrative: "#DePIN", virality: 68, momentum: "down", currentPrice: 0.67 },
+          { narrative: "#Memecoins", virality: 81, momentum: "up", currentPrice: 1.23 },
+          { narrative: "#ZK", virality: 59, momentum: "down", currentPrice: 0.45 },
+        ];
+        for (const s of seeds) {
+          await storage.createAttentionPosition({
+            narrative: s.narrative,
+            shares: 0,
+            avgPrice: s.currentPrice,
+            currentPrice: s.currentPrice,
+            virality: s.virality,
+            momentum: s.momentum,
+          });
+        }
+        positions = await storage.getAllAttentionPositions();
+      }
+      res.json(positions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch attention positions" });
+    }
+  });
+
+  app.post("/api/attention/trade", async (req, res) => {
+    try {
+      const { narrative, action, shares: shareCount } = req.body;
+      if (!narrative || !action || !shareCount) return res.status(400).json({ error: "Narrative, action, and shares are required" });
+      if (action !== 'buy' && action !== 'sell') return res.status(400).json({ error: "Action must be 'buy' or 'sell'" });
+
+      const position = await storage.getAttentionPosition(narrative);
+      if (!position) return res.status(404).json({ error: "Narrative not found" });
+
+      const qty = parseInt(shareCount);
+      if (action === 'sell' && position.shares < qty) return res.status(400).json({ error: "Not enough shares" });
+
+      const newShares = action === 'buy' ? position.shares + qty : position.shares - qty;
+      const newAvgPrice = action === 'buy'
+        ? ((position.avgPrice * position.shares) + (position.currentPrice * qty)) / (position.shares + qty || 1)
+        : position.avgPrice;
+
+      const updated = await storage.updateAttentionPosition(position.id, newShares, newAvgPrice);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to execute trade" });
+    }
+  });
+
+  // === VAULT POSITIONS (Ape Vault) ===
+  app.get("/api/vaults", async (_req, res) => {
+    try {
+      let vaults = await storage.getAllVaultPositions();
+      if (vaults.length === 0) {
+        const seeds = [
+          { vaultName: "SOL-USDC", protocol: "Raydium", token: "SOL", apy: 24.5, tvl: 12400000 },
+          { vaultName: "PUNCH-SOL", protocol: "Orca", token: "PUNCH", apy: 142.8, tvl: 890000 },
+          { vaultName: "USDC Lending", protocol: "Meteora", token: "USDC", apy: 8.2, tvl: 45000000 },
+          { vaultName: "JUP-USDC", protocol: "Raydium", token: "JUP", apy: 34.1, tvl: 5600000 },
+          { vaultName: "BONK-SOL", protocol: "Orca", token: "BONK", apy: 89.3, tvl: 2100000 },
+        ];
+        for (const s of seeds) {
+          await storage.createVaultPosition({ ...s, stakedAmount: 0 });
+        }
+        vaults = await storage.getAllVaultPositions();
+      }
+      res.json(vaults);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vaults" });
+    }
+  });
+
+  app.post("/api/vaults/:id/stake", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { amount, action } = req.body;
+      if (!amount || !action) return res.status(400).json({ error: "Amount and action required" });
+
+      const vault = await storage.getVaultPosition(
+        (await storage.getAllVaultPositions()).find(v => v.id === id)?.vaultName || ''
+      );
+      if (!vault) return res.status(404).json({ error: "Vault not found" });
+
+      const qty = parseFloat(amount);
+      let newStake: number;
+      if (action === 'stake') {
+        newStake = vault.stakedAmount + qty;
+      } else if (action === 'unstake') {
+        if (vault.stakedAmount < qty) return res.status(400).json({ error: "Not enough staked" });
+        newStake = vault.stakedAmount - qty;
+      } else {
+        return res.status(400).json({ error: "Action must be 'stake' or 'unstake'" });
+      }
+
+      const updated = await storage.updateVaultStake(vault.id, newStake);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update vault stake" });
     }
   });
 

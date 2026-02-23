@@ -134,12 +134,41 @@ export default function MonkeyOS() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toolPanelOpen, setToolPanelOpen] = useState(true);
+  const [hubStats, setHubStats] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
   const streamingMsgIdRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const activeAgent = activeAgentId ? AGENTS[activeAgentId] : null;
   const currentMessages = activeAgentId ? messagesMap[activeAgentId] : [];
+
+  useEffect(() => {
+    if (!activeAgentId) {
+      const fetchStats = async () => {
+        try {
+          const [agents, preds, scans, repos, txs, positions, vaults] = await Promise.all([
+            fetch("/api/moltbook/agents").then(r => r.json()).catch(() => []),
+            fetch("/api/predictions").then(r => r.json()).catch(() => []),
+            fetch("/api/security/scans").then(r => r.json()).catch(() => []),
+            fetch("/api/repos/scans").then(r => r.json()).catch(() => []),
+            fetch("/api/transactions").then(r => r.json()).catch(() => []),
+            fetch("/api/attention/positions").then(r => r.json()).catch(() => []),
+            fetch("/api/vaults").then(r => r.json()).catch(() => []),
+          ]);
+          setHubStats({
+            'swarm-monkey': `${agents.length} agent${agents.length !== 1 ? 's' : ''} registered`,
+            'punch-oracle': `${preds.length} market${preds.length !== 1 ? 's' : ''} active`,
+            'rug-buster': `${scans.length} scan${scans.length !== 1 ? 's' : ''} completed`,
+            'repo-ape': `${repos.length} repo${repos.length !== 1 ? 's' : ''} analyzed`,
+            'banana-bot': `${txs.length} transaction${txs.length !== 1 ? 's' : ''} sent`,
+            'trend-puncher': `${positions.filter((p: any) => p.shares > 0).length} active position${positions.filter((p: any) => p.shares > 0).length !== 1 ? 's' : ''}`,
+            'vault-swinger': `${vaults.filter((v: any) => v.stakedAmount > 0).length} vault${vaults.filter((v: any) => v.stakedAmount > 0).length !== 1 ? 's' : ''} staked`,
+          });
+        } catch {}
+      };
+      fetchStats();
+    }
+  }, [activeAgentId]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -313,6 +342,12 @@ export default function MonkeyOS() {
                               <span className={`text-[10px] font-display ${agent.statusColor} ml-auto`}>{agent.status}</span>
                             </div>
                             <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">{agent.longDescription}</p>
+                            {hubStats[agent.id] && (
+                              <div className="mt-2 flex items-center gap-1.5">
+                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${agent.statusColor.replace('text-', 'bg-')}`} />
+                                <span className={`font-display text-[9px] ${agent.statusColor}`}>{hubStats[agent.id]}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </motion.button>

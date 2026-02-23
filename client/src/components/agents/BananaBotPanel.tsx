@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CircleDollarSign, Send, Loader2, ArrowUpRight } from "lucide-react";
 
 interface Transaction {
-  id: string;
-  to: string;
-  amount: string;
+  id: number;
+  recipient: string;
+  amount: number;
   token: string;
   status: string;
-  hash: string;
-  time: string;
+  txHash: string;
+  protocol: string;
+  createdAt: string;
 }
 
 export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: string) => void }) {
@@ -17,28 +18,33 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
   const [token, setToken] = useState("USDC");
   const [sending, setSending] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/transactions").then(r => r.json()).then(setTransactions).finally(() => setLoading(false));
+  }, []);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recipient.trim() || !amount.trim()) return;
     setSending(true);
 
-    const tx: Transaction = {
-      id: Date.now().toString(),
-      to: recipient,
-      amount,
-      token,
-      status: "confirmed",
-      hash: `${Math.random().toString(36).slice(2, 8)}...${Math.random().toString(36).slice(2, 6)}`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    await new Promise(r => setTimeout(r, 800));
-    setTransactions(prev => [tx, ...prev]);
-    onSendChat(`Send ${amount} ${token} to ${recipient} via x402 protocol`);
-    setRecipient("");
-    setAmount("");
-    setSending(false);
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient: recipient.trim(), amount, token }),
+      });
+      if (res.ok) {
+        const tx = await res.json();
+        setTransactions(prev => [tx, ...prev]);
+        onSendChat(`Send ${amount} ${token} to ${recipient} via x402 protocol`);
+        setRecipient("");
+        setAmount("");
+      }
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -46,6 +52,7 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
       <div className="flex items-center gap-2">
         <CircleDollarSign className="w-4 h-4 text-green-400" />
         <span className="font-display text-[11px] text-white">X402 QUICK SEND</span>
+        <span className="text-[10px] text-green-400 font-display">{transactions.length} TXS</span>
       </div>
 
       <form onSubmit={handleSend} className="p-3 border-2 border-green-500/30 bg-green-500/5 space-y-2">
@@ -82,9 +89,11 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
         </button>
       </form>
 
-      {transactions.length > 0 && (
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-green-400" /></div>
+      ) : transactions.length > 0 && (
         <div className="space-y-1 max-h-[200px] overflow-y-auto custom-scrollbar">
-          <div className="font-display text-[9px] text-muted-foreground mb-1">RECENT TRANSACTIONS</div>
+          <div className="font-display text-[9px] text-muted-foreground mb-1">TRANSACTION HISTORY</div>
           {transactions.map(tx => (
             <div key={tx.id} className="flex items-center gap-2 p-2 border border-border bg-black/20" data-testid={`tx-row-${tx.id}`}>
               <ArrowUpRight className="w-3 h-3 text-green-400 shrink-0" />
@@ -92,9 +101,9 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
                 <div className="flex items-center gap-2 text-[10px]">
                   <span className="text-white font-display">{tx.amount} {tx.token}</span>
                   <span className="text-muted-foreground">to</span>
-                  <span className="text-green-400 truncate">{tx.to}</span>
+                  <span className="text-green-400 truncate">{tx.recipient}</span>
                 </div>
-                <span className="text-[9px] text-muted-foreground font-mono">tx:{tx.hash}</span>
+                <span className="text-[9px] text-muted-foreground font-mono">tx:{tx.txHash}</span>
               </div>
               <span className="text-[9px] text-green-400 font-display shrink-0">{tx.status.toUpperCase()}</span>
             </div>

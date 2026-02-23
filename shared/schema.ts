@@ -91,6 +91,39 @@ export const repoScans = pgTable("repo_scans", {
   scannedAt: timestamp("scanned_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  recipient: text("recipient").notNull(),
+  amount: real("amount").notNull(),
+  token: text("token").notNull().default("USDC"),
+  status: text("status").notNull().default("confirmed"),
+  txHash: text("tx_hash").notNull(),
+  protocol: text("protocol").notNull().default("x402"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const attentionPositions = pgTable("attention_positions", {
+  id: serial("id").primaryKey(),
+  narrative: text("narrative").notNull(),
+  shares: integer("shares").notNull().default(0),
+  avgPrice: real("avg_price").notNull(),
+  currentPrice: real("current_price").notNull(),
+  virality: integer("virality").notNull().default(50),
+  momentum: text("momentum").notNull().default("flat"),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const vaultPositions = pgTable("vault_positions", {
+  id: serial("id").primaryKey(),
+  vaultName: text("vault_name").notNull(),
+  protocol: text("protocol").notNull(),
+  token: text("token").notNull(),
+  stakedAmount: real("staked_amount").notNull().default(0),
+  apy: real("apy").notNull(),
+  tvl: real("tvl").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({ username: true, password: true });
 export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
@@ -100,6 +133,9 @@ export const insertPredictionSchema = createInsertSchema(predictions).omit({ id:
 export const insertPredictionBetSchema = createInsertSchema(predictionBets).omit({ id: true, createdAt: true });
 export const insertSecurityScanSchema = createInsertSchema(securityScans).omit({ id: true, scannedAt: true });
 export const insertRepoScanSchema = createInsertSchema(repoScans).omit({ id: true, scannedAt: true });
+export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, createdAt: true });
+export const insertAttentionPositionSchema = createInsertSchema(attentionPositions).omit({ id: true, updatedAt: true });
+export const insertVaultPositionSchema = createInsertSchema(vaultPositions).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -119,3 +155,9 @@ export type SecurityScan = typeof securityScans.$inferSelect;
 export type InsertSecurityScan = z.infer<typeof insertSecurityScanSchema>;
 export type RepoScan = typeof repoScans.$inferSelect;
 export type InsertRepoScan = z.infer<typeof insertRepoScanSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type AttentionPosition = typeof attentionPositions.$inferSelect;
+export type InsertAttentionPosition = z.infer<typeof insertAttentionPositionSchema>;
+export type VaultPosition = typeof vaultPositions.$inferSelect;
+export type InsertVaultPosition = z.infer<typeof insertVaultPositionSchema>;

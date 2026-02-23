@@ -45,6 +45,11 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `POST /api/security/scan` - AI-powered contract security scan (SSE)
 - `GET /api/repos/scans` - List repo scan history
 - `POST /api/repos/scan` - AI-powered repo legitimacy scan (SSE)
+- `GET/POST /api/transactions` - List/create x402 transactions (Banana Bot)
+- `GET /api/attention/positions` - List attention market narratives (Trend Puncher)
+- `POST /api/attention/trade` - Buy/sell attention shares
+- `GET /api/vaults` - List DeFi vault positions (Ape Vault)
+- `POST /api/vaults/:id/stake` - Stake/unstake in vault
 
 ## Database Schema
 - `users` - Basic user table
@@ -56,6 +61,9 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `prediction_bets` - Bets on predictions (side, amount, walletAddress)
 - `security_scans` - Contract scan results (safetyScore, mintAuth, freezeAuth, etc.)
 - `repo_scans` - Repo analysis results (legitScore, commitCount, findings, etc.)
+- `transactions` - x402 payment transactions (recipient, amount, token, txHash)
+- `attention_positions` - Narrative attention markets (narrative, shares, virality, momentum)
+- `vault_positions` - DeFi vault staking positions (vaultName, protocol, apy, tvl, stakedAmount)
 
 ## Key Files
 - `shared/schema.ts` - Drizzle schema + types

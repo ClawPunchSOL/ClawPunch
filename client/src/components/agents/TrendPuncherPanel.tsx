@@ -1,40 +1,51 @@
-import { useState } from "react";
-import { Zap, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Zap, TrendingUp, TrendingDown, BarChart3, Loader2 } from "lucide-react";
 
-interface Narrative {
-  id: string;
-  tag: string;
-  virality: number;
-  momentum: "up" | "down" | "flat";
+interface AttentionPosition {
+  id: number;
+  narrative: string;
   shares: number;
-  price: number;
-  change24h: number;
+  avgPrice: number;
+  currentPrice: number;
+  virality: number;
+  momentum: string;
 }
 
-const MOCK_NARRATIVES: Narrative[] = [
-  { id: "1", tag: "#AI", virality: 94, momentum: "up", shares: 0, price: 2.45, change24h: 18.2 },
-  { id: "2", tag: "#Solana", virality: 87, momentum: "up", shares: 0, price: 1.82, change24h: 7.5 },
-  { id: "3", tag: "#RWA", virality: 72, momentum: "flat", shares: 0, price: 0.94, change24h: -2.1 },
-  { id: "4", tag: "#DePIN", virality: 68, momentum: "down", shares: 0, price: 0.67, change24h: -12.4 },
-  { id: "5", tag: "#Memecoins", virality: 81, momentum: "up", shares: 0, price: 1.23, change24h: 34.7 },
-  { id: "6", tag: "#ZK", virality: 59, momentum: "down", shares: 0, price: 0.45, change24h: -8.3 },
-];
-
 export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: string) => void }) {
-  const [narratives, setNarratives] = useState<Narrative[]>(MOCK_NARRATIVES);
+  const [positions, setPositions] = useState<AttentionPosition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trading, setTrading] = useState<string | null>(null);
 
-  const buyShares = (narrative: Narrative) => {
-    setNarratives(prev => prev.map(n => n.id === narrative.id ? { ...n, shares: n.shares + 100 } : n));
-    onSendChat(`Buy 100 attention shares on ${narrative.tag} at $${narrative.price}`);
+  useEffect(() => {
+    fetch("/api/attention/positions").then(r => r.json()).then(setPositions).finally(() => setLoading(false));
+  }, []);
+
+  const executeTrade = async (narrative: string, action: 'buy' | 'sell', shares: number) => {
+    setTrading(`${action}-${narrative}`);
+    try {
+      const res = await fetch("/api/attention/trade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ narrative, action, shares }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setPositions(prev => prev.map(p => p.narrative === narrative ? updated : p));
+        const pos = positions.find(p => p.narrative === narrative);
+        onSendChat(`${action === 'buy' ? 'Buy' : 'Sell'} ${shares} attention shares on ${narrative} at $${pos?.currentPrice || '?'}`);
+      }
+    } finally {
+      setTrading(null);
+    }
   };
 
-  const sellShares = (narrative: Narrative) => {
-    if (narrative.shares <= 0) return;
-    setNarratives(prev => prev.map(n => n.id === narrative.id ? { ...n, shares: Math.max(0, n.shares - 100) } : n));
-    onSendChat(`Sell 100 attention shares on ${narrative.tag} at $${narrative.price}`);
-  };
+  const totalValue = positions.reduce((sum, p) => sum + (p.shares * p.currentPrice), 0);
 
-  const totalValue = narratives.reduce((sum, n) => sum + (n.shares * n.price), 0);
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-yellow-400" /></div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -46,42 +57,53 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
         {totalValue > 0 && (
           <div className="flex items-center gap-1 text-[10px]">
             <BarChart3 className="w-3 h-3 text-yellow-400" />
-            <span className="font-display text-yellow-400">${totalValue.toFixed(2)}</span>
+            <span className="font-display text-yellow-400">${totalValue.toFixed(2)} PORTFOLIO</span>
           </div>
         )}
       </div>
 
       <div className="space-y-1.5 max-h-[350px] overflow-y-auto custom-scrollbar">
-        {narratives.map(n => (
-          <div key={n.id} className="p-2.5 border border-border bg-black/30 hover:bg-black/50 transition-colors" data-testid={`narrative-${n.id}`}>
+        {positions.map(p => (
+          <div key={p.id} className="p-2.5 border border-border bg-black/30 hover:bg-black/50 transition-colors" data-testid={`narrative-${p.id}`}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="font-display text-xs text-white">{n.tag}</span>
-                {n.momentum === 'up' ? <TrendingUp className="w-3 h-3 text-green-400" /> : n.momentum === 'down' ? <TrendingDown className="w-3 h-3 text-red-400" /> : null}
+                <span className="font-display text-xs text-white">{p.narrative}</span>
+                {p.momentum === 'up' ? <TrendingUp className="w-3 h-3 text-green-400" /> : p.momentum === 'down' ? <TrendingDown className="w-3 h-3 text-red-400" /> : null}
               </div>
-              <span className={`text-[10px] font-display ${n.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {n.change24h >= 0 ? '+' : ''}{n.change24h}%
-              </span>
+              <span className="text-[10px] font-display text-yellow-400">${p.currentPrice}</span>
             </div>
 
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3 text-[10px]">
-                <span className="text-muted-foreground">Virality: <span className="text-white font-display">{n.virality}</span></span>
-                <span className="text-muted-foreground">Price: <span className="text-yellow-400 font-display">${n.price}</span></span>
+                <span className="text-muted-foreground">Virality: <span className="text-white font-display">{p.virality}</span></span>
               </div>
-              {n.shares > 0 && <span className="text-[9px] text-yellow-400 font-display">{n.shares} SHARES</span>}
+              {p.shares > 0 && (
+                <span className="text-[9px] text-yellow-400 font-display">
+                  {p.shares} SHARES (${(p.shares * p.currentPrice).toFixed(2)})
+                </span>
+              )}
             </div>
 
             <div className="w-full h-1.5 bg-black/50 border border-border mb-2">
-              <div className="h-full bg-yellow-500/60 transition-all" style={{ width: `${n.virality}%` }} />
+              <div className="h-full bg-yellow-500/60 transition-all" style={{ width: `${p.virality}%` }} />
             </div>
 
             <div className="flex gap-1.5">
-              <button onClick={() => buyShares(n)} data-testid={`button-buy-${n.id}`} className="flex-1 py-1 border border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors">
-                BUY 100
+              <button
+                onClick={() => executeTrade(p.narrative, 'buy', 100)}
+                disabled={trading === `buy-${p.narrative}`}
+                data-testid={`button-buy-${p.id}`}
+                className="flex-1 py-1 border border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {trading === `buy-${p.narrative}` ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : 'BUY 100'}
               </button>
-              <button onClick={() => sellShares(n)} disabled={n.shares <= 0} data-testid={`button-sell-${n.id}`} className="flex-1 py-1 border border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors disabled:opacity-30">
-                SELL 100
+              <button
+                onClick={() => executeTrade(p.narrative, 'sell', 100)}
+                disabled={p.shares < 100 || trading === `sell-${p.narrative}`}
+                data-testid={`button-sell-${p.id}`}
+                className="flex-1 py-1 border border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors disabled:opacity-30 flex items-center justify-center gap-1"
+              >
+                {trading === `sell-${p.narrative}` ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : 'SELL 100'}
               </button>
             </div>
           </div>
