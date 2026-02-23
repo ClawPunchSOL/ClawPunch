@@ -182,27 +182,46 @@ export async function registerRoutes(
 
       const send = (data: any) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-      send({ stage: "init", message: "Connecting to Moltbook API..." });
+      send({ stage: "init", message: "Connecting to Moltbook Network..." });
+
+      const agentName = `${name.trim()}-${Math.random().toString(36).slice(2, 6)}`;
 
       let moltbookResponse: any;
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+
         const registerRes = await fetch(`${MOLTBOOK_API}/agents/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, description: description || `${name} - Monkey OS agent` }),
+          body: JSON.stringify({ name: agentName, description: description || `${name} - Monkey OS agent` }),
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
 
         if (!registerRes.ok) {
-          const errText = await registerRes.text();
-          send({ stage: "error", message: `Moltbook API returned ${registerRes.status}: ${errText}` });
+          let errMsg = `HTTP ${registerRes.status}`;
+          try {
+            const errJson = await registerRes.json();
+            errMsg = errJson.message || errMsg;
+          } catch { /* ignore */ }
+
+          if (registerRes.status === 409) {
+            send({ stage: "error", message: `Name "${agentName}" already taken. Try a different name.` });
+          } else {
+            send({ stage: "error", message: `Moltbook API error: ${errMsg}` });
+          }
           res.end();
           return;
         }
 
         moltbookResponse = await registerRes.json();
-        send({ stage: "registered", message: `Agent registered on Moltbook!` });
+        send({ stage: "registered", message: `Agent "${agentName}" registered on Moltbook!` });
       } catch (fetchErr: any) {
-        send({ stage: "error", message: `Failed to reach Moltbook API: ${fetchErr.message}` });
+        const isTimeout = fetchErr.name === "AbortError";
+        send({ stage: "error", message: isTimeout
+          ? "Moltbook API timed out (15s). The service may be busy — try again in a moment."
+          : `Failed to reach Moltbook API: ${fetchErr.message}` });
         res.end();
         return;
       }
@@ -218,7 +237,7 @@ export async function registerRoutes(
       send({ stage: "claim", message: `Claim URL: ${claimUrl}`, claimUrl });
 
       const agent = await storage.createMoltbookAgent({
-        name,
+        name: agentName,
         type: "agent",
         capabilities: description || "general",
         apiKey,
