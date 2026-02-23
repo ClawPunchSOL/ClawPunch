@@ -58,6 +58,7 @@ export interface IStorage {
   createSecurityScan(data: InsertSecurityScan): Promise<SecurityScan>;
 
   getAllRepoScans(): Promise<RepoScan[]>;
+  getRepoScanByUrl(repoUrl: string): Promise<RepoScan | undefined>;
   createRepoScan(data: InsertRepoScan): Promise<RepoScan>;
 
   getAllTransactions(): Promise<Transaction[]>;
@@ -197,6 +198,10 @@ export class DatabaseStorage implements IStorage {
 
   async getAllRepoScans() {
     return db.select().from(repoScans).orderBy(desc(repoScans.scannedAt));
+  }
+  async getRepoScanByUrl(repoUrl: string) {
+    const [scan] = await db.select().from(repoScans).where(eq(repoScans.repoUrl, repoUrl)).orderBy(desc(repoScans.scannedAt)).limit(1);
+    return scan;
   }
   async createRepoScan(data: InsertRepoScan) {
     const [scan] = await db.insert(repoScans).values(data).returning();

@@ -666,57 +666,223 @@ export async function registerRoutes(
     }
   });
 
+  const normalizeRepoUrl = (url: string): string => {
+    let cleaned = url.trim().replace(/\/+$/, '').replace(/\.git$/, '');
+    cleaned = cleaned.replace(/^https?:\/\//i, '');
+    cleaned = cleaned.replace(/^(www\.)?github\.com\//i, '');
+    const parts = cleaned.split('/').filter(Boolean);
+    if (parts.length >= 2) return `${parts[0]}/${parts[1]}`;
+    return cleaned;
+  };
+
+  const fetchGitHubData = async (owner: string, repo: string) => {
+    try {
+      const [repoRes, commitsRes, contributorsRes] = await Promise.all([
+        fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+          headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'MonkeyOS-RepoApe' }
+        }),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`, {
+          headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'MonkeyOS-RepoApe' }
+        }),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=100`, {
+          headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'MonkeyOS-RepoApe' }
+        }),
+      ]);
+
+      if (!repoRes.ok) return null;
+
+      const repoData = await repoRes.json();
+
+      let commitCount = 0;
+      const linkHeader = commitsRes.headers.get('link');
+      if (linkHeader) {
+        const lastMatch = linkHeader.match(/page=(\d+)>; rel="last"/);
+        if (lastMatch) commitCount = parseInt(lastMatch[1]);
+      }
+      if (commitCount === 0) {
+        const commits = await commitsRes.json();
+        commitCount = Array.isArray(commits) ? commits.length : 0;
+      }
+
+      let contributorCount = 0;
+      if (contributorsRes.ok) {
+        const contributors = await contributorsRes.json();
+        contributorCount = Array.isArray(contributors) ? contributors.length : 0;
+      }
+
+      return {
+        name: repoData.name,
+        fullName: repoData.full_name,
+        description: repoData.description || '',
+        stars: repoData.stargazers_count || 0,
+        forks: repoData.forks_count || 0,
+        openIssues: repoData.open_issues_count || 0,
+        language: repoData.language || 'Unknown',
+        createdAt: repoData.created_at,
+        updatedAt: repoData.updated_at,
+        pushedAt: repoData.pushed_at,
+        archived: repoData.archived,
+        fork: repoData.fork,
+        license: repoData.license?.spdx_id || 'None',
+        commitCount,
+        contributorCount,
+        size: repoData.size,
+        defaultBranch: repoData.default_branch,
+        hasWiki: repoData.has_wiki,
+        topics: repoData.topics || [],
+      };
+    } catch {
+      return null;
+    }
+  };
+
   app.post("/api/repos/scan", async (req, res) => {
     try {
       const { repoUrl } = req.body;
       if (!repoUrl) return res.status(400).json({ error: "Repo URL is required" });
 
+      const normalized = normalizeRepoUrl(repoUrl);
+      const parts = normalized.split('/');
+      if (parts.length < 2) return res.status(400).json({ error: "Invalid repo URL. Use format: github.com/owner/repo" });
+      const [owner, repo] = parts;
+
+      const existing = await storage.getRepoScanByUrl(normalized);
+      if (existing) {
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.write(`data: ${JSON.stringify({ status: "scanning", message: "Found cached analysis..." })}\n\n`);
+        res.write(`data: ${JSON.stringify({ status: "complete", scan: existing })}\n\n`);
+        res.end();
+        return;
+      }
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      res.write(`data: ${JSON.stringify({ status: "scanning", message: "Cloning and analyzing repository..." })}\n\n`);
+      res.write(`data: ${JSON.stringify({ status: "scanning", message: "Fetching repository data from GitHub..." })}\n\n`);
 
-      const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-5",
-        max_tokens: 1024,
-        system: `You are a GitHub repository analyzer for crypto projects. Analyze the given repo URL and return ONLY valid JSON:
+      const ghData = await fetchGitHubData(owner, repo);
+
+      if (!ghData) {
+        res.write(`data: ${JSON.stringify({ status: "scanning", message: "Repository not found or private. Generating analysis from URL..." })}\n\n`);
+      } else {
+        res.write(`data: ${JSON.stringify({ status: "scanning", message: `Found ${ghData.fullName} - ${ghData.stars} stars, ${ghData.commitCount} commits. Analyzing...` })}\n\n`);
+      }
+
+      let legitScore: number;
+      let findings: string;
+      let recommendation: string;
+      let commitCount: number;
+      let contributorCount: number;
+      let repoName: string;
+
+      if (ghData) {
+        commitCount = ghData.commitCount;
+        contributorCount = ghData.contributorCount;
+        repoName = ghData.name;
+
+        let score = 50;
+
+        if (ghData.stars >= 1000) score += 15;
+        else if (ghData.stars >= 100) score += 10;
+        else if (ghData.stars >= 10) score += 5;
+        else score -= 5;
+
+        if (commitCount >= 500) score += 15;
+        else if (commitCount >= 100) score += 10;
+        else if (commitCount >= 20) score += 5;
+        else score -= 10;
+
+        if (contributorCount >= 10) score += 10;
+        else if (contributorCount >= 3) score += 5;
+        else score -= 5;
+
+        if (ghData.license !== 'None') score += 5;
+        if (ghData.archived) score -= 15;
+        if (ghData.fork) score -= 10;
+
+        const now = new Date();
+        const lastPush = new Date(ghData.pushedAt);
+        const daysSincePush = (now.getTime() - lastPush.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSincePush > 365) score -= 15;
+        else if (daysSincePush > 180) score -= 10;
+        else if (daysSincePush > 30) score -= 5;
+        else score += 5;
+
+        const created = new Date(ghData.createdAt);
+        const ageMonths = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24 * 30);
+        if (ageMonths < 1 && commitCount < 10) score -= 10;
+
+        legitScore = Math.max(0, Math.min(100, score));
+
+        const parts: string[] = [];
+        parts.push(`${ghData.language || 'Unknown language'} project with ${ghData.stars.toLocaleString()} stars, ${ghData.forks} forks.`);
+        if (daysSincePush < 7) parts.push(`Actively maintained (last push ${Math.floor(daysSincePush)}d ago).`);
+        else if (daysSincePush > 180) parts.push(`Stale project — last push ${Math.floor(daysSincePush)} days ago.`);
+        if (ghData.archived) parts.push("WARNING: Repository is archived.");
+        if (ghData.fork) parts.push("This is a fork, not an original project.");
+        if (contributorCount <= 1) parts.push("Single contributor — higher centralization risk.");
+        if (ghData.license === 'None') parts.push("No license detected.");
+        if (ghData.topics.length > 0) parts.push(`Topics: ${ghData.topics.slice(0, 5).join(', ')}.`);
+
+        findings = parts.join(' ');
+
+        if (legitScore >= 75) recommendation = "HIGH_QUALITY";
+        else if (legitScore >= 55) recommendation = "LEGIT";
+        else if (legitScore >= 35) recommendation = "SUSPICIOUS";
+        else recommendation = "LIKELY_LARP";
+
+      } else {
+        const message = await anthropic.messages.create({
+          model: "claude-sonnet-4-5",
+          max_tokens: 512,
+          temperature: 0,
+          system: `You analyze GitHub repositories for crypto projects. The repo could not be fetched from the GitHub API (it may be private, deleted, or the URL is wrong). Based on the URL alone, provide your best assessment. Return ONLY valid JSON:
 {
-  "repoName": "string (repo name from URL)",
-  "legitScore": number (0-100, how legitimate/real the project is),
-  "commitCount": number (realistic commit count),
-  "contributorCount": number (realistic contributor count),
-  "findings": "string (2-3 sentence summary of key findings)",
-  "recommendation": "LEGIT" or "SUSPICIOUS" or "LIKELY_LARP" or "HIGH_QUALITY"
-}
-Generate realistic but simulated analysis. Be varied - not everything should be good.`,
-        messages: [{ role: "user", content: `Analyze GitHub repo: ${repoUrl}` }],
-      });
+  "repoName": "string",
+  "legitScore": number (0-100),
+  "commitCount": 0,
+  "contributorCount": 0,
+  "findings": "string (2-3 sentences)",
+  "recommendation": "SUSPICIOUS" or "LIKELY_LARP"
+}`,
+          messages: [{ role: "user", content: `Analyze repo URL (could not fetch from GitHub API): ${normalized}` }],
+        });
 
-      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-      let scanData;
-      try {
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        scanData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
-      } catch {
-        scanData = {
-          repoName: repoUrl.split('/').pop() || 'unknown',
-          legitScore: 50,
-          commitCount: 42,
-          contributorCount: 3,
-          findings: "Unable to fully analyze. Manual review recommended.",
-          recommendation: "SUSPICIOUS",
-        };
+        const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+        let scanData;
+        try {
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          scanData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+        } catch {
+          scanData = {
+            repoName: repo,
+            legitScore: 25,
+            commitCount: 0,
+            contributorCount: 0,
+            findings: "Repository could not be accessed via GitHub API. It may be private, deleted, or the URL is incorrect. Manual verification recommended.",
+            recommendation: "SUSPICIOUS",
+          };
+        }
+
+        repoName = scanData.repoName || repo;
+        legitScore = scanData.legitScore ?? 25;
+        commitCount = scanData.commitCount ?? 0;
+        contributorCount = scanData.contributorCount ?? 0;
+        findings = scanData.findings || "Repository could not be accessed.";
+        recommendation = scanData.recommendation || "SUSPICIOUS";
       }
 
       const scan = await storage.createRepoScan({
-        repoUrl,
-        repoName: scanData.repoName || repoUrl.split('/').pop() || 'unknown',
-        legitScore: scanData.legitScore || 50,
-        commitCount: scanData.commitCount || 0,
-        contributorCount: scanData.contributorCount || 0,
-        findings: scanData.findings || "Analysis incomplete",
-        recommendation: scanData.recommendation || "SUSPICIOUS",
+        repoUrl: normalized,
+        repoName,
+        legitScore,
+        commitCount,
+        contributorCount,
+        findings,
+        recommendation,
       });
 
       res.write(`data: ${JSON.stringify({ status: "complete", scan })}\n\n`);
