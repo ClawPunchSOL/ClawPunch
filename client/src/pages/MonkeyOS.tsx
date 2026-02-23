@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Terminal, Banana, Send, LogOut, Zap, Users, CircleDollarSign, Cpu,
-  ShieldAlert, FileCode, Loader2, Menu, X, ArrowLeft, MessageSquare
+  ShieldAlert, FileCode, Loader2, ArrowLeft, Wrench, Radar, X
 } from "lucide-react";
 
 import bananaBot from "@/assets/images/banana-bot.png";
@@ -11,8 +11,10 @@ import swarmMonkey from "@/assets/images/swarm-monkey.png";
 import oracleMonkey from "@/assets/images/oracle-monkey.png";
 import trendMonkey from "@/assets/images/trend-monkey.png";
 import vaultMonkey from "@/assets/images/vault-monkey.png";
+import monkeyHero from "@/assets/images/monkey-hero.png";
 
 import WalletButton from "@/components/WalletButton";
+import AgentScanner from "@/components/AgentScanner";
 import SwarmMonkeyPanel from "@/components/agents/SwarmMonkeyPanel";
 import PunchOraclePanel from "@/components/agents/PunchOraclePanel";
 import RugBusterPanel from "@/components/agents/RugBusterPanel";
@@ -29,151 +31,131 @@ interface Agent {
   avatar: string;
   status: string;
   statusColor: string;
-  bgGlow: string;
+  glowColor: string;
+  borderGlow: string;
   icon: React.ReactNode;
   description: string;
   longDescription: string;
   placeholder: string;
-  systemMessage: string;
-  quickPrompts: string[];
+  scannerColor: string;
+  scannerType: string;
+  scannerLabel: string;
   category: string;
 }
 
 const AGENTS: Record<AgentId, Agent> = {
-  'banana-bot': {
-    id: 'banana-bot', name: 'BANANA BOT', avatar: bananaBot,
-    status: 'Ready', statusColor: 'text-green-500', bgGlow: 'shadow-[0_0_30px_rgba(34,197,94,0.15)]',
-    icon: <CircleDollarSign className="w-4 h-4 text-green-500" />,
-    description: 'x402 Micropayments', longDescription: 'Send tips, process payments, and stream fractional USDC through x402 protocol state channels.',
-    placeholder: "e.g., 'Explain x402 protocol'",
-    systemMessage: 'X402 PROTOCOL ONLINE. USE THE PAYMENT FORM ABOVE TO SEND, OR ASK ME ANYTHING.',
-    quickPrompts: ['How does x402 streaming work?', 'What are state channels?', 'Explain zk-SNARK payments'],
-    category: 'PAYMENTS'
-  },
-  'swarm-monkey': {
-    id: 'swarm-monkey', name: 'SWARM MONKEY', avatar: swarmMonkey,
-    status: 'Active', statusColor: 'text-blue-500', bgGlow: 'shadow-[0_0_30px_rgba(59,130,246,0.15)]',
-    icon: <Users className="w-4 h-4 text-blue-500" />,
-    description: 'Agent Manager', longDescription: 'Register AI agents on the Moltbook Network, coordinate swarm operations, and monitor agent health.',
-    placeholder: "e.g., 'How does Moltbook orchestration work?'",
-    systemMessage: 'MOLTBOOK NETWORK CONNECTED. REGISTER AGENTS ABOVE OR ASK ME ABOUT SWARM OPS.',
-    quickPrompts: ['What is Attention Yield?', 'How does agent orchestration work?', 'Explain the Moltbook protocol'],
-    category: 'MANAGEMENT'
+  'trend-puncher': {
+    id: 'trend-puncher', name: 'TREND PUNCHER', avatar: trendMonkey,
+    status: 'SCANNING', statusColor: 'text-yellow-400', glowColor: 'rgba(234,179,8,0.3)', borderGlow: 'border-yellow-500/60',
+    icon: <Zap className="w-5 h-5 text-yellow-400" />,
+    description: 'Alpha Scanner', longDescription: 'AI scans DexScreener + CoinGecko for trending Solana tokens, finds alpha plays, flags rug signals.',
+    placeholder: "Ask about trends, tokens, or alpha...",
+    scannerColor: 'yellow', scannerType: 'trend-puncher', scannerLabel: 'TREND PUNCHER AI',
+    category: 'TRADING'
   },
   'punch-oracle': {
     id: 'punch-oracle', name: 'PUNCH ORACLE', avatar: oracleMonkey,
-    status: 'Syncing', statusColor: 'text-purple-500', bgGlow: 'shadow-[0_0_30px_rgba(168,85,247,0.15)]',
-    icon: <Terminal className="w-4 h-4 text-purple-500" />,
-    description: 'Predictions', longDescription: 'Create prediction markets, stake $PUNCH on outcomes, and analyze odds in real-time.',
-    placeholder: "e.g., 'What predictions are trending?'",
-    systemMessage: 'PREDICTION MARKETS LIVE. CREATE MARKETS AND PLACE BETS ABOVE, OR ASK ME ABOUT ODDS.',
-    quickPrompts: ['How do prediction markets work?', 'What is market resolution?', 'Explain odds calculation'],
+    status: 'SYNCING', statusColor: 'text-purple-400', glowColor: 'rgba(168,85,247,0.3)', borderGlow: 'border-purple-500/60',
+    icon: <Terminal className="w-5 h-5 text-purple-400" />,
+    description: 'Predictions', longDescription: 'Live prediction markets with real SOL betting. AI analyzes CoinGecko prices + Polymarket odds.',
+    placeholder: "Ask about predictions or market odds...",
+    scannerColor: 'purple', scannerType: 'punch-oracle', scannerLabel: 'ORACLE AI',
     category: 'TRADING'
-  },
-  'trend-puncher': {
-    id: 'trend-puncher', name: 'TREND PUNCHER', avatar: trendMonkey,
-    status: 'Scanning', statusColor: 'text-yellow-500', bgGlow: 'shadow-[0_0_30px_rgba(234,179,8,0.15)]',
-    icon: <Zap className="w-4 h-4 text-yellow-500" />,
-    description: 'Trend Trading', longDescription: 'Trade attention shares based on social virality and narrative momentum across crypto markets.',
-    placeholder: "e.g., 'Which narrative is most bullish?'",
-    systemMessage: 'ATTENTION MARKETS ONLINE. BUY/SELL NARRATIVE SHARES ABOVE, OR ASK ME FOR ALPHA.',
-    quickPrompts: ['What narratives are gaining momentum?', 'How does attention pricing work?', 'Explain virality scoring'],
-    category: 'TRADING'
-  },
-  'vault-swinger': {
-    id: 'vault-swinger', name: 'APE VAULT', avatar: vaultMonkey,
-    status: 'Farming', statusColor: 'text-orange-500', bgGlow: 'shadow-[0_0_30px_rgba(249,115,22,0.15)]',
-    icon: <Cpu className="w-4 h-4 text-orange-500" />,
-    description: 'Yield Farming', longDescription: 'Manage DeFi vaults, optimize yield farming strategies across Raydium, Orca, and Meteora.',
-    placeholder: "e.g., 'What is the best APY right now?'",
-    systemMessage: 'DEFI VAULTS CONNECTED. STAKE TOKENS ABOVE OR ASK ME ABOUT YIELD STRATEGIES.',
-    quickPrompts: ['What is impermanent loss?', 'Best yield farming strategy?', 'Compare Raydium vs Orca'],
-    category: 'DEFI'
   },
   'rug-buster': {
     id: 'rug-buster', name: 'RUG BUSTER', avatar: swarmMonkey,
-    status: 'Guarding', statusColor: 'text-red-500', bgGlow: 'shadow-[0_0_30px_rgba(239,68,68,0.15)]',
-    icon: <ShieldAlert className="w-4 h-4 text-red-500" />,
-    description: 'Security Scanner', longDescription: 'Scan Solana tokens for rug-pull risks. AI-powered analysis of mint authority, freeze auth, LP locks, and holder distribution.',
-    placeholder: "e.g., 'What are rug-pull red flags?'",
-    systemMessage: 'SECURITY SCANNER ONLINE. PASTE A CONTRACT ADDRESS ABOVE TO SCAN, OR ASK ME ABOUT SECURITY.',
-    quickPrompts: ['What makes a token safe?', 'Explain mint authority risks', 'How to check LP locks?'],
+    status: 'GUARDING', statusColor: 'text-red-400', glowColor: 'rgba(239,68,68,0.3)', borderGlow: 'border-red-500/60',
+    icon: <ShieldAlert className="w-5 h-5 text-red-400" />,
+    description: 'Security Scanner', longDescription: 'On-chain Solana token analysis. Checks mint auth, freeze auth, LP locks, holder distribution.',
+    placeholder: "Paste a contract address to scan...",
+    scannerColor: 'red', scannerType: 'rug-buster', scannerLabel: 'RUG BUSTER AI',
     category: 'SECURITY'
   },
   'repo-ape': {
     id: 'repo-ape', name: 'REPO APE', avatar: oracleMonkey,
-    status: 'Analyzing', statusColor: 'text-cyan-500', bgGlow: 'shadow-[0_0_30px_rgba(6,182,212,0.15)]',
-    icon: <FileCode className="w-4 h-4 text-cyan-500" />,
-    description: 'Code Auditor', longDescription: 'AI-powered GitHub repo analysis. Detect LARP projects, analyze code quality, and score legitimacy.',
-    placeholder: "e.g., 'How to detect fake AI projects?'",
-    systemMessage: 'REPO ANALYZER ONLINE. PASTE A GITHUB URL ABOVE TO ANALYZE, OR ASK ME ABOUT CODE QUALITY.',
-    quickPrompts: ['What is a LARP project?', 'How to evaluate code quality?', 'Red flags in crypto repos?'],
+    status: 'ANALYZING', statusColor: 'text-cyan-400', glowColor: 'rgba(6,182,212,0.3)', borderGlow: 'border-cyan-500/60',
+    icon: <FileCode className="w-5 h-5 text-cyan-400" />,
+    description: 'Code Auditor', longDescription: 'AI-powered GitHub repo analysis. Detect LARP projects, analyze code quality, score legitimacy.',
+    placeholder: "Paste a GitHub URL to analyze...",
+    scannerColor: 'cyan', scannerType: 'repo-ape', scannerLabel: 'REPO APE AI',
     category: 'SECURITY'
-  }
+  },
+  'vault-swinger': {
+    id: 'vault-swinger', name: 'APE VAULT', avatar: vaultMonkey,
+    status: 'FARMING', statusColor: 'text-orange-400', glowColor: 'rgba(249,115,22,0.3)', borderGlow: 'border-orange-500/60',
+    icon: <Cpu className="w-5 h-5 text-orange-400" />,
+    description: 'Yield Farming', longDescription: 'Real DeFi vault data from DeFi Llama. Analyzes APY, TVL, and risk across Solana protocols.',
+    placeholder: "Ask about yields or farming strategy...",
+    scannerColor: 'orange', scannerType: 'ape-vault', scannerLabel: 'VAULT STRATEGIST AI',
+    category: 'DEFI'
+  },
+  'banana-bot': {
+    id: 'banana-bot', name: 'BANANA BOT', avatar: bananaBot,
+    status: 'READY', statusColor: 'text-green-400', glowColor: 'rgba(34,197,94,0.3)', borderGlow: 'border-green-500/60',
+    icon: <CircleDollarSign className="w-5 h-5 text-green-400" />,
+    description: 'SOL Transfers', longDescription: 'Send real SOL transfers via Phantom wallet. On-chain transactions with Solscan verification.',
+    placeholder: "Ask about transactions or transfers...",
+    scannerColor: 'green', scannerType: 'banana-bot', scannerLabel: 'BANANA BOT AI',
+    category: 'PAYMENTS'
+  },
+  'swarm-monkey': {
+    id: 'swarm-monkey', name: 'SWARM MONKEY', avatar: swarmMonkey,
+    status: 'ACTIVE', statusColor: 'text-blue-400', glowColor: 'rgba(59,130,246,0.3)', borderGlow: 'border-blue-500/60',
+    icon: <Users className="w-5 h-5 text-blue-400" />,
+    description: 'Agent Manager', longDescription: 'Register AI agents on the Moltbook Network. Coordinate swarm operations and monitor agent health.',
+    placeholder: "Ask about Moltbook or agent swarms...",
+    scannerColor: 'cyan', scannerType: 'banana-bot', scannerLabel: 'SWARM AI',
+    category: 'MANAGEMENT'
+  },
 };
 
 interface ChatMessage {
   id: number;
-  sender: 'user' | 'agent' | 'system';
+  sender: 'user' | 'agent';
   text: string;
-  time: string;
-  isStreaming?: boolean;
 }
 
 export default function MonkeyOS() {
   const [, setLocation] = useLocation();
   const [activeAgentId, setActiveAgentId] = useState<AgentId | null>(null);
   const [conversationIds, setConversationIds] = useState<Record<string, number | null>>({});
-  const [messagesMap, setMessagesMap] = useState<Record<AgentId, ChatMessage[]>>(() => {
-    const initial: Record<string, ChatMessage[]> = {};
-    for (const agentId of Object.keys(AGENTS)) {
-      initial[agentId] = [{ id: 1, sender: 'system', text: AGENTS[agentId as AgentId].systemMessage, time: '09:00' }];
-    }
-    return initial as Record<AgentId, ChatMessage[]>;
-  });
+  const [activeTab, setActiveTab] = useState<'intel' | 'tools'>('intel');
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [toolPanelOpen, setToolPanelOpen] = useState(true);
+  const [chatResponse, setChatResponse] = useState<string>('');
+  const [showChat, setShowChat] = useState(false);
   const [hubStats, setHubStats] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const streamingMsgIdRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const activeAgent = activeAgentId ? AGENTS[activeAgentId] : null;
-  const currentMessages = activeAgentId ? messagesMap[activeAgentId] : [];
 
   useEffect(() => {
     if (!activeAgentId) {
       const fetchStats = async () => {
         try {
-          const [agents, preds, scans, repos, txs, positions, vaults] = await Promise.all([
+          const [agents, preds, scans, repos, txs, vaults] = await Promise.all([
             fetch("/api/moltbook/agents").then(r => r.json()).catch(() => []),
             fetch("/api/predictions").then(r => r.json()).catch(() => []),
             fetch("/api/security/scans").then(r => r.json()).catch(() => []),
             fetch("/api/repos/scans").then(r => r.json()).catch(() => []),
             fetch("/api/transactions").then(r => r.json()).catch(() => []),
-            fetch("/api/attention/positions").then(r => r.json()).catch(() => []),
-            fetch("/api/vaults").then(r => r.json()).catch(() => []),
+            fetch("/api/vaults").then(r => r.json()).catch(() => ({ vaults: [] })),
           ]);
           setHubStats({
-            'swarm-monkey': `${agents.length} agent${agents.length !== 1 ? 's' : ''} registered`,
-            'punch-oracle': `${preds.length} market${preds.length !== 1 ? 's' : ''} active`,
-            'rug-buster': `${scans.length} scan${scans.length !== 1 ? 's' : ''} completed`,
-            'repo-ape': `${repos.length} repo${repos.length !== 1 ? 's' : ''} analyzed`,
-            'banana-bot': `${txs.length} transaction${txs.length !== 1 ? 's' : ''} sent`,
-            'trend-puncher': `${positions.filter((p: any) => p.shares > 0).length} active position${positions.filter((p: any) => p.shares > 0).length !== 1 ? 's' : ''}`,
-            'vault-swinger': `${vaults.filter((v: any) => v.stakedAmount > 0).length} vault${vaults.filter((v: any) => v.stakedAmount > 0).length !== 1 ? 's' : ''} staked`,
+            'swarm-monkey': `${agents.length} agents`,
+            'punch-oracle': `${preds.length} markets`,
+            'rug-buster': `${scans.length} scans`,
+            'repo-ape': `${repos.length} repos`,
+            'banana-bot': `${txs.length} txs`,
+            'trend-puncher': 'LIVE',
+            'vault-swinger': `${(vaults.vaults || vaults).length} pools`,
           });
         } catch {}
       };
       fetchStats();
     }
   }, [activeAgentId]);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [currentMessages]);
 
   useEffect(() => { return () => { abortControllerRef.current?.abort(); }; }, []);
 
@@ -191,29 +173,26 @@ export default function MonkeyOS() {
 
   const handleAgentSelect = (agentId: AgentId) => {
     setActiveAgentId(agentId);
-    setSidebarOpen(false);
-    setToolPanelOpen(true);
+    setActiveTab('intel');
+    setChatResponse('');
+    setShowChat(false);
   };
 
   const handleBackToHub = () => {
     abortControllerRef.current?.abort();
     setActiveAgentId(null);
     setIsStreaming(false);
+    setChatResponse('');
+    setShowChat(false);
   };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isStreaming || !activeAgentId) return;
     const targetAgentId = activeAgentId;
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const userMsg: ChatMessage = { id: Date.now(), sender: 'user', text, time: now };
-
-    setMessagesMap(prev => ({ ...prev, [targetAgentId]: [...prev[targetAgentId], userMsg] }));
     setInput('');
     setIsStreaming(true);
-
-    const streamingMsgId = Date.now() + 1;
-    streamingMsgIdRef.current = streamingMsgId;
-    setMessagesMap(prev => ({ ...prev, [targetAgentId]: [...prev[targetAgentId], { id: streamingMsgId, sender: 'agent', text: '', time: now, isStreaming: true }] }));
+    setChatResponse('');
+    setShowChat(true);
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -224,7 +203,7 @@ export default function MonkeyOS() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text }), signal: abortController.signal,
       });
-      if (!res.ok) throw new Error('Failed to send message');
+      if (!res.ok) throw new Error('Failed');
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No reader');
       const decoder = new TextDecoder();
@@ -242,37 +221,33 @@ export default function MonkeyOS() {
             const data = JSON.parse(line.slice(6));
             if (data.content) {
               accumulated += data.content;
-              const t = accumulated;
-              setMessagesMap(prev => ({ ...prev, [targetAgentId]: prev[targetAgentId].map(m => m.id === streamingMsgId ? { ...m, text: t } : m) }));
+              setChatResponse(accumulated);
             }
-            if (data.error) throw new Error(data.error);
-          } catch (e) { if (e instanceof SyntaxError) continue; throw e; }
+          } catch {}
         }
       }
-      setMessagesMap(prev => ({ ...prev, [targetAgentId]: prev[targetAgentId].map(m => m.id === streamingMsgId ? { ...m, isStreaming: false } : m) }));
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
-      setMessagesMap(prev => ({ ...prev, [targetAgentId]: prev[targetAgentId].map(m => m.id === streamingMsgId ? { ...m, text: m.text || 'ERROR: Connection lost. Try again.', isStreaming: false } : m) }));
+      setChatResponse('Connection error. Try again.');
     } finally {
       setIsStreaming(false);
-      streamingMsgIdRef.current = null;
       abortControllerRef.current = null;
     }
   };
 
   const handleSend = async (e: React.FormEvent) => { e.preventDefault(); await sendMessage(input); };
 
-  const agentsByCategory = Object.values(AGENTS).reduce((acc, agent) => {
+  const agentList = Object.values(AGENTS);
+  const categoryOrder = ['TRADING', 'SECURITY', 'DEFI', 'PAYMENTS', 'MANAGEMENT'];
+  const categoryLabels: Record<string, string> = {
+    'TRADING': 'TRADE & PREDICT', 'SECURITY': 'SECURITY & RESEARCH',
+    'DEFI': 'DEFI & YIELD', 'PAYMENTS': 'PAYMENTS', 'MANAGEMENT': 'AGENT OPS',
+  };
+  const agentsByCategory = agentList.reduce((acc, agent) => {
     if (!acc[agent.category]) acc[agent.category] = [];
     acc[agent.category].push(agent);
     return acc;
   }, {} as Record<string, Agent[]>);
-
-  const categoryOrder = ['TRADING', 'SECURITY', 'DEFI', 'PAYMENTS', 'MANAGEMENT'];
-  const categoryLabels: Record<string, string> = {
-    'TRADING': 'Trade & Predict', 'SECURITY': 'Security & Research',
-    'DEFI': 'DeFi & Yield', 'PAYMENTS': 'Payments', 'MANAGEMENT': 'Agent Management',
-  };
 
   const renderToolPanel = () => {
     if (!activeAgentId) return null;
@@ -289,199 +264,334 @@ export default function MonkeyOS() {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#0a0a0a] flex flex-col font-sans text-foreground overflow-hidden">
-      <header className="h-12 border-b-4 border-border bg-card flex items-center justify-between px-3 md:px-4 shrink-0">
-        <div className="flex items-center gap-2 md:gap-3">
+    <div className="h-screen w-screen bg-[#080808] flex flex-col font-sans text-foreground overflow-hidden">
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0" style={{
+        backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E")',
+      }} />
+
+      <header className="h-14 border-b-4 border-primary/30 bg-black/90 backdrop-blur-lg flex items-center justify-between px-4 md:px-6 shrink-0 z-20 relative">
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <div className="flex items-center gap-3">
           {activeAgent ? (
-            <button onClick={handleBackToHub} className="text-primary p-1 flex items-center gap-1" data-testid="button-back-hub">
+            <motion.button
+              onClick={handleBackToHub}
+              className="text-primary p-1.5 flex items-center gap-2 border-2 border-primary/30 hover:border-primary/60 hover:bg-primary/10 transition-all"
+              data-testid="button-back-hub"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <ArrowLeft className="w-4 h-4" />
-              <span className="font-display text-[10px] hidden sm:inline">AGENTS</span>
-            </button>
+              <span className="font-display text-[9px] hidden sm:inline">BACK</span>
+            </motion.button>
           ) : (
-            <Terminal className="text-primary w-5 h-5" />
+            <div className="flex items-center gap-2">
+              <img src={monkeyHero} alt="" className="w-8 h-8 pixel-art-rendering" />
+            </div>
           )}
-          <span className="font-display text-xs text-primary" data-testid="text-os-version">MONKEY OS v1.0.4</span>
-        </div>
-        <div className="flex items-center gap-3 md:gap-4">
-          <WalletButton />
-          <div className="flex items-center gap-2 text-yellow-400">
-            <Banana className="w-4 h-4 fill-current" />
-            <span className="font-display text-xs" data-testid="text-banana-balance">1,420</span>
+          <div className="flex items-center gap-2">
+            <span className="font-display text-sm text-primary drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" data-testid="text-os-version">
+              MONKEY OS
+            </span>
+            <span className="font-display text-[8px] text-primary/40 hidden sm:inline">v1.0.4</span>
           </div>
-          <button onClick={() => setLocation('/')} className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2" data-testid="button-exit">
+        </div>
+        <div className="flex items-center gap-3 md:gap-5">
+          <WalletButton />
+          <div className="flex items-center gap-1.5 bg-primary/10 border-2 border-primary/30 px-3 py-1">
+            <Banana className="w-3.5 h-3.5 text-primary fill-current" />
+            <span className="font-display text-[10px] text-primary" data-testid="text-banana-balance">1,420</span>
+          </div>
+          <button onClick={() => setLocation('/')} className="text-muted-foreground hover:text-primary transition-colors p-1.5" data-testid="button-exit">
             <LogOut className="w-4 h-4" />
-            <span className="font-display text-[10px] hidden sm:inline">EXIT</span>
           </button>
         </div>
       </header>
 
-      {!activeAgent ? (
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12">
-            <div className="text-center mb-10 md:mb-14">
-              <h1 className="font-display text-2xl md:text-4xl text-white mb-3" data-testid="text-hub-title">CHOOSE YOUR AGENT</h1>
-              <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto leading-relaxed">Each agent is a specialized tool with its own interface. Pick one to get started.</p>
-            </div>
-            {categoryOrder.map(cat => {
-              const agents = agentsByCategory[cat];
-              if (!agents) return null;
-              return (
-                <div key={cat} className="mb-8 md:mb-10">
-                  <h2 className="font-display text-[11px] text-muted-foreground mb-4 flex items-center gap-2">
-                    <span className="w-8 h-px bg-border" />{categoryLabels[cat]}<span className="flex-1 h-px bg-border" />
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                    {agents.map(agent => (
-                      <motion.button key={agent.id} onClick={() => handleAgentSelect(agent.id)} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                        data-testid={`card-agent-${agent.id}`}
-                        className={`w-full text-left p-4 md:p-5 retro-container border-border hover:border-primary/60 bg-card/30 hover:bg-card/60 transition-all group ${agent.bgGlow}`}>
-                        <div className="flex items-start gap-4">
-                          <img src={agent.avatar} alt={agent.name} className="w-12 h-12 md:w-14 md:h-14 pixel-art-rendering rounded bg-black shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              {agent.icon}
-                              <span className="font-display text-xs text-white group-hover:text-primary transition-colors">{agent.name}</span>
-                              <span className={`text-[10px] font-display ${agent.statusColor} ml-auto`}>{agent.status}</span>
+      <AnimatePresence mode="wait">
+        {!activeAgent ? (
+          <motion.div
+            key="hub"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1 overflow-y-auto custom-scrollbar relative z-10"
+          >
+            <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-16">
+              <motion.div
+                className="text-center mb-12 md:mb-16"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 mb-6 border-2 border-primary/40 font-display text-[10px]">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  7 AI AGENTS ONLINE
+                </div>
+                <h1 className="font-display text-3xl md:text-5xl text-white mb-4 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" data-testid="text-hub-title">
+                  CHOOSE YOUR <span className="text-primary">AGENT</span>
+                </h1>
+                <p className="text-muted-foreground text-sm md:text-base max-w-lg mx-auto leading-relaxed">
+                  Each agent is powered by Claude AI with live data feeds. Real analysis, real recommendations, no filler.
+                </p>
+              </motion.div>
+
+              {categoryOrder.map((cat, catIdx) => {
+                const agents = agentsByCategory[cat];
+                if (!agents) return null;
+                return (
+                  <motion.div
+                    key={cat}
+                    className="mb-10 md:mb-12"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + catIdx * 0.1 }}
+                  >
+                    <div className="flex items-center gap-3 mb-5">
+                      <span className="w-3 h-3 bg-primary/20 border border-primary/40" />
+                      <h2 className="font-display text-[11px] text-primary/70 tracking-widest">{categoryLabels[cat]}</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                      {agents.map((agent, i) => (
+                        <motion.button
+                          key={agent.id}
+                          onClick={() => handleAgentSelect(agent.id)}
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          whileTap={{ scale: 0.98 }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 + catIdx * 0.1 + i * 0.05 }}
+                          data-testid={`card-agent-${agent.id}`}
+                          className={`group relative w-full text-left overflow-hidden border-4 border-border hover:${agent.borderGlow} bg-black/60 hover:bg-black/40 transition-all duration-300`}
+                          style={{
+                            boxShadow: `6px 6px 0px 0px rgba(0,0,0,0.6)`,
+                          }}
+                        >
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{
+                            background: `radial-gradient(circle at 30% 50%, ${agent.glowColor}, transparent 70%)`,
+                          }} />
+                          <div className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{
+                            background: `linear-gradient(90deg, transparent, ${agent.glowColor}, transparent)`,
+                          }} />
+
+                          <div className="relative p-5 md:p-6 flex items-start gap-4">
+                            <div className="relative shrink-0">
+                              <img
+                                src={agent.avatar}
+                                alt={agent.name}
+                                className="w-16 h-16 md:w-20 md:h-20 pixel-art-rendering border-4 border-border group-hover:border-white/20 transition-colors bg-black"
+                                style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.5)' }}
+                              />
+                              <div className={`absolute -bottom-1 -right-1 w-3 h-3 ${agent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
                             </div>
-                            <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">{agent.longDescription}</p>
-                            {hubStats[agent.id] && (
-                              <div className="mt-2 flex items-center gap-1.5">
-                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${agent.statusColor.replace('text-', 'bg-')}`} />
-                                <span className={`font-display text-[9px] ${agent.statusColor}`}>{hubStats[agent.id]}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                {agent.icon}
+                                <span className="font-display text-sm text-white group-hover:text-primary transition-colors drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                                  {agent.name}
+                                </span>
                               </div>
-                            )}
+                              <p className="text-muted-foreground text-xs md:text-sm leading-relaxed mb-3">
+                                {agent.longDescription}
+                              </p>
+                              <div className="flex items-center gap-3">
+                                <span className={`font-display text-[9px] ${agent.statusColor} tracking-wider flex items-center gap-1.5`}>
+                                  <div className={`w-1.5 h-1.5 ${agent.statusColor.replace('text-', 'bg-')} animate-pulse`} />
+                                  {agent.status}
+                                </span>
+                                {hubStats[agent.id] && (
+                                  <span className="font-display text-[9px] text-muted-foreground/50">{hubStats[agent.id]}</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-1 overflow-hidden relative">
-          {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />}
-          <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-40 w-56 h-[calc(100vh-48px)] border-r-4 border-border bg-card/95 md:bg-card/50 flex flex-col shrink-0 transition-transform duration-200 ease-out backdrop-blur-lg md:backdrop-blur-none`}>
-            <div className="p-3 border-b-2 border-border flex items-center justify-between">
-              <h2 className="font-display text-[10px] text-muted-foreground">AGENTS</h2>
-              <button onClick={() => setSidebarOpen(false)} className="md:hidden text-muted-foreground"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-              {(Object.values(AGENTS) as Agent[]).map(agent => (
-                <button key={agent.id} onClick={() => handleAgentSelect(agent.id)} data-testid={`button-agent-${agent.id}`}
-                  className={`w-full flex items-center gap-2 p-2 rounded-none border-2 transition-all ${activeAgentId === agent.id ? 'border-primary bg-primary/10' : 'border-transparent hover:border-border hover:bg-card/50'}`}>
-                  <img src={agent.avatar} alt={agent.name} className="w-7 h-7 pixel-art-rendering rounded bg-black shrink-0" />
-                  <div className="text-left flex-1 min-w-0">
-                    <div className="font-display text-[9px] text-white truncate">{agent.name}</div>
-                    <div className="text-[9px] text-muted-foreground truncate">{agent.description}</div>
-                  </div>
-                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${agent.statusColor.replace('text-', 'bg-')}`} />
-                </button>
-              ))}
-            </div>
-          </aside>
-
-          <main className="flex-1 flex flex-col bg-background/90 relative w-full">
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
-            
-            <div className="p-2 md:p-3 border-b-2 border-border flex items-center justify-between shrink-0 z-10 bg-black/40 backdrop-blur-md">
-              <div className="flex items-center gap-2 min-w-0">
-                <button onClick={() => setSidebarOpen(true)} className="md:hidden text-muted-foreground" data-testid="button-menu"><Menu className="w-5 h-5" /></button>
-                <img src={activeAgent.avatar} className="w-7 h-7 md:w-9 md:h-9 pixel-art-rendering drop-shadow-[0_0_10px_rgba(255,200,0,0.3)] shrink-0" />
-                <div className="min-w-0">
-                  <h1 className="font-display text-xs md:text-sm text-white truncate" data-testid="text-agent-name">{activeAgent.name}</h1>
-                  <p className="text-muted-foreground text-[9px] md:text-[10px] font-sans truncate" data-testid="text-agent-desc">{activeAgent.description}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => setToolPanelOpen(!toolPanelOpen)} className="px-2 py-1 border border-border text-[9px] font-display text-muted-foreground hover:text-white hover:border-primary transition-colors" data-testid="button-toggle-tools">
-                  {toolPanelOpen ? 'HIDE TOOLS' : 'SHOW TOOLS'}
-                </button>
-                <div className={`w-2 h-2 rounded-full animate-pulse ${activeAgent.statusColor.replace('text-', 'bg-')}`} />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto z-10 custom-scrollbar">
-              {toolPanelOpen && (
-                <div className="p-3 md:p-4 border-b-2 border-border bg-black/20">
-                  {renderToolPanel()}
-                </div>
-              )}
-
-              <div className="p-3 md:p-4 space-y-3 md:space-y-4">
-                <AnimatePresence initial={false} mode="popLayout">
-                  {currentMessages.map(msg => (
-                    <motion.div key={msg.id} initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                      className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`} data-testid={`chat-message-${msg.sender}-${msg.id}`}>
-                      <div className={`max-w-[90%] md:max-w-[75%] p-3 rounded-none border-2 shadow-[2px_2px_0px_#000] ${
-                        msg.sender === 'user' ? 'bg-primary text-primary-foreground border-primary' :
-                        msg.sender === 'system' ? 'bg-card border-border text-muted-foreground font-display text-[10px]' :
-                        'bg-[#1a1a1a] text-white border-secondary'
-                      }`}>
-                        <p className={`whitespace-pre-wrap break-words ${msg.sender === 'system' ? '' : 'text-sm leading-relaxed font-sans'}`}>
-                          {msg.text}
-                          {msg.sender === 'agent' && msg.isStreaming && msg.text && <span className="inline-block w-2 h-4 bg-primary ml-0.5 animate-blink align-middle" />}
-                          {msg.sender === 'agent' && msg.isStreaming && !msg.text && (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="inline-block w-1.5 h-1.5 bg-primary rounded-none animate-bounce" style={{ animationDelay: '0ms' }} />
-                              <span className="inline-block w-1.5 h-1.5 bg-primary rounded-none animate-bounce" style={{ animationDelay: '150ms' }} />
-                              <span className="inline-block w-1.5 h-1.5 bg-primary rounded-none animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <span className="text-[10px] font-display text-muted-foreground mt-1 px-1">
-                        {msg.sender !== 'system' && (msg.sender === 'user' ? 'YOU ' : `${activeAgent.name.replace(' ', '_')} `)}[{msg.time}]
-                      </span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-
-                {currentMessages.length <= 1 && !isStreaming && (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-col items-center justify-center py-6 z-10">
-                    <MessageSquare className="w-6 h-6 text-muted-foreground/30 mb-3" />
-                    <p className="font-display text-[10px] text-muted-foreground/50 mb-4">ASK ME ANYTHING</p>
-                    <div className="flex flex-col gap-1.5 w-full max-w-md">
-                      {activeAgent.quickPrompts.map((prompt, i) => (
-                        <button key={i} onClick={() => sendMessage(prompt)} data-testid={`button-quick-prompt-${i}`}
-                          className="text-left px-3 py-2 border border-border hover:border-primary/50 bg-card/30 hover:bg-card/60 text-xs text-muted-foreground hover:text-white transition-all font-sans">
-                          <span className="text-primary mr-1.5 font-display">{">"}</span>{prompt}
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   </motion.div>
-                )}
-                <div ref={chatEndRef} />
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="agent"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 flex flex-col overflow-hidden relative z-10"
+          >
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+              backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)',
+            }} />
+
+            <div className="relative shrink-0 border-b-4 border-border/60 bg-black/80 backdrop-blur-md z-10">
+              <div className="absolute bottom-0 left-0 right-0 h-px" style={{
+                background: `linear-gradient(90deg, transparent, ${activeAgent.glowColor}, transparent)`,
+              }} />
+              <div className="flex items-center justify-between px-4 md:px-6 py-3">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="relative">
+                    <img
+                      src={activeAgent.avatar}
+                      className="w-10 h-10 md:w-12 md:h-12 pixel-art-rendering border-3 border-border bg-black"
+                      style={{ boxShadow: `0 0 20px ${activeAgent.glowColor}40, 3px 3px 0px rgba(0,0,0,0.5)` }}
+                    />
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 ${activeAgent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
+                  </div>
+                  <div>
+                    <h1 className="font-display text-sm md:text-base text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" data-testid="text-agent-name">
+                      {activeAgent.name}
+                    </h1>
+                    <p className={`font-display text-[8px] md:text-[9px] ${activeAgent.statusColor} tracking-widest`} data-testid="text-agent-desc">
+                      {activeAgent.description.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex border-2 border-border/60 overflow-hidden" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.3)' }}>
+                    <button
+                      onClick={() => setActiveTab('intel')}
+                      data-testid="tab-intel"
+                      className={`flex items-center gap-1.5 px-3 md:px-4 py-2 font-display text-[9px] md:text-[10px] transition-all ${
+                        activeTab === 'intel'
+                          ? `bg-primary/20 ${activeAgent.statusColor} border-r-2 border-border/40`
+                          : 'bg-black/40 text-muted-foreground/50 hover:text-muted-foreground border-r-2 border-border/40'
+                      }`}
+                    >
+                      <Radar className="w-3 h-3" /> INTEL
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('tools')}
+                      data-testid="tab-tools"
+                      className={`flex items-center gap-1.5 px-3 md:px-4 py-2 font-display text-[9px] md:text-[10px] transition-all ${
+                        activeTab === 'tools'
+                          ? `bg-primary/20 ${activeAgent.statusColor}`
+                          : 'bg-black/40 text-muted-foreground/50 hover:text-muted-foreground'
+                      }`}
+                    >
+                      <Wrench className="w-3 h-3" /> TOOLS
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="p-2 md:p-3 border-t-2 border-border bg-card shrink-0 z-10">
-              <form onSubmit={handleSend} className="flex gap-2">
+            <div className="flex-1 flex flex-col min-h-0 relative">
+              <AnimatePresence mode="wait">
+                {activeTab === 'intel' ? (
+                  <motion.div
+                    key="intel"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="flex-1 flex flex-col min-h-0"
+                  >
+                    <AgentScanner
+                      agentType={activeAgent.scannerType}
+                      accentColor={activeAgent.scannerColor}
+                      label={activeAgent.scannerLabel}
+                      autoScan={true}
+                      fullHeight={true}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="tools"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-5"
+                  >
+                    {renderToolPanel()}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {showChat && chatResponse && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="border-t-2 border-border/40 bg-black/80 backdrop-blur-md overflow-hidden shrink-0"
+                  >
+                    <div className="relative">
+                      <button
+                        onClick={() => { setShowChat(false); setChatResponse(''); }}
+                        className="absolute top-2 right-2 text-muted-foreground/40 hover:text-white z-10"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="p-4 max-h-[200px] overflow-y-auto custom-scrollbar">
+                        <div className="text-[10px] text-gray-300 leading-relaxed whitespace-pre-wrap font-sans pr-6">
+                          {chatResponse}
+                          {isStreaming && (
+                            <span className="inline-block w-2 h-3.5 bg-primary ml-0.5 align-middle" style={{ animation: 'blink 0.6s step-end infinite' }} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="shrink-0 border-t-4 border-border/60 bg-black/90 backdrop-blur-md z-10 relative">
+              <div className="absolute top-0 left-0 right-0 h-px" style={{
+                background: `linear-gradient(90deg, transparent, ${activeAgent.glowColor}60, transparent)`,
+              }} />
+              <form onSubmit={handleSend} className="flex items-center gap-2 p-2.5 md:p-3">
                 <div className="flex-1 relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-display text-sm animate-pulse">{">"}</div>
-                  <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={activeAgent.placeholder} disabled={isStreaming}
+                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 font-display text-sm ${activeAgent.statusColor}`}>
+                    {">"}
+                  </div>
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    placeholder={activeAgent.placeholder}
+                    disabled={isStreaming}
                     data-testid="input-chat"
-                    className="w-full bg-background border-4 border-border text-white pl-7 pr-3 py-2.5 md:py-3 focus:outline-none focus:border-primary font-sans text-sm shadow-[inset_2px_2px_0px_rgba(0,0,0,0.5)] placeholder:text-muted-foreground/50 transition-colors disabled:opacity-50" />
+                    className="w-full bg-black/60 border-4 border-border/60 text-white pl-8 pr-4 py-2.5 md:py-3 focus:outline-none font-sans text-sm placeholder:text-muted-foreground/30 transition-all disabled:opacity-50"
+                    style={{
+                      boxShadow: 'inset 2px 2px 0px rgba(0,0,0,0.5)',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = activeAgent.glowColor;
+                      e.target.style.boxShadow = `inset 2px 2px 0px rgba(0,0,0,0.5), 0 0 15px ${activeAgent.glowColor}30`;
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '';
+                      e.target.style.boxShadow = 'inset 2px 2px 0px rgba(0,0,0,0.5)';
+                    }}
+                  />
                 </div>
-                <button type="submit" disabled={!input.trim() || isStreaming} data-testid="button-send"
-                  className="retro-button retro-button-primary flex items-center justify-center w-11 md:w-12 disabled:opacity-50 disabled:cursor-not-allowed">
+                <motion.button
+                  type="submit"
+                  disabled={!input.trim() || isStreaming}
+                  data-testid="button-send"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2.5 md:py-3 bg-primary text-primary-foreground font-display text-[10px] border-4 border-primary/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5"
+                  style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.5)' }}
+                >
                   {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </button>
+                </motion.button>
               </form>
             </div>
-          </main>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #0a0a0a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-border); }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        .animate-blink { animation: blink 0.8s step-end infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

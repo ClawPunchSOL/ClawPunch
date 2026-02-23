@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, shortAddress } from "@/lib/solanaWallet";
 import { Zap, TrendingUp, TrendingDown, Loader2, Wallet, RefreshCw, ExternalLink, Flame, Twitter, MessageCircle, BarChart3, ChevronDown, ChevronUp } from "lucide-react";
-import AgentScanner from "@/components/AgentScanner";
 
 interface TrendingToken {
   address: string;
@@ -146,12 +145,6 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
         </button>
       </div>
 
-      <AgentScanner
-        agentType="trend-puncher"
-        accentColor="yellow"
-        label="🧠 TREND PUNCHER AI"
-        autoScan={tokens.length > 0}
-      />
 
       {wallet.connected && wallet.publicKey && (
         <div className="flex items-center gap-2 px-2 py-1.5 border border-yellow-500/20 bg-yellow-500/5">

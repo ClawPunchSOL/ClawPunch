@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, shortAddress, sendSolTransfer, refreshBalance } from "@/lib/solanaWallet";
 import { Target, Plus, Loader2, TrendingUp, Wallet, ChevronUp, ChevronDown, Zap, RefreshCw, Clock, CheckCircle, XCircle, DollarSign, AlertTriangle } from "lucide-react";
-import AgentScanner from "@/components/AgentScanner";
 
 interface Prediction {
   id: number;
@@ -300,13 +299,6 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
           </button>
         </div>
       </div>
-
-      <AgentScanner
-        agentType="punch-oracle"
-        accentColor="purple"
-        label="🧠 ORACLE AI"
-        autoScan={predictions.length > 0 || prices.length > 0}
-      />
 
       {prices.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">

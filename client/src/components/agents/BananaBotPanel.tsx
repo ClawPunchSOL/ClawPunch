@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { sendSolTransfer } from "@/lib/solanaWallet";
 import { CircleDollarSign, Send, Loader2, ArrowUpRight, Wallet, ExternalLink, AlertTriangle } from "lucide-react";
-import AgentScanner from "@/components/AgentScanner";
 
 interface Transaction {
   id: number;
@@ -123,13 +122,6 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
           <span className="text-[9px] text-yellow-400 font-display">CONNECT PHANTOM WALLET TO SEND REAL TRANSACTIONS</span>
         </div>
       )}
-
-      <AgentScanner
-        agentType="banana-bot"
-        accentColor="green"
-        label="🧠 BANANA BOT AI"
-        autoScan={true}
-      />
 
       <form onSubmit={handleSend} className="p-3 border-2 border-green-500/30 bg-green-500/5 space-y-2">
         <input

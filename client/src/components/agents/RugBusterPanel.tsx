@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ShieldAlert, Search, Loader2, CheckCircle, XCircle, AlertTriangle, Globe } from "lucide-react";
-import AgentScanner from "@/components/AgentScanner";
 
 interface SecurityScan {
   id: number;
@@ -123,16 +122,6 @@ export default function RugBusterPanel() {
             <div className="h-full bg-red-500/60 animate-pulse" style={{ width: '60%' }} />
           </div>
         </div>
-      )}
-
-      {activeScan && (
-        <AgentScanner
-          agentType="rug-buster"
-          accentColor="red"
-          label="🧠 RUG BUSTER AI"
-          context={{ address: activeScan.contractAddress }}
-          autoScan={true}
-        />
       )}
 
       {activeScan && (
