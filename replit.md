@@ -29,7 +29,7 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 1. **Banana Bot** - Real Solana SOL transfers via Phantom wallet signing + Solscan tx links + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
 3. **Punch Oracle** - Live prediction markets with real SOL betting via Phantom wallet, real odds/volumes/expiry, auto-resolution + chat
-4. **Trend Puncher** - Live narrative tracker powered by CoinGecko API, buy/sell attention shares, real market caps/volumes/24h changes + wallet display + chat
+4. **Trend Puncher** - DexScreener viral token scanner showing trending Solana tokens with real-time prices, 5m/1h/24h changes, volume, liquidity, boost amounts, social signals, Jupiter swap links + CoinGecko global trends + chat
 5. **Ape Vault** - Real Solana DeFi vault data from DeFi Llama API (Jito, Marinade, Raydium, Orca, Kamino) + staking dashboard + chat
 6. **Rug Buster** - Contract scanner with AI-generated safety scores + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat

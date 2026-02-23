@@ -572,7 +572,7 @@ export async function registerRoutes(
 
       const activeWithTokens = preds.filter(p => p.status === 'active' && p.tokenId);
       if (activeWithTokens.length > 0) {
-        const tokenIds = [...new Set(activeWithTokens.map(p => p.tokenId!))];
+        const tokenIds = Array.from(new Set(activeWithTokens.map(p => p.tokenId!)));
         const prices = await fetchPredictionPrices(tokenIds);
         for (const pred of activeWithTokens) {
           if (pred.tokenId && prices[pred.tokenId]) {
@@ -653,7 +653,7 @@ export async function registerRoutes(
         return res.json({ resolved: [], count: 0 });
       }
 
-      const tokenIds = [...new Set(toResolve.map(p => p.tokenId!))];
+      const tokenIds = Array.from(new Set(toResolve.map(p => p.tokenId!)));
       const prices = await fetchPredictionPrices(tokenIds);
 
       const resolved: any[] = [];
@@ -1177,139 +1177,149 @@ export async function registerRoutes(
     }
   });
 
-  // === ATTENTION POSITIONS (Trend Puncher) — Real CoinGecko market data ===
+  // === TREND PUNCHER — Real DexScreener Trending + CoinGecko Trending ===
 
-  const NARRATIVE_COINS: Record<string, { coins: string; category: string }> = {
-    "AI & Machine Learning": { coins: "render-token,fetch-ai,ocean-protocol,singularitynet,bittensor", category: "ai" },
-    "Solana Ecosystem": { coins: "solana,raydium,jupiter-exchange-solana,jito-governance-token,marinade", category: "l1" },
-    "Memecoins": { coins: "dogecoin,shiba-inu,pepe,bonk,dogwifcoin", category: "meme" },
-    "DePIN": { coins: "helium,hivemapper,render-token,filecoin,arweave", category: "infra" },
-    "RWA Tokenization": { coins: "ondo-finance,centrifuge,maple-finance,goldfinch,polymesh", category: "rwa" },
-    "Layer 2 & ZK": { coins: "starknet,polygon-ecosystem-token,arbitrum,optimism,zksync", category: "l2" },
-    "DeFi Blue Chips": { coins: "uniswap,aave,maker,lido-dao,curve-dao-token", category: "defi" },
-    "Gaming & Metaverse": { coins: "the-sandbox,axie-infinity,immutable-x,gala,illuvium", category: "gaming" },
-  };
+  interface TrendingToken {
+    address: string;
+    name: string;
+    symbol: string;
+    price: string;
+    priceChange5m: number;
+    priceChange1h: number;
+    priceChange24h: number;
+    volume24h: number;
+    liquidity: number;
+    marketCap: number;
+    boostAmount: number;
+    dexUrl: string;
+    socials: string[];
+    pairAddress: string;
+  }
 
-  let lastMarketRefresh = 0;
-  const REFRESH_INTERVAL = 120_000;
+  let trendingCache: { data: TrendingToken[]; fetchedAt: number } = { data: [], fetchedAt: 0 };
+  const TRENDING_CACHE_MS = 60_000;
 
-  const fetchCoinGeckoData = async (): Promise<Record<string, any> | null> => {
-    const allCoinIds = [...new Set(Object.values(NARRATIVE_COINS).flatMap(n => n.coins.split(',')))].join(',');
+  const fetchDexScreenerTrending = async (): Promise<TrendingToken[]> => {
     try {
-      const res = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${allCoinIds}&order=market_cap_desc&per_page=250&sparkline=false&price_change_percentage=24h`,
-        { headers: { 'Accept': 'application/json' } }
-      );
-      if (!res.ok) return null;
-      const data = await res.json();
-      const map: Record<string, any> = {};
-      for (const coin of data) {
-        map[coin.id] = coin;
-      }
-      return map;
-    } catch (e) {
-      console.error("[TrendPuncher] CoinGecko fetch error:", e);
-      return null;
-    }
-  };
-
-  const computeNarrativeMetrics = (narrative: string, coinMap: Record<string, any>) => {
-    const config = NARRATIVE_COINS[narrative];
-    if (!config) return null;
-    const coinIds = config.coins.split(',');
-    const coins = coinIds.map(id => coinMap[id]).filter(Boolean);
-    if (coins.length === 0) return null;
-
-    const totalMarketCap = coins.reduce((s: number, c: any) => s + (c.market_cap || 0), 0);
-    const totalVolume = coins.reduce((s: number, c: any) => s + (c.total_volume || 0), 0);
-    const avgPriceChange = coins.reduce((s: number, c: any) => s + (c.price_change_percentage_24h || 0), 0) / coins.length;
-
-    const volToCapRatio = totalMarketCap > 0 ? (totalVolume / totalMarketCap) * 100 : 0;
-    let virality = Math.min(99, Math.max(5, Math.round(
-      50 + (avgPriceChange * 2) + (volToCapRatio * 3)
-    )));
-
-    const momentum = avgPriceChange > 2 ? "up" : avgPriceChange < -2 ? "down" : "flat";
-
-    const priceIndex = totalMarketCap > 0 ? parseFloat((totalVolume / 1e8).toFixed(2)) : 0.01;
-
-    return {
-      currentPrice: Math.max(0.01, priceIndex),
-      virality,
-      momentum,
-      priceChange24h: parseFloat(avgPriceChange.toFixed(2)),
-      volume24h: totalVolume,
-      marketCap: totalMarketCap,
-    };
-  };
-
-  const refreshNarrativeData = async () => {
-    const now = Date.now();
-    if (now - lastMarketRefresh < REFRESH_INTERVAL) return;
-    lastMarketRefresh = now;
-
-    const coinMap = await fetchCoinGeckoData();
-    if (!coinMap) return;
-
-    const positions = await storage.getAllAttentionPositions();
-
-    for (const pos of positions) {
-      const metrics = computeNarrativeMetrics(pos.narrative, coinMap);
-      if (!metrics) continue;
-
-      await storage.updateAttentionMarketData(pos.id, {
-        currentPrice: metrics.currentPrice,
-        virality: metrics.virality,
-        momentum: metrics.momentum,
-        priceChange24h: metrics.priceChange24h,
-        volume24h: metrics.volume24h,
-        marketCap: metrics.marketCap,
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const boostRes = await fetch("https://api.dexscreener.com/token-boosts/top/v1", {
+        signal: controller.signal, headers: { 'Accept': 'application/json' }
       });
+      clearTimeout(timer);
+      if (!boostRes.ok) return [];
+      const boosts: any[] = await boostRes.json();
+
+      const solTokens = boosts
+        .filter((t: any) => t.chainId === "solana" && t.tokenAddress)
+        .slice(0, 15);
+
+      if (solTokens.length === 0) return [];
+
+      const addresses = solTokens.map((t: any) => t.tokenAddress).join(",");
+      const controller2 = new AbortController();
+      const timer2 = setTimeout(() => controller2.abort(), 10000);
+      const pairRes = await fetch(`https://api.dexscreener.com/tokens/v1/solana/${addresses}`, {
+        signal: controller2.signal, headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timer2);
+      if (!pairRes.ok) return [];
+      const pairs: any[] = await pairRes.json();
+
+      const pairMap: Record<string, any> = {};
+      for (const p of pairs) {
+        const addr = p.baseToken?.address;
+        if (addr && !pairMap[addr]) pairMap[addr] = p;
+      }
+
+      return solTokens.map((t: any) => {
+        const pair = pairMap[t.tokenAddress];
+        return {
+          address: t.tokenAddress,
+          name: pair?.baseToken?.name || t.description?.split('\n')[0]?.slice(0, 30) || "Unknown",
+          symbol: pair?.baseToken?.symbol || "???",
+          price: pair?.priceUsd || "0",
+          priceChange5m: pair?.priceChange?.m5 || 0,
+          priceChange1h: pair?.priceChange?.h1 || 0,
+          priceChange24h: pair?.priceChange?.h24 || 0,
+          volume24h: pair?.volume?.h24 || 0,
+          liquidity: pair?.liquidity?.usd || 0,
+          marketCap: pair?.marketCap || 0,
+          boostAmount: t.totalAmount || 0,
+          dexUrl: t.url || `https://dexscreener.com/solana/${t.tokenAddress}`,
+          socials: (t.links || []).map((l: any) => l?.type).filter(Boolean),
+          pairAddress: pair?.pairAddress || "",
+        };
+      }).filter((t: TrendingToken) => t.symbol !== "???");
+    } catch (e) {
+      console.error("[TrendPuncher] DexScreener fetch error:", e);
+      return [];
     }
   };
+
+  app.get("/api/trending/tokens", async (_req, res) => {
+    try {
+      const now = Date.now();
+      if (trendingCache.data.length > 0 && now - trendingCache.fetchedAt < TRENDING_CACHE_MS) {
+        return res.json(trendingCache.data);
+      }
+      const tokens = await fetchDexScreenerTrending();
+      if (tokens.length > 0) {
+        trendingCache = { data: tokens, fetchedAt: now };
+      }
+      res.json(tokens.length > 0 ? tokens : trendingCache.data);
+    } catch (error) {
+      if (trendingCache.data.length > 0) return res.json(trendingCache.data);
+      res.status(500).json({ error: "Failed to fetch trending tokens" });
+    }
+  });
+
+  app.get("/api/trending/global", async (_req, res) => {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const cgRes = await fetch("https://api.coingecko.com/api/v3/search/trending", {
+        signal: controller.signal, headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timer);
+      if (!cgRes.ok) return res.status(502).json({ error: "CoinGecko unavailable" });
+      const data = await cgRes.json();
+      const coins = (data.coins || []).slice(0, 10).map((c: any) => ({
+        id: c.item.id,
+        name: c.item.name,
+        symbol: c.item.symbol,
+        thumb: c.item.thumb,
+        marketCapRank: c.item.market_cap_rank,
+        priceChange24h: c.item.data?.price_change_percentage_24h?.usd || 0,
+        price: c.item.data?.price || 0,
+        marketCap: c.item.data?.market_cap || "",
+        volume: c.item.data?.total_volume || "",
+      }));
+      res.json(coins);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch global trends" });
+    }
+  });
 
   app.get("/api/attention/positions", async (_req, res) => {
     try {
-      let positions = await storage.getAllAttentionPositions();
-
-      if (positions.length === 0) {
-        const coinMap = await fetchCoinGeckoData();
-
-        for (const [narrative, config] of Object.entries(NARRATIVE_COINS)) {
-          const metrics = coinMap ? computeNarrativeMetrics(narrative, coinMap) : null;
-          await storage.createAttentionPosition({
-            narrative,
-            shares: 0,
-            avgPrice: metrics?.currentPrice || 1.0,
-            currentPrice: metrics?.currentPrice || 1.0,
-            virality: metrics?.virality || 50,
-            momentum: metrics?.momentum || "flat",
-            category: config.category,
-            coinIds: config.coins,
-            priceChange24h: metrics?.priceChange24h || 0,
-            volume24h: metrics?.volume24h || 0,
-            marketCap: metrics?.marketCap || 0,
-          });
-        }
-        positions = await storage.getAllAttentionPositions();
-      } else {
-        refreshNarrativeData().catch(() => {});
-      }
-
+      const positions = await storage.getAllAttentionPositions();
       res.json(positions);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch attention positions" });
+      res.status(500).json({ error: "Failed to fetch positions" });
     }
   });
 
   app.post("/api/attention/refresh", async (_req, res) => {
     try {
-      lastMarketRefresh = 0;
-      await refreshNarrativeData();
-      const positions = await storage.getAllAttentionPositions();
-      res.json(positions);
+      trendingCache = { data: [], fetchedAt: 0 };
+      const tokens = await fetchDexScreenerTrending();
+      if (tokens.length > 0) {
+        trendingCache = { data: tokens, fetchedAt: Date.now() };
+      }
+      res.json(tokens);
     } catch (error) {
-      res.status(500).json({ error: "Failed to refresh market data" });
+      res.status(500).json({ error: "Failed to refresh trending data" });
     }
   });
 
@@ -1319,8 +1329,22 @@ export async function registerRoutes(
       if (!narrative || !action || !shareCount) return res.status(400).json({ error: "Narrative, action, and shares are required" });
       if (action !== 'buy' && action !== 'sell') return res.status(400).json({ error: "Action must be 'buy' or 'sell'" });
 
-      const position = await storage.getAttentionPosition(narrative);
-      if (!position) return res.status(404).json({ error: "Narrative not found" });
+      let position = await storage.getAttentionPosition(narrative);
+      if (!position) {
+        position = await storage.createAttentionPosition({
+          narrative,
+          shares: 0,
+          avgPrice: 1.0,
+          currentPrice: 1.0,
+          virality: 50,
+          momentum: "flat",
+          category: "trending",
+          coinIds: "",
+          priceChange24h: 0,
+          volume24h: 0,
+          marketCap: 0,
+        });
+      }
 
       const qty = parseInt(shareCount);
       if (action === 'sell' && position.shares < qty) return res.status(400).json({ error: "Not enough shares" });
