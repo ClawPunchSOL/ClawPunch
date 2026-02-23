@@ -502,9 +502,89 @@ export async function registerRoutes(
     }
   });
 
+  const PREDICTION_TOKENS: Record<string, string> = {
+    "solana": "SOL",
+    "bitcoin": "BTC",
+    "ethereum": "ETH",
+    "bonk": "BONK",
+    "dogwifcoin": "WIF",
+    "jupiter-exchange-solana": "JUP",
+    "raydium": "RAY",
+    "render-token": "RNDR",
+    "dogecoin": "DOGE",
+    "pepe": "PEPE",
+  };
+
+  const fetchPredictionPrices = async (tokenIds: string[]): Promise<Record<string, { usd: number; usd_24h_change: number }>> => {
+    try {
+      const ids = tokenIds.join(',');
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      if (!res.ok) return {};
+      return await res.json();
+    } catch {
+      return {};
+    }
+  };
+
+  const generatePredictionFromPrice = (tokenId: string, symbol: string, price: number, change24h: number) => {
+    const direction = change24h > 0 ? "above" : "below";
+    const multiplier = change24h > 5 ? 1.15 : change24h > 0 ? 1.08 : change24h > -5 ? 0.92 : 0.85;
+    const targetPrice = parseFloat((price * multiplier).toFixed(price < 1 ? 6 : 2));
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const templates = [
+      `Will ${symbol} be ${direction} $${targetPrice} in 24 hours?`,
+      `${symbol} to ${direction === 'above' ? 'pump' : 'dump'} past $${targetPrice}?`,
+      `Can ${symbol} ${direction === 'above' ? 'break' : 'hold'} $${targetPrice} by tomorrow?`,
+    ];
+    const title = templates[Math.floor(Math.random() * templates.length)];
+    const description = `${symbol} is currently at $${price.toFixed(price < 1 ? 6 : 2)} (${change24h > 0 ? '+' : ''}${change24h.toFixed(2)}% 24h). Target: $${targetPrice}`;
+
+    const momentum = Math.abs(change24h);
+    const oddsYes = direction === 'above'
+      ? Math.min(80, Math.max(20, 50 + Math.round(momentum * 1.5)))
+      : Math.min(80, Math.max(20, 50 - Math.round(momentum * 1.5)));
+
+    return {
+      title,
+      description,
+      category: "crypto",
+      oddsYes,
+      oddsNo: 100 - oddsYes,
+      poolYes: 0,
+      poolNo: 0,
+      status: "active" as const,
+      tokenId,
+      targetPrice,
+      currentPrice: price,
+      priceAtCreation: price,
+      expiresAt,
+    };
+  };
+
   app.get("/api/predictions", async (_req, res) => {
     try {
       const preds = await storage.getAllPredictions();
+
+      const activeWithTokens = preds.filter(p => p.status === 'active' && p.tokenId);
+      if (activeWithTokens.length > 0) {
+        const tokenIds = [...new Set(activeWithTokens.map(p => p.tokenId!))];
+        const prices = await fetchPredictionPrices(tokenIds);
+        for (const pred of activeWithTokens) {
+          if (pred.tokenId && prices[pred.tokenId]) {
+            const currentPrice = prices[pred.tokenId].usd;
+            if (currentPrice !== pred.currentPrice) {
+              await storage.updatePrediction(pred.id, { currentPrice });
+              pred.currentPrice = currentPrice;
+            }
+          }
+        }
+      }
+
       res.json(preds);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch predictions" });
@@ -528,6 +608,90 @@ export async function registerRoutes(
       res.status(201).json(pred);
     } catch (error) {
       res.status(500).json({ error: "Failed to create prediction" });
+    }
+  });
+
+  app.post("/api/predictions/generate", async (_req, res) => {
+    try {
+      const tokenIds = Object.keys(PREDICTION_TOKENS);
+      const prices = await fetchPredictionPrices(tokenIds);
+      if (Object.keys(prices).length === 0) {
+        return res.status(503).json({ error: "Could not fetch market data from CoinGecko" });
+      }
+
+      const existing = await storage.getAllPredictions();
+      const activeTokenIds = new Set(existing.filter(p => p.status === 'active' && p.tokenId).map(p => p.tokenId));
+
+      const generated: any[] = [];
+      const availableTokens = tokenIds.filter(id => !activeTokenIds.has(id) && prices[id]);
+      const tokensToUse = availableTokens.sort(() => Math.random() - 0.5).slice(0, 5);
+
+      for (const tokenId of tokensToUse) {
+        const price = prices[tokenId].usd;
+        const change = prices[tokenId].usd_24h_change || 0;
+        const symbol = PREDICTION_TOKENS[tokenId];
+        const predData = generatePredictionFromPrice(tokenId, symbol, price, change);
+        const pred = await storage.createPrediction(predData);
+        generated.push(pred);
+      }
+
+      res.json({ generated, count: generated.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate predictions" });
+    }
+  });
+
+  app.post("/api/predictions/resolve", async (_req, res) => {
+    try {
+      const preds = await storage.getAllPredictions();
+      const now = new Date();
+      const toResolve = preds.filter(p =>
+        p.status === 'active' && p.tokenId && p.targetPrice && p.expiresAt && new Date(p.expiresAt) <= now
+      );
+
+      if (toResolve.length === 0) {
+        return res.json({ resolved: [], count: 0 });
+      }
+
+      const tokenIds = [...new Set(toResolve.map(p => p.tokenId!))];
+      const prices = await fetchPredictionPrices(tokenIds);
+
+      const resolved: any[] = [];
+      for (const pred of toResolve) {
+        if (!pred.tokenId || !prices[pred.tokenId]) continue;
+        const currentPrice = prices[pred.tokenId].usd;
+        const isAbove = currentPrice >= pred.targetPrice!;
+        const titleLower = pred.title.toLowerCase();
+        const predictedAbove = titleLower.includes('above') || titleLower.includes('pump') || titleLower.includes('break');
+        const outcome = (predictedAbove && isAbove) || (!predictedAbove && !isAbove) ? 'yes' : 'no';
+
+        await storage.updatePrediction(pred.id, {
+          status: 'resolved',
+          resolvedOutcome: outcome,
+          currentPrice,
+        });
+        resolved.push({ ...pred, status: 'resolved', resolvedOutcome: outcome, currentPrice });
+      }
+
+      res.json({ resolved, count: resolved.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve predictions" });
+    }
+  });
+
+  app.get("/api/predictions/prices", async (_req, res) => {
+    try {
+      const tokenIds = Object.keys(PREDICTION_TOKENS);
+      const prices = await fetchPredictionPrices(tokenIds);
+      const result = Object.entries(prices).map(([id, data]) => ({
+        tokenId: id,
+        symbol: PREDICTION_TOKENS[id] || id.toUpperCase(),
+        price: data.usd,
+        change24h: data.usd_24h_change || 0,
+      }));
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch prices" });
     }
   });
 
@@ -1087,26 +1251,146 @@ export async function registerRoutes(
     }
   });
 
-  // === VAULT POSITIONS (Ape Vault) ===
+  // === VAULT POSITIONS (Ape Vault) — Real DeFi Llama Data ===
+  const DEFI_LLAMA_POOLS_URL = "https://yields.llama.fi/pools";
+  const VAULT_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+  let lastVaultRefresh = 0;
+
+  const TARGET_PROTOCOLS = [
+    "raydium-amm", "orca-dex", "kamino-lend", "kamino-liquidity",
+    "marinade-liquid-staking", "jito-liquid-staking", "jupiter-staked-sol",
+    "drift-staked-sol", "save", "loopscale", "sanctum-infinity"
+  ];
+
+  const fetchDefiLlamaPools = async (): Promise<Array<{ vaultName: string; protocol: string; token: string; apy: number; tvl: number }>> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(DEFI_LLAMA_POOLS_URL, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`DeFi Llama returned ${res.status}`);
+      const json = await res.json();
+      const pools: any[] = json.data || [];
+
+      const solanaPools = pools.filter((p: any) =>
+        p.chain === "Solana" &&
+        p.tvlUsd > 100000 &&
+        p.apy !== null &&
+        p.apy > 0 &&
+        p.apy < 500 &&
+        TARGET_PROTOCOLS.includes(p.project)
+      );
+
+      solanaPools.sort((a: any, b: any) => b.tvlUsd - a.tvlUsd);
+
+      const seen = new Set<string>();
+      const top: Array<{ vaultName: string; protocol: string; token: string; apy: number; tvl: number }> = [];
+      for (const p of solanaPools) {
+        const key = `${p.project}-${p.symbol}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const PROTOCOL_DISPLAY: Record<string, string> = {
+          "raydium-amm": "Raydium", "orca-dex": "Orca", "kamino-lend": "Kamino Lend",
+          "kamino-liquidity": "Kamino", "marinade-liquid-staking": "Marinade",
+          "jito-liquid-staking": "Jito", "jupiter-staked-sol": "Jupiter",
+          "drift-staked-sol": "Drift", "save": "Save", "loopscale": "Loopscale",
+          "sanctum-infinity": "Sanctum",
+        };
+        const protocolName = PROTOCOL_DISPLAY[p.project] || (p.project as string)
+          .split("-").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        top.push({
+          vaultName: p.symbol || "Unknown",
+          protocol: protocolName,
+          token: (p.symbol || "").split("-")[0] || "SOL",
+          apy: Math.round(p.apy * 100) / 100,
+          tvl: Math.round(p.tvlUsd),
+        });
+        if (top.length >= 20) break;
+      }
+      return top;
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  };
+
+  const refreshVaultsFromDefiLlama = async (): Promise<void> => {
+    const pools = await fetchDefiLlamaPools();
+    if (pools.length === 0) return;
+
+    const existingVaults = await storage.getAllVaultPositions();
+    const stakeMap = new Map<string, number>();
+    for (const v of existingVaults) {
+      if (v.stakedAmount > 0) stakeMap.set(v.vaultName, v.stakedAmount);
+    }
+
+    for (const ev of existingVaults) {
+      await storage.updateVaultStake(ev.id, -1);
+    }
+
+    for (const p of pools) {
+      const existing = await storage.getVaultPosition(p.vaultName);
+      if (existing && existing.stakedAmount !== -1) {
+        continue;
+      }
+      if (existing) {
+        const stakedAmount = stakeMap.get(p.vaultName) || 0;
+        await storage.updateVaultStake(existing.id, stakedAmount);
+        await storage.updateVaultMarketData(existing.id, { apy: p.apy, tvl: p.tvl, protocol: p.protocol, token: p.token });
+      } else {
+        const stakedAmount = stakeMap.get(p.vaultName) || 0;
+        await storage.createVaultPosition({ ...p, stakedAmount });
+      }
+    }
+
+    const remaining = await storage.getAllVaultPositions();
+    for (const v of remaining) {
+      if (v.stakedAmount === -1) {
+        const originalStake = stakeMap.get(v.vaultName) || 0;
+        if (originalStake > 0) {
+          await storage.updateVaultStake(v.id, originalStake);
+        } else {
+          await storage.deleteVaultPosition(v.id);
+        }
+      }
+    }
+
+    lastVaultRefresh = Date.now();
+  };
+
+  const ensureVaultsLoaded = async () => {
+    const now = Date.now();
+    if (now - lastVaultRefresh > VAULT_REFRESH_INTERVAL_MS) {
+      try {
+        await refreshVaultsFromDefiLlama();
+      } catch (e: any) {
+        console.error("[DeFi Llama refresh error]", e?.message);
+        const existing = await storage.getAllVaultPositions();
+        if (existing.length === 0) {
+          console.log("[Vaults] DeFi Llama unavailable and no cached data");
+        }
+      }
+    }
+  };
+
   app.get("/api/vaults", async (_req, res) => {
     try {
-      let vaults = await storage.getAllVaultPositions();
-      if (vaults.length === 0) {
-        const seeds = [
-          { vaultName: "SOL-USDC", protocol: "Raydium", token: "SOL", apy: 24.5, tvl: 12400000 },
-          { vaultName: "PUNCH-SOL", protocol: "Orca", token: "PUNCH", apy: 142.8, tvl: 890000 },
-          { vaultName: "USDC Lending", protocol: "Meteora", token: "USDC", apy: 8.2, tvl: 45000000 },
-          { vaultName: "JUP-USDC", protocol: "Raydium", token: "JUP", apy: 34.1, tvl: 5600000 },
-          { vaultName: "BONK-SOL", protocol: "Orca", token: "BONK", apy: 89.3, tvl: 2100000 },
-        ];
-        for (const s of seeds) {
-          await storage.createVaultPosition({ ...s, stakedAmount: 0 });
-        }
-        vaults = await storage.getAllVaultPositions();
-      }
-      res.json(vaults);
+      await ensureVaultsLoaded();
+      const vaults = await storage.getAllVaultPositions();
+      res.json({ vaults, lastRefresh: lastVaultRefresh, source: "defillama" });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vaults" });
+    }
+  });
+
+  app.post("/api/vaults/refresh", async (_req, res) => {
+    try {
+      lastVaultRefresh = 0;
+      await refreshVaultsFromDefiLlama();
+      const vaults = await storage.getAllVaultPositions();
+      res.json({ vaults, lastRefresh: lastVaultRefresh, source: "defillama" });
+    } catch (error: any) {
+      res.status(500).json({ error: `Failed to refresh: ${error?.message}` });
     }
   });
 

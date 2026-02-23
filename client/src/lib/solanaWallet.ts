@@ -1,4 +1,4 @@
-import { Connection, PublicKey, clusterApiUrl, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, PublicKey, clusterApiUrl, LAMPORTS_PER_SOL, Transaction, SystemProgram } from "@solana/web3.js";
 
 export interface WalletState {
   connected: boolean;
@@ -111,6 +111,33 @@ export function shortAddress(addr: string | null): string {
 
 export function isPhantomInstalled(): boolean {
   return !!getPhantom();
+}
+
+export async function sendSolTransfer(recipientAddress: string, amountSol: number): Promise<string> {
+  const phantom = getPhantom();
+  if (!phantom || !walletState.connected || !walletState.publicKey) {
+    throw new Error("Wallet not connected");
+  }
+
+  const conn = getConnection();
+  const fromPubkey = new PublicKey(walletState.publicKey);
+  const toPubkey = new PublicKey(recipientAddress);
+
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey,
+      toPubkey,
+      lamports: Math.round(amountSol * LAMPORTS_PER_SOL),
+    })
+  );
+
+  transaction.feePayer = fromPubkey;
+  const { blockhash } = await conn.getLatestBlockhash();
+  transaction.recentBlockhash = blockhash;
+
+  const { signature } = await phantom.signAndSendTransaction(transaction);
+  setTimeout(fetchBalance, 3000);
+  return signature;
 }
 
 if (typeof window !== "undefined") {

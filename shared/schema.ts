@@ -71,6 +71,11 @@ export const predictions = pgTable("predictions", {
   poolNo: real("pool_no").notNull().default(0),
   status: text("status").notNull().default("active"),
   resolvedOutcome: text("resolved_outcome"),
+  tokenId: text("token_id"),
+  targetPrice: real("target_price"),
+  currentPrice: real("current_price"),
+  priceAtCreation: real("price_at_creation"),
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

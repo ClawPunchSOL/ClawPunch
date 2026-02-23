@@ -50,6 +50,7 @@ export interface IStorage {
   getAllPredictions(): Promise<Prediction[]>;
   getPrediction(id: number): Promise<Prediction | undefined>;
   createPrediction(data: InsertPrediction): Promise<Prediction>;
+  updatePrediction(id: number, data: Partial<Prediction>): Promise<Prediction | undefined>;
   placeBet(data: InsertPredictionBet): Promise<PredictionBet>;
   getBetsByPrediction(predictionId: number): Promise<PredictionBet[]>;
   updatePredictionPool(id: number, side: string, amount: number): Promise<void>;
@@ -75,6 +76,8 @@ export interface IStorage {
   getVaultPosition(vaultName: string): Promise<VaultPosition | undefined>;
   createVaultPosition(data: InsertVaultPosition): Promise<VaultPosition>;
   updateVaultStake(id: number, stakedAmount: number): Promise<VaultPosition | undefined>;
+  updateVaultMarketData(id: number, data: Partial<VaultPosition>): Promise<VaultPosition | undefined>;
+  deleteVaultPosition(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -173,6 +176,10 @@ export class DatabaseStorage implements IStorage {
     const [pred] = await db.insert(predictions).values(data).returning();
     return pred;
   }
+  async updatePrediction(id: number, data: Partial<Prediction>) {
+    const [pred] = await db.update(predictions).set(data).where(eq(predictions.id, id)).returning();
+    return pred;
+  }
   async placeBet(data: InsertPredictionBet) {
     const [bet] = await db.insert(predictionBets).values(data).returning();
     return bet;
@@ -255,6 +262,14 @@ export class DatabaseStorage implements IStorage {
   async updateVaultStake(id: number, stakedAmount: number) {
     const [pos] = await db.update(vaultPositions).set({ stakedAmount }).where(eq(vaultPositions.id, id)).returning();
     return pos;
+  }
+  async updateVaultMarketData(id: number, data: Partial<VaultPosition>) {
+    const { id: _id, createdAt: _ca, ...updateData } = data as any;
+    const [pos] = await db.update(vaultPositions).set(updateData).where(eq(vaultPositions.id, id)).returning();
+    return pos;
+  }
+  async deleteVaultPosition(id: number) {
+    await db.delete(vaultPositions).where(eq(vaultPositions.id, id));
   }
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useWalletState } from "@/components/WalletButton";
-import { Cpu, ArrowDown, ArrowUp, Percent, Loader2, Wallet, PieChart } from "lucide-react";
+import { Cpu, ArrowDown, ArrowUp, Percent, Loader2, Wallet, PieChart, RefreshCw } from "lucide-react";
 
 interface VaultPosition {
   id: number;
@@ -16,16 +16,42 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
   const wallet = useWalletState();
   const [vaults, setVaults] = useState<VaultPosition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<number>(0);
   const [stakeAmount, setStakeAmount] = useState<Record<number, string>>({});
   const [staking, setStaking] = useState<string | null>(null);
 
+  const loadVaults = (data: any) => {
+    if (Array.isArray(data)) {
+      setVaults(data);
+    } else if (data.vaults) {
+      setVaults(data.vaults);
+      if (data.lastRefresh) setLastRefresh(data.lastRefresh);
+    }
+  };
+
   useEffect(() => {
-    fetch("/api/vaults").then(r => r.json()).then(setVaults).finally(() => setLoading(false));
+    fetch("/api/vaults").then(r => r.json()).then(loadVaults).finally(() => setLoading(false));
   }, []);
 
-  const formatTVL = (n: number) => n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : `$${(n / 1e3).toFixed(0)}K`;
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/vaults/refresh", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        loadVaults(data);
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const formatTVL = (n: number) => n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : `$${(n / 1e3).toFixed(0)}K`;
   const totalStaked = vaults.reduce((sum, v) => sum + v.stakedAmount, 0);
   const avgApy = vaults.length > 0 ? vaults.reduce((sum, v) => sum + v.apy, 0) / vaults.length : 0;
+
+  const timeSinceRefresh = lastRefresh > 0 ? Math.floor((Date.now() - lastRefresh) / 60000) : null;
 
   const handleStake = async (vault: VaultPosition) => {
     const amt = parseFloat(stakeAmount[vault.id] || "0");
@@ -78,14 +104,30 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Cpu className="w-4 h-4 text-orange-400" />
-          <span className="font-display text-[11px] text-white">DEFI VAULTS</span>
+          <span className="font-display text-[11px] text-white">SOLANA DEFI VAULTS</span>
+          <span className="text-[8px] text-muted-foreground/60 font-mono">via DeFi Llama</span>
         </div>
-        <div className="flex items-center gap-3 text-[10px]">
-          {totalStaked > 0 && (
-            <span className="font-display text-orange-400">{totalStaked.toFixed(2)} STAKED</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            data-testid="button-refresh-vaults"
+            className="p-1 border border-orange-500/30 text-orange-400 hover:bg-orange-500/10 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          {timeSinceRefresh !== null && (
+            <span className="text-[8px] text-muted-foreground/50 font-mono">{timeSinceRefresh}m ago</span>
           )}
-          <span className="text-muted-foreground font-display">AVG APY: <span className="text-green-400">{avgApy.toFixed(1)}%</span></span>
         </div>
+      </div>
+
+      <div className="flex items-center gap-3 text-[10px]">
+        {totalStaked > 0 && (
+          <span className="font-display text-orange-400">{totalStaked.toFixed(2)} STAKED</span>
+        )}
+        <span className="text-muted-foreground font-display">AVG APY: <span className="text-green-400">{avgApy.toFixed(1)}%</span></span>
+        <span className="text-muted-foreground font-display">{vaults.length} POOLS</span>
       </div>
 
       {wallet.connected && wallet.publicKey && (
@@ -107,17 +149,17 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
           <div key={v.id} className="p-3 border border-border bg-black/30" data-testid={`vault-${v.id}`}>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <span className="font-display text-xs text-white">{v.vaultName}</span>
-                <span className="text-[9px] text-muted-foreground ml-2">{v.protocol}</span>
+                <span className="font-display text-xs text-white" data-testid={`text-vault-name-${v.id}`}>{v.vaultName}</span>
+                <span className="text-[9px] text-muted-foreground ml-2" data-testid={`text-vault-protocol-${v.id}`}>{v.protocol}</span>
               </div>
               <div className="flex items-center gap-1 text-green-400">
                 <Percent className="w-3 h-3" />
-                <span className="font-display text-sm">{v.apy}%</span>
+                <span className="font-display text-sm" data-testid={`text-vault-apy-${v.id}`}>{v.apy}%</span>
               </div>
             </div>
 
             <div className="flex items-center gap-4 text-[10px] mb-2">
-              <span className="text-muted-foreground">TVL: <span className="text-white">{formatTVL(v.tvl)}</span></span>
+              <span className="text-muted-foreground">TVL: <span className="text-white" data-testid={`text-vault-tvl-${v.id}`}>{formatTVL(v.tvl)}</span></span>
               {v.stakedAmount > 0 && <span className="text-orange-400 font-display">YOUR STAKE: {v.stakedAmount} {v.token}</span>}
             </div>
 

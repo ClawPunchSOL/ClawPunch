@@ -26,11 +26,11 @@ A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents
 
 ## 7 AI Utility Agents
 All agents are powered by Claude with custom system prompts AND specialized tool panels:
-1. **Banana Bot** - x402 payment form (send USDC/SOL/PUNCH) + wallet sender display + chat
+1. **Banana Bot** - Real Solana SOL transfers via Phantom wallet signing + Solscan tx links + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
-3. **Punch Oracle** - Prediction market cards, betting modal with wallet integration, odds bars + chat
+3. **Punch Oracle** - Auto-generated predictions from live CoinGecko prices, real target/current prices, auto-resolution + chat
 4. **Trend Puncher** - Live narrative tracker powered by CoinGecko API, buy/sell attention shares, real market caps/volumes/24h changes + wallet display + chat
-5. **Ape Vault** - DeFi vault staking dashboard, APY display + wallet staking identity + chat
+5. **Ape Vault** - Real Solana DeFi vault data from DeFi Llama API (Jito, Marinade, Raydium, Orca, Kamino) + staking dashboard + chat
 6. **Rug Buster** - Contract scanner with AI-generated safety scores + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat
 
@@ -66,10 +66,14 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `GET /api/repos/scans` - List repo scan history
 - `POST /api/repos/scan` - AI-powered repo legitimacy scan (SSE)
 - `GET/POST /api/transactions` - List/create x402 transactions (Banana Bot)
+- `GET /api/predictions/prices` - Live CoinGecko prices for 10 tracked tokens
+- `POST /api/predictions/generate` - Auto-generate predictions from real market data
+- `POST /api/predictions/resolve` - Auto-resolve expired predictions against real prices
 - `GET /api/attention/positions` - List attention market narratives with live CoinGecko data (Trend Puncher)
 - `POST /api/attention/refresh` - Force refresh market data from CoinGecko
 - `POST /api/attention/trade` - Buy/sell attention shares
-- `GET /api/vaults` - List DeFi vault positions (Ape Vault)
+- `GET /api/vaults` - List DeFi vaults from DeFi Llama (Solana pools)
+- `POST /api/vaults/refresh` - Force refresh vault data from DeFi Llama
 - `POST /api/vaults/:id/stake` - Stake/unstake in vault
 
 ## Database Schema
