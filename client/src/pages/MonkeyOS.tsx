@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Terminal, Banana, Send, LogOut, Zap, Users, CircleDollarSign, Cpu,
+  Terminal, Send, LogOut, Zap, Users, CircleDollarSign, Cpu,
   ShieldAlert, FileCode, Loader2, ArrowLeft, Wrench, Radar, X
 } from "lucide-react";
 
@@ -12,6 +12,10 @@ import oracleMonkey from "@/assets/images/oracle-monkey.png";
 import trendMonkey from "@/assets/images/trend-monkey.png";
 import vaultMonkey from "@/assets/images/vault-monkey.png";
 import monkeyHero from "@/assets/images/monkey-hero.png";
+import bgJungle from "@/assets/images/bg-jungle.png";
+import monkeyRidingCrab from "@/assets/images/monkey-riding-crab.png";
+import crabRiderAngry from "@/assets/images/crab-rider-angry.png";
+import crabRiderHappy from "@/assets/images/crab-rider-happy.png";
 
 import WalletButton from "@/components/WalletButton";
 import AgentScanner from "@/components/AgentScanner";
@@ -240,8 +244,8 @@ export default function MonkeyOS() {
   const agentList = Object.values(AGENTS);
   const categoryOrder = ['TRADING', 'SECURITY', 'DEFI', 'PAYMENTS', 'MANAGEMENT'];
   const categoryLabels: Record<string, string> = {
-    'TRADING': 'TRADE & PREDICT', 'SECURITY': 'SECURITY & RESEARCH',
-    'DEFI': 'DEFI & YIELD', 'PAYMENTS': 'PAYMENTS', 'MANAGEMENT': 'AGENT OPS',
+    'TRADING': '⚡ TRADE & PREDICT', 'SECURITY': '🛡️ SECURITY & RESEARCH',
+    'DEFI': '🍌 DEFI & YIELD', 'PAYMENTS': '💸 PAYMENTS', 'MANAGEMENT': '🐒 AGENT OPS',
   };
   const agentsByCategory = agentList.reduce((acc, agent) => {
     if (!acc[agent.category]) acc[agent.category] = [];
@@ -263,33 +267,73 @@ export default function MonkeyOS() {
     }
   };
 
+  const floatingBananas = Array.from({ length: 20 }).map((_, i) => ({
+    id: i,
+    left: `${(i / 20) * 100 + Math.random() * 3}%`,
+    bottom: `${10 + Math.random() * 80}%`,
+    delay: Math.random() * 3,
+    duration: 3 + Math.random() * 3,
+  }));
+
   return (
-    <div className="h-screen w-screen bg-[#080808] flex flex-col font-sans text-foreground overflow-hidden">
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0" style={{
+    <div className="h-screen w-screen bg-[#0a0f0a] flex flex-col font-sans text-foreground overflow-hidden relative">
+      <div className="absolute inset-0 z-0 pixel-art-rendering opacity-20 bg-repeat-x bg-[auto_100%] bg-center"
+        style={{ backgroundImage: `url(${bgJungle})` }}
+      />
+
+      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{
         backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E")',
       }} />
 
-      <header className="h-14 border-b-4 border-primary/30 bg-black/90 backdrop-blur-lg flex items-center justify-between px-4 md:px-6 shrink-0 z-20 relative">
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {floatingBananas.map(b => (
+          <motion.div
+            key={b.id}
+            className="absolute text-2xl md:text-3xl drop-shadow-[0_0_10px_rgba(255,255,0,0.3)]"
+            style={{ left: b.left, bottom: b.bottom }}
+            animate={{
+              y: [0, -20 - Math.random() * 20, 0],
+              rotate: [0, 15, -15, 0],
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: b.duration,
+              ease: "easeInOut",
+              delay: b.delay,
+            }}
+          >
+            🍌
+          </motion.div>
+        ))}
+      </div>
+
+      <header className="h-16 border-b-4 border-foreground bg-black/90 backdrop-blur-lg flex items-center justify-between px-4 md:px-6 shrink-0 z-20 relative"
+        style={{ boxShadow: '0 4px 0px rgba(255,255,255,0.05)' }}
+      >
         <div className="flex items-center gap-3">
           {activeAgent ? (
             <motion.button
               onClick={handleBackToHub}
-              className="text-primary p-1.5 flex items-center gap-2 border-2 border-primary/30 hover:border-primary/60 hover:bg-primary/10 transition-all"
+              className="retro-button bg-black text-primary border-2 border-primary py-2 px-3 flex items-center gap-2"
               data-testid="button-back-hub"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.5)' }}
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="font-display text-[9px] hidden sm:inline">BACK</span>
             </motion.button>
           ) : (
-            <div className="flex items-center gap-2">
-              <img src={monkeyHero} alt="" className="w-8 h-8 pixel-art-rendering" />
-            </div>
+            <motion.div
+              className="flex items-center gap-2"
+              animate={{ y: [0, -4, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+            >
+              <img src={monkeyHero} alt="" className="w-10 h-10 pixel-art-rendering drop-shadow-[0_4px_8px_rgba(255,200,0,0.3)]" />
+            </motion.div>
           )}
           <div className="flex items-center gap-2">
-            <span className="font-display text-sm text-primary drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" data-testid="text-os-version">
+            <span className="font-display text-lg md:text-xl text-primary drop-shadow-[3px_3px_0px_rgba(0,0,0,1)]" data-testid="text-os-version">
               MONKEY OS
             </span>
             <span className="font-display text-[8px] text-primary/40 hidden sm:inline">v1.0.4</span>
@@ -297,11 +341,11 @@ export default function MonkeyOS() {
         </div>
         <div className="flex items-center gap-3 md:gap-5">
           <WalletButton />
-          <div className="flex items-center gap-1.5 bg-primary/10 border-2 border-primary/30 px-3 py-1">
-            <Banana className="w-3.5 h-3.5 text-primary fill-current" />
+          <div className="retro-container px-3 py-1.5 flex items-center gap-2 bg-black/80">
+            <span className="text-xl">🍌</span>
             <span className="font-display text-[10px] text-primary" data-testid="text-banana-balance">1,420</span>
           </div>
-          <button onClick={() => setLocation('/')} className="text-muted-foreground hover:text-primary transition-colors p-1.5" data-testid="button-exit">
+          <button onClick={() => setLocation('/')} className="text-muted-foreground hover:text-primary transition-colors p-1.5 border-2 border-border hover:border-primary" data-testid="button-exit">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
@@ -316,22 +360,35 @@ export default function MonkeyOS() {
             exit={{ opacity: 0, y: -20 }}
             className="flex-1 overflow-y-auto custom-scrollbar relative z-10"
           >
-            <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-16">
+            <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 md:py-16 relative">
               <motion.div
-                className="text-center mb-12 md:mb-16"
+                className="absolute bottom-4 left-4 z-0 hidden lg:block"
+                animate={{
+                  x: [0, 20, 0],
+                  y: [0, -8, 0],
+                  rotate: [-3, 3, -3],
+                }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              >
+                <img src={crabRiderHappy} className="w-32 h-32 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(0,255,0,0.3)] opacity-50" />
+              </motion.div>
+
+              <motion.div
+                className="text-center mb-14 md:mb-20"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 mb-6 border-2 border-primary/40 font-display text-[10px]">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  7 AI AGENTS ONLINE
+                <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 mb-8 border-2 border-primary font-display text-xs animate-pulse">
+                  <div className="w-2 h-2 bg-primary rounded-full" /> 7 AI AGENTS ONLINE
                 </div>
-                <h1 className="font-display text-3xl md:text-5xl text-white mb-4 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" data-testid="text-hub-title">
+                <h1 className="font-display text-4xl md:text-6xl text-white mb-6 drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]" data-testid="text-hub-title">
                   CHOOSE YOUR <span className="text-primary">AGENT</span>
                 </h1>
-                <p className="text-muted-foreground text-sm md:text-base max-w-lg mx-auto leading-relaxed">
-                  Each agent is powered by Claude AI with live data feeds. Real analysis, real recommendations, no filler.
+                <p className="text-lg md:text-xl font-sans text-muted-foreground bg-black/60 p-6 border-4 border-border backdrop-blur-md inline-block leading-relaxed"
+                  style={{ boxShadow: '8px 8px 0px 0px rgba(0,0,0,0.5)' }}
+                >
+                  Each agent is powered by Claude AI with live data feeds.<br/>Real analysis, real recommendations, no filler.
                 </p>
               </motion.div>
 
@@ -341,66 +398,64 @@ export default function MonkeyOS() {
                 return (
                   <motion.div
                     key={cat}
-                    className="mb-10 md:mb-12"
+                    className="mb-12 md:mb-16"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 + catIdx * 0.1 }}
                   >
-                    <div className="flex items-center gap-3 mb-5">
-                      <span className="w-3 h-3 bg-primary/20 border border-primary/40" />
-                      <h2 className="font-display text-[11px] text-primary/70 tracking-widest">{categoryLabels[cat]}</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+                    <div className="flex items-center gap-3 mb-6">
+                      <h2 className="font-display text-sm md:text-base text-primary drop-shadow-[2px_2px_0px_#000]">{categoryLabels[cat]}</h2>
+                      <div className="flex-1 h-[3px] bg-gradient-to-r from-primary/30 to-transparent" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                       {agents.map((agent, i) => (
                         <motion.button
                           key={agent.id}
                           onClick={() => handleAgentSelect(agent.id)}
-                          whileHover={{ scale: 1.02, y: -2 }}
+                          whileHover={{ y: -6, scale: 1.01 }}
                           whileTap={{ scale: 0.98 }}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.2 + catIdx * 0.1 + i * 0.05 }}
                           data-testid={`card-agent-${agent.id}`}
-                          className={`group relative w-full text-left overflow-hidden border-4 border-border hover:${agent.borderGlow} bg-black/60 hover:bg-black/40 transition-all duration-300`}
-                          style={{
-                            boxShadow: `6px 6px 0px 0px rgba(0,0,0,0.6)`,
-                          }}
+                          className="group retro-container w-full text-left bg-black/60 backdrop-blur-sm hover:-translate-y-2 transition-all duration-200 relative overflow-hidden"
                         >
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{
-                            background: `radial-gradient(circle at 30% 50%, ${agent.glowColor}, transparent 70%)`,
+                            background: `radial-gradient(circle at 20% 50%, ${agent.glowColor}, transparent 60%)`,
                           }} />
                           <div className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{
                             background: `linear-gradient(90deg, transparent, ${agent.glowColor}, transparent)`,
                           }} />
 
-                          <div className="relative p-5 md:p-6 flex items-start gap-4">
+                          <div className="relative p-6 md:p-8 flex items-start gap-5">
                             <div className="relative shrink-0">
                               <img
                                 src={agent.avatar}
                                 alt={agent.name}
-                                className="w-16 h-16 md:w-20 md:h-20 pixel-art-rendering border-4 border-border group-hover:border-white/20 transition-colors bg-black"
-                                style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.5)' }}
+                                className="w-20 h-20 md:w-24 md:h-24 pixel-art-rendering border-4 border-foreground bg-black"
+                                style={{ boxShadow: '6px 6px 0px rgba(0,0,0,0.6)' }}
                               />
-                              <div className={`absolute -bottom-1 -right-1 w-3 h-3 ${agent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
+                              <div className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 ${agent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                {agent.icon}
-                                <span className="font-display text-sm text-white group-hover:text-primary transition-colors drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="p-1.5 border-2 border-border bg-black/50">
+                                  {agent.icon}
+                                </div>
+                                <span className="font-display text-base md:text-lg text-white group-hover:text-primary transition-colors drop-shadow-[3px_3px_0px_rgba(0,0,0,1)]">
                                   {agent.name}
                                 </span>
                               </div>
-                              <p className="text-muted-foreground text-xs md:text-sm leading-relaxed mb-3">
+                              <p className="text-muted-foreground text-sm leading-relaxed mb-4">
                                 {agent.longDescription}
                               </p>
-                              <div className="flex items-center gap-3">
-                                <span className={`font-display text-[9px] ${agent.statusColor} tracking-wider flex items-center gap-1.5`}>
-                                  <div className={`w-1.5 h-1.5 ${agent.statusColor.replace('text-', 'bg-')} animate-pulse`} />
+                              <div className="flex items-center gap-4">
+                                <span className={`font-display text-[10px] ${agent.statusColor} tracking-wider flex items-center gap-2 bg-black/50 border border-border px-2 py-1`}>
+                                  <div className={`w-2 h-2 ${agent.statusColor.replace('text-', 'bg-')} animate-pulse`} />
                                   {agent.status}
                                 </span>
                                 {hubStats[agent.id] && (
-                                  <span className="font-display text-[9px] text-muted-foreground/50">{hubStats[agent.id]}</span>
+                                  <span className="font-display text-[10px] text-muted-foreground/60 bg-black/30 border border-border/50 px-2 py-1">{hubStats[agent.id]}</span>
                                 )}
                               </div>
                             </div>
@@ -411,6 +466,37 @@ export default function MonkeyOS() {
                   </motion.div>
                 );
               })}
+
+              <motion.div
+                className="mt-8 retro-container p-8 md:p-10 bg-black/80 backdrop-blur-md flex flex-col md:flex-row items-center gap-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <motion.div
+                  className="shrink-0"
+                  animate={{ y: [0, -10, 0], rotate: [-5, 5, -5] }}
+                  transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                >
+                  <img src={monkeyRidingCrab} className="w-24 h-24 md:w-32 md:h-32 pixel-art-rendering drop-shadow-[0_10px_20px_rgba(255,50,0,0.4)]" />
+                </motion.div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="font-display text-xl md:text-2xl text-primary mb-3 drop-shadow-[4px_4px_0px_#000]">
+                    THE TROOP IS READY
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    All agents are powered by real data feeds — DexScreener, DeFi Llama, CoinGecko, Polymarket, Solana RPC, GitHub API.
+                    Select an agent above to deploy it. The monkey army awaits your command.
+                  </p>
+                </div>
+                <motion.div
+                  className="shrink-0 hidden md:block"
+                  animate={{ y: [0, -8, 0], scaleX: [1, -1, 1] }}
+                  transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                >
+                  <img src={crabRiderAngry} className="w-20 h-20 pixel-art-rendering drop-shadow-[0_8px_16px_rgba(255,0,0,0.3)]" />
+                </motion.div>
+              </motion.div>
             </div>
           </motion.div>
         ) : (
@@ -421,57 +507,54 @@ export default function MonkeyOS() {
             exit={{ opacity: 0 }}
             className="flex-1 flex flex-col overflow-hidden relative z-10"
           >
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
-              backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)',
-            }} />
-
-            <div className="relative shrink-0 border-b-4 border-border/60 bg-black/80 backdrop-blur-md z-10">
-              <div className="absolute bottom-0 left-0 right-0 h-px" style={{
-                background: `linear-gradient(90deg, transparent, ${activeAgent.glowColor}, transparent)`,
-              }} />
+            <div className="relative shrink-0 border-b-4 border-foreground bg-black/90 backdrop-blur-md z-10"
+              style={{ boxShadow: '0 4px 0px rgba(255,255,255,0.05)' }}
+            >
               <div className="flex items-center justify-between px-4 md:px-6 py-3">
-                <div className="flex items-center gap-3 md:gap-4">
+                <div className="flex items-center gap-4">
                   <div className="relative">
-                    <img
+                    <motion.img
                       src={activeAgent.avatar}
-                      className="w-10 h-10 md:w-12 md:h-12 pixel-art-rendering border-3 border-border bg-black"
-                      style={{ boxShadow: `0 0 20px ${activeAgent.glowColor}40, 3px 3px 0px rgba(0,0,0,0.5)` }}
+                      className="w-12 h-12 md:w-14 md:h-14 pixel-art-rendering border-4 border-foreground bg-black"
+                      style={{ boxShadow: `6px 6px 0px rgba(0,0,0,0.5), 0 0 25px ${activeAgent.glowColor}40` }}
+                      animate={{ y: [0, -3, 0] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                     />
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 ${activeAgent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${activeAgent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
                   </div>
                   <div>
-                    <h1 className="font-display text-sm md:text-base text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" data-testid="text-agent-name">
+                    <h1 className="font-display text-base md:text-xl text-white drop-shadow-[3px_3px_0px_rgba(0,0,0,1)]" data-testid="text-agent-name">
                       {activeAgent.name}
                     </h1>
-                    <p className={`font-display text-[8px] md:text-[9px] ${activeAgent.statusColor} tracking-widest`} data-testid="text-agent-desc">
+                    <p className={`font-display text-[9px] md:text-[10px] ${activeAgent.statusColor} tracking-widest`} data-testid="text-agent-desc">
                       {activeAgent.description.toUpperCase()}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="flex border-2 border-border/60 overflow-hidden" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.3)' }}>
+                  <div className="flex border-4 border-foreground overflow-hidden" style={{ boxShadow: '4px 4px 0px rgba(0,0,0,0.4)' }}>
                     <button
                       onClick={() => setActiveTab('intel')}
                       data-testid="tab-intel"
-                      className={`flex items-center gap-1.5 px-3 md:px-4 py-2 font-display text-[9px] md:text-[10px] transition-all ${
+                      className={`flex items-center gap-1.5 px-4 md:px-5 py-2.5 font-display text-[10px] md:text-[11px] transition-all ${
                         activeTab === 'intel'
-                          ? `bg-primary/20 ${activeAgent.statusColor} border-r-2 border-border/40`
-                          : 'bg-black/40 text-muted-foreground/50 hover:text-muted-foreground border-r-2 border-border/40'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-black/60 text-muted-foreground/50 hover:text-white hover:bg-black/40'
                       }`}
                     >
-                      <Radar className="w-3 h-3" /> INTEL
+                      <Radar className="w-3.5 h-3.5" /> INTEL
                     </button>
                     <button
                       onClick={() => setActiveTab('tools')}
                       data-testid="tab-tools"
-                      className={`flex items-center gap-1.5 px-3 md:px-4 py-2 font-display text-[9px] md:text-[10px] transition-all ${
+                      className={`flex items-center gap-1.5 px-4 md:px-5 py-2.5 font-display text-[10px] md:text-[11px] transition-all border-l-2 border-foreground ${
                         activeTab === 'tools'
-                          ? `bg-primary/20 ${activeAgent.statusColor}`
-                          : 'bg-black/40 text-muted-foreground/50 hover:text-muted-foreground'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-black/60 text-muted-foreground/50 hover:text-white hover:bg-black/40'
                       }`}
                     >
-                      <Wrench className="w-3 h-3" /> TOOLS
+                      <Wrench className="w-3.5 h-3.5" /> TOOLS
                     </button>
                   </div>
                 </div>
@@ -502,7 +585,7 @@ export default function MonkeyOS() {
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
-                    className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-5"
+                    className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6"
                   >
                     {renderToolPanel()}
                   </motion.div>
@@ -515,20 +598,21 @@ export default function MonkeyOS() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="border-t-2 border-border/40 bg-black/80 backdrop-blur-md overflow-hidden shrink-0"
+                    className="border-t-4 border-foreground bg-black/90 backdrop-blur-md overflow-hidden shrink-0"
                   >
                     <div className="relative">
                       <button
                         onClick={() => { setShowChat(false); setChatResponse(''); }}
-                        className="absolute top-2 right-2 text-muted-foreground/40 hover:text-white z-10"
+                        className="absolute top-2 right-2 text-muted-foreground/40 hover:text-white z-10 border border-border p-1 hover:bg-white/10"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                       <div className="p-4 max-h-[200px] overflow-y-auto custom-scrollbar">
-                        <div className="text-[10px] text-gray-300 leading-relaxed whitespace-pre-wrap font-sans pr-6">
+                        <div className="font-display text-[9px] text-primary/60 mb-2 tracking-widest">AGENT RESPONSE</div>
+                        <div className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap font-sans pr-6">
                           {chatResponse}
                           {isStreaming && (
-                            <span className="inline-block w-2 h-3.5 bg-primary ml-0.5 align-middle" style={{ animation: 'blink 0.6s step-end infinite' }} />
+                            <span className="inline-block w-2.5 h-4 bg-primary ml-0.5 align-middle" style={{ animation: 'blink 0.6s step-end infinite' }} />
                           )}
                         </div>
                       </div>
@@ -538,13 +622,10 @@ export default function MonkeyOS() {
               </AnimatePresence>
             </div>
 
-            <div className="shrink-0 border-t-4 border-border/60 bg-black/90 backdrop-blur-md z-10 relative">
-              <div className="absolute top-0 left-0 right-0 h-px" style={{
-                background: `linear-gradient(90deg, transparent, ${activeAgent.glowColor}60, transparent)`,
-              }} />
-              <form onSubmit={handleSend} className="flex items-center gap-2 p-2.5 md:p-3">
+            <div className="shrink-0 border-t-4 border-foreground bg-black/90 backdrop-blur-md z-10 relative">
+              <form onSubmit={handleSend} className="flex items-center gap-3 p-3 md:p-4">
                 <div className="flex-1 relative">
-                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 font-display text-sm ${activeAgent.statusColor}`}>
+                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 font-display text-base ${activeAgent.statusColor}`}>
                     {">"}
                   </div>
                   <input
@@ -554,17 +635,17 @@ export default function MonkeyOS() {
                     placeholder={activeAgent.placeholder}
                     disabled={isStreaming}
                     data-testid="input-chat"
-                    className="w-full bg-black/60 border-4 border-border/60 text-white pl-8 pr-4 py-2.5 md:py-3 focus:outline-none font-sans text-sm placeholder:text-muted-foreground/30 transition-all disabled:opacity-50"
+                    className="w-full bg-black/60 border-4 border-foreground text-white pl-8 pr-4 py-3 focus:outline-none font-sans text-sm placeholder:text-muted-foreground/30 transition-all disabled:opacity-50"
                     style={{
-                      boxShadow: 'inset 2px 2px 0px rgba(0,0,0,0.5)',
+                      boxShadow: 'inset 3px 3px 0px rgba(0,0,0,0.5)',
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = activeAgent.glowColor;
-                      e.target.style.boxShadow = `inset 2px 2px 0px rgba(0,0,0,0.5), 0 0 15px ${activeAgent.glowColor}30`;
+                      e.target.style.borderColor = 'hsl(50 100% 50%)';
+                      e.target.style.boxShadow = `inset 3px 3px 0px rgba(0,0,0,0.5), 0 0 20px ${activeAgent.glowColor}30`;
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = '';
-                      e.target.style.boxShadow = 'inset 2px 2px 0px rgba(0,0,0,0.5)';
+                      e.target.style.boxShadow = 'inset 3px 3px 0px rgba(0,0,0,0.5)';
                     }}
                   />
                 </div>
@@ -574,8 +655,7 @@ export default function MonkeyOS() {
                   data-testid="button-send"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2.5 md:py-3 bg-primary text-primary-foreground font-display text-[10px] border-4 border-primary/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5"
-                  style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.5)' }}
+                  className="retro-button retro-button-primary py-3 px-5 text-[10px] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </motion.button>
@@ -588,7 +668,7 @@ export default function MonkeyOS() {
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #0a0a0a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.05); }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

@@ -117,7 +117,9 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - Direct Phantom API for wallet (not React adapter wrappers, due to Vite duplicate React issue)
 - x402 protocol for micropayments (simulated via AI agents)
 - Moltbook Network for decentralized agent orchestration
-- Each agent has a tool panel (forms, data displays) ABOVE the chat
+- MonkeyOS matches landing page style: retro-container borders, floating bananas, monkey/crab characters, jungle background, thick 4px borders, heavy drop-shadows, pixel-art-rendering, bg-black/60 backdrop-blur-sm panels
+- Agent hub uses same visual language as Home.tsx: retro-container cards, border-4 border-foreground, shadow-[6px_6px_0px_rgba(0,0,0,0.6)], drop-shadow text, animated monkey/crab characters
+- Agent view: INTEL tab (full-height AI scanner) + TOOLS tab (raw data/forms), retro-button tab switcher with border-4 border-foreground
 - AI scans (Rug Buster, Repo Ape) generate real analysis via Claude and persist results
 - Hub cards show live stats (agent count, market count, scan count, etc.)
 - Native browser scrolling for mobile compatibility on Sanctuary map
