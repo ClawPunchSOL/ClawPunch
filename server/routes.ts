@@ -1361,6 +1361,87 @@ export async function registerRoutes(
     }
   });
 
+  // === AI AGENT ANALYSIS — Claude analyzes live data for each agent ===
+
+  app.post("/api/agent-intel/:agentType", async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      const { data } = req.body;
+
+      const prompts: Record<string, string> = {
+        "trend-puncher": `You are Trend Puncher, an elite onchain alpha scanner. Analyze these LIVE trending Solana tokens from DexScreener and give me your take in 3-5 bullet points. Focus on:
+- Which tokens show signs of genuine momentum vs pump-and-dump (look at liquidity vs volume ratio, price changes across timeframes)
+- Any narratives forming (multiple tokens in same category trending)
+- Red flags (extremely low liquidity, no socials, -90%+ dumps)
+- Your top 1-2 actionable calls (what to watch, what to avoid)
+Be direct, use trader slang, give specific ticker names. No fluff.
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+
+        "ape-vault": `You are Ape Vault, a DeFi yield strategist on Solana. Analyze these LIVE Solana DeFi pools from DeFi Llama and give me your strategy in 3-5 bullet points. Focus on:
+- Best risk-adjusted yields right now (high APY + high TVL = safer)
+- Protocols with suspicious APY (too high = risky)
+- Stablecoin vs volatile asset opportunities
+- Your recommended allocation if someone had 10 SOL to deploy
+Be specific with protocol names, APY numbers, and TVL. No generic advice.
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+
+        "punch-oracle": `You are Punch Oracle, a prediction market analyst. Analyze these LIVE prediction markets and give me your take in 3-5 bullet points. Focus on:
+- Markets where odds seem mispriced (the crowd might be wrong)
+- High volume markets worth watching
+- Any correlation between markets (if X happens, Y is likely)
+- Your strongest conviction bet and why
+Be specific with market names, odds, and your reasoning. Take a stance.
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+
+        "rug-buster": `You are Rug Buster, a Solana contract security analyst. Analyze this token scan data and give me your assessment in 3-5 bullet points. Focus on:
+- Critical red flags (mint authority, freeze authority still enabled)
+- Holder concentration risk (whale wallets)
+- LP status and what it means for exit liquidity
+- Your verdict: safe to trade, risky, or absolute rug
+Be blunt and direct. Protect the user.
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+      };
+
+      const systemPrompt = prompts[agentType];
+      if (!systemPrompt) return res.status(400).json({ error: "Unknown agent type" });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const stream = anthropic.messages.stream({
+        model: "claude-sonnet-4-5-20250514",
+        max_tokens: 500,
+        messages: [{ role: "user", content: systemPrompt }],
+      });
+
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+        }
+      }
+
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (error: any) {
+      console.error("[AgentIntel] Error:", error.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Agent analysis failed" });
+      } else {
+        res.write(`data: ${JSON.stringify({ error: "Analysis interrupted" })}\n\n`);
+        res.end();
+      }
+    }
+  });
+
   // === VAULT POSITIONS (Ape Vault) — Real DeFi Llama Data ===
   const DEFI_LLAMA_POOLS_URL = "https://yields.llama.fi/pools";
   const VAULT_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
