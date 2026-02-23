@@ -695,6 +695,58 @@ export async function registerRoutes(
     }
   });
 
+  let polymarketCache: { data: any[]; fetchedAt: number } = { data: [], fetchedAt: 0 };
+  const POLYMARKET_CACHE_MS = 2 * 60 * 1000;
+
+  app.get("/api/predictions/polymarket", async (_req, res) => {
+    try {
+      const now = Date.now();
+      if (polymarketCache.data.length > 0 && now - polymarketCache.fetchedAt < POLYMARKET_CACHE_MS) {
+        return res.json(polymarketCache.data);
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const pmRes = await fetch(
+        "https://gamma-api.polymarket.com/markets?limit=30&active=true&closed=false&order=volume24hr&ascending=false",
+        { signal: controller.signal, headers: { 'Accept': 'application/json' } }
+      );
+      clearTimeout(timer);
+
+      if (!pmRes.ok) return res.status(502).json({ error: "Polymarket API unavailable" });
+      const raw: any[] = await pmRes.json();
+
+      const markets = raw
+        .filter((m: any) => parseFloat(m.volume24hr || "0") > 500 && m.question)
+        .slice(0, 15)
+        .map((m: any) => {
+          const outcomes = JSON.parse(m.outcomes || '["Yes","No"]');
+          const prices = JSON.parse(m.outcomePrices || '["0.5","0.5"]');
+          return {
+            id: m.id,
+            question: m.question,
+            slug: m.slug,
+            image: m.image,
+            outcomePrices: prices.map((p: string) => parseFloat(p)),
+            outcomes,
+            volume: parseFloat(m.volume || "0"),
+            volume24hr: parseFloat(m.volume24hr || "0"),
+            liquidity: parseFloat(m.liquidity || "0"),
+            endDate: m.endDateIso || m.endDate,
+            oneDayPriceChange: parseFloat(m.oneDayPriceChange || "0"),
+            bestBid: parseFloat(m.bestBid || "0"),
+            bestAsk: parseFloat(m.bestAsk || "0"),
+          };
+        });
+
+      polymarketCache = { data: markets, fetchedAt: now };
+      res.json(markets);
+    } catch (error: any) {
+      if (polymarketCache.data.length > 0) return res.json(polymarketCache.data);
+      res.status(500).json({ error: "Failed to fetch Polymarket data" });
+    }
+  });
+
   app.post("/api/predictions/:id/bet", async (req, res) => {
     try {
       const predictionId = parseInt(req.params.id);

@@ -28,7 +28,7 @@ A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents
 All agents are powered by Claude with custom system prompts AND specialized tool panels:
 1. **Banana Bot** - Real Solana SOL transfers via Phantom wallet signing + Solscan tx links + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
-3. **Punch Oracle** - Auto-generated predictions from live CoinGecko prices, real target/current prices, auto-resolution + chat
+3. **Punch Oracle** - Live Polymarket markets feed + auto-generated predictions from CoinGecko prices, real odds/volumes/expiry, auto-resolution + chat
 4. **Trend Puncher** - Live narrative tracker powered by CoinGecko API, buy/sell attention shares, real market caps/volumes/24h changes + wallet display + chat
 5. **Ape Vault** - Real Solana DeFi vault data from DeFi Llama API (Jito, Marinade, Raydium, Orca, Kamino) + staking dashboard + chat
 6. **Rug Buster** - Contract scanner with AI-generated safety scores + chat
@@ -67,6 +67,7 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `POST /api/repos/scan` - AI-powered repo legitimacy scan (SSE)
 - `GET/POST /api/transactions` - List/create x402 transactions (Banana Bot)
 - `GET /api/predictions/prices` - Live CoinGecko prices for 10 tracked tokens
+- `GET /api/predictions/polymarket` - Live Polymarket markets feed (cached 2min)
 - `POST /api/predictions/generate` - Auto-generate predictions from real market data
 - `POST /api/predictions/resolve` - Auto-resolve expired predictions against real prices
 - `GET /api/attention/positions` - List attention market narratives with live CoinGecko data (Trend Puncher)
