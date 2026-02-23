@@ -231,45 +231,48 @@ export async function registerRoutes(
       const agentSlug = `${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Math.random().toString(36).slice(2, 6)}`;
       send({ stage: "init", message: `Registering "${agentSlug}" on Moltbook Network...` });
 
-      let apiKey = "";
-      let claimUrl = "";
-      let verificationCode = "";
-      let profileUrl: string | null = null;
-      let registeredRemotely = false;
-
+      let registerRes;
       try {
-        const registerRes = await moltFetch("/agents/register", {
+        registerRes = await moltFetch("/agents/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: agentSlug, description: description || `${name} - Monkey OS agent` }),
-        });
-
-        if (registerRes.ok) {
-          const data = await registerRes.json();
-          const agent = data.agent || data;
-          apiKey = agent.api_key || "";
-          claimUrl = agent.claim_url || "";
-          verificationCode = agent.verification_code || "";
-          profileUrl = `https://www.moltbook.com/u/${agentSlug}`;
-          registeredRemotely = true;
-          send({ stage: "registered", message: `Registered on Moltbook! API key received.` });
-          send({ stage: "keys", message: `API Key: ${apiKey.slice(0, 16)}...` });
-          if (claimUrl) send({ stage: "claim", message: `Claim URL: ${claimUrl}`, claimUrl });
-          if (verificationCode) send({ stage: "verify", message: `Verification: ${verificationCode}` });
-        } else {
-          let errMsg = "";
-          try { const j = await registerRes.json(); errMsg = j.message || j.error || ""; } catch {}
-          send({ stage: "warn", message: `Moltbook: ${registerRes.status} ${errMsg || 'error'} — registering locally` });
-        }
+        }, 20000);
       } catch (e: any) {
-        send({ stage: "warn", message: `Moltbook unreachable (${e.name === 'AbortError' ? 'timeout' : e.message}) — registering locally` });
+        const msg = e.name === 'AbortError'
+          ? "Moltbook API timed out (20s). Their server may be slow — try again."
+          : `Could not reach Moltbook: ${e.message}`;
+        send({ stage: "error", message: msg });
+        res.end();
+        return;
       }
 
-      if (!apiKey) {
-        apiKey = `local_${Math.random().toString(36).slice(2, 18)}`;
-        verificationCode = "";
+      if (!registerRes.ok) {
+        let errMsg = `HTTP ${registerRes.status}`;
+        let retryInfo = "";
+        try {
+          const j = await registerRes.json();
+          errMsg = j.message || errMsg;
+          if (j.retry_after_seconds) retryInfo = ` Resets in ${Math.ceil(j.retry_after_seconds / 3600)}h.`;
+          if (j.reset_at) retryInfo = ` Resets at ${new Date(j.reset_at).toLocaleString()}.`;
+        } catch {}
+        send({ stage: "error", message: `Moltbook error: ${errMsg}.${retryInfo}` });
+        res.end();
+        return;
       }
+
+      const data = await registerRes.json();
+      const agentData = data.agent || data;
+      const apiKey = agentData.api_key || "";
+      const claimUrl = agentData.claim_url || "";
+      const verificationCode = agentData.verification_code || "";
+      const profileUrl = `https://www.moltbook.com/u/${agentSlug}`;
       const apiKeyPrefix = apiKey.slice(0, 16);
+
+      send({ stage: "registered", message: `Registered on Moltbook!` });
+      send({ stage: "keys", message: `API Key: ${apiKeyPrefix}...` });
+      send({ stage: "claim", message: `Claim URL: ${claimUrl}`, claimUrl });
+      send({ stage: "verify", message: `Verification: ${verificationCode}` });
 
       const agent = await storage.createMoltbookAgent({
         name: agentSlug,
@@ -277,9 +280,9 @@ export async function registerRoutes(
         capabilities: description || "general",
         apiKey,
         apiKeyPrefix,
-        status: registeredRemotely ? "pending_claim" : "active",
-        claimUrl: claimUrl || null,
-        verificationCode: verificationCode || null,
+        status: "pending_claim",
+        claimUrl,
+        verificationCode,
         moltbookAgentId: null,
         profileUrl,
         description: description || "",
@@ -289,22 +292,17 @@ export async function registerRoutes(
       await storage.createTaskLog({
         agentId: agent.id,
         taskType: "registration",
-        description: registeredRemotely
-          ? `Registered on Moltbook. Claim: ${claimUrl}`
-          : `Registered locally. Key: ${apiKeyPrefix}...`,
+        description: `Registered on Moltbook. Claim: ${claimUrl}`,
         status: "completed",
         durationMs: 0,
       });
 
       send({
         stage: "done",
-        message: registeredRemotely
-          ? `"${agentSlug}" registered on Moltbook! Send claim URL to your human to activate.`
-          : `"${agentSlug}" registered locally and is active.`,
+        message: `"${agentSlug}" registered on Moltbook! Send the claim URL to your human to activate.`,
         agent: { ...agent, apiKey: undefined },
-        claimUrl: claimUrl || null,
-        verificationCode: verificationCode || null,
-        registeredRemotely,
+        claimUrl,
+        verificationCode,
       });
       res.end();
     } catch (error: any) {
@@ -318,8 +316,8 @@ export async function registerRoutes(
     try {
       const agent = await storage.getMoltbookAgent(parseInt(req.params.id));
       if (!agent) return res.status(404).json({ error: "Agent not found" });
-      if (!agent.apiKey || agent.apiKey.startsWith("local_")) {
-        return res.json({ status: agent.status, local: true });
+      if (!agent.apiKey) {
+        return res.json({ status: agent.status });
       }
 
       const statusRes = await moltFetch("/agents/status", {
@@ -343,8 +341,8 @@ export async function registerRoutes(
     try {
       const agent = await storage.getMoltbookAgent(parseInt(req.params.id));
       if (!agent) return res.status(404).json({ error: "Agent not found" });
-      if (!agent.apiKey || agent.apiKey.startsWith("local_")) {
-        return res.json({ agent: { name: agent.name, description: agent.description, local: true } });
+      if (!agent.apiKey) {
+        return res.json({ agent: { name: agent.name, description: agent.description } });
       }
 
       const profileRes = await moltFetch("/agents/me", {
@@ -369,9 +367,6 @@ export async function registerRoutes(
       const agent = await storage.getMoltbookAgent(id);
       if (!agent) return res.status(404).json({ error: "Agent not found" });
       if (!agent.apiKey) return res.status(400).json({ error: "Agent has no API key" });
-      if (agent.apiKey.startsWith("local_")) {
-        return res.status(400).json({ error: "Local agents cannot post to Moltbook. Register on the real network first." });
-      }
 
       const postRes = await moltFetch("/posts", {
         method: "POST",
@@ -445,7 +440,7 @@ export async function registerRoutes(
       let apiKey = "";
       if (agentId) {
         const agent = await storage.getMoltbookAgent(agentId);
-        if (agent?.apiKey && !agent.apiKey.startsWith("local_")) apiKey = agent.apiKey;
+        if (agent?.apiKey) apiKey = agent.apiKey;
       }
 
       const headers: Record<string, string> = {};
@@ -468,7 +463,7 @@ export async function registerRoutes(
       let apiKey = "";
       if (agentId) {
         const agent = await storage.getMoltbookAgent(agentId);
-        if (agent?.apiKey && !agent.apiKey.startsWith("local_")) apiKey = agent.apiKey;
+        if (agent?.apiKey) apiKey = agent.apiKey;
       }
       const headers: Record<string, string> = {};
       if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;

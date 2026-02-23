@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Users, Plus, Loader2, Wifi, WifiOff, Activity, Terminal, ChevronDown, ChevronUp, Server, X, ExternalLink, Copy, Check, Send, Trash2, Rss, RefreshCw, ThumbsUp } from "lucide-react";
+import { Users, Plus, Loader2, Wifi, WifiOff, Terminal, ChevronDown, ChevronUp, Server, X, ExternalLink, Copy, Check, Send, Trash2, Rss, RefreshCw, ThumbsUp } from "lucide-react";
 
 interface MoltbookAgent {
   id: number;
@@ -211,8 +211,6 @@ export default function SwarmMonkeyPanel() {
     }
   };
 
-  const isRemote = (a: MoltbookAgent) => !a.apiKeyPrefix.startsWith("local");
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -355,8 +353,8 @@ export default function SwarmMonkeyPanel() {
                     </>
                   ) : (
                     <div className="p-2 bg-green-500/10 border border-green-500/30 text-center">
-                      <div className="font-display text-[10px] text-green-400">AGENT REGISTERED LOCALLY</div>
-                      <div className="text-[9px] text-muted-foreground mt-1">Active and ready. Moltbook API was unavailable — try again later for network registration.</div>
+                      <div className="font-display text-[10px] text-green-400">REGISTERED ON MOLTBOOK</div>
+                      <div className="text-[9px] text-muted-foreground mt-1">Agent is ready. Claim it to start posting.</div>
                     </div>
                   )}
                   <button onClick={() => { setShowForm(false); setRegisterLog([]); setRegisterDone(false); setRegisterResult(null); }}
@@ -400,7 +398,7 @@ export default function SwarmMonkeyPanel() {
                           agent.status === 'pending_claim' ? 'bg-orange-500/20 text-orange-400' :
                           'bg-gray-500/20 text-gray-400'
                         }`}>{agent.status === 'pending_claim' ? 'PENDING CLAIM' : agent.status.toUpperCase()}</span>
-                        {isRemote(agent) && <span className="text-[8px] text-blue-400 font-display">MOLTBOOK</span>}
+                        <span className="text-[8px] text-blue-400 font-display">MOLTBOOK</span>
                       </div>
                       <div className="flex items-center gap-3 text-[9px] text-muted-foreground mt-0.5">
                         <span className="font-mono">{agent.apiKeyPrefix}...</span>
@@ -462,43 +460,34 @@ export default function SwarmMonkeyPanel() {
                         </div>
                       </div>
 
-                      {(agent.status === 'active' || !isRemote(agent)) && (
+                      {agent.status === 'active' && (
                         <div className="border border-blue-500/30 bg-blue-500/5 p-2 space-y-2">
                           <div className="font-display text-[9px] text-blue-400 flex items-center gap-1">
                             <Send className="w-3 h-3" /> POST TO MOLTBOOK
                           </div>
-                          {!isRemote(agent) && (
-                            <div className="text-[9px] text-yellow-400/80 bg-yellow-500/10 p-1.5 border border-yellow-500/20">
-                              Local agent — register on Moltbook network to post
-                            </div>
-                          )}
-                          {isRemote(agent) && (
-                            <>
-                              <div className="flex gap-1">
-                                {["general", "aithoughts"].map(s => (
-                                  <button key={s} onClick={() => setPostSubmolt(s)}
-                                    className={`px-2 py-0.5 text-[8px] font-display border ${postSubmolt === s ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "border-border text-muted-foreground"}`}>
-                                    m/{s}
-                                  </button>
-                                ))}
-                              </div>
-                              <input value={postTitle} onChange={e => setPostTitle(e.target.value)} placeholder="Post title"
-                                className="w-full bg-black/50 border border-border text-white px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50" />
-                              <textarea value={postContent} onChange={e => setPostContent(e.target.value)} placeholder="Post content..."
-                                rows={2}
-                                className="w-full bg-black/50 border border-border text-white px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 resize-none" />
-                              <button onClick={() => handlePost(agent)} disabled={posting || !postTitle.trim() || !postContent.trim()}
-                                data-testid={`button-post-${agent.id}`}
-                                className="w-full py-1 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[9px] font-display hover:bg-blue-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
-                                {posting ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Send className="w-2.5 h-2.5" />}
-                                POST TO m/{postSubmolt}
+                          <div className="flex gap-1">
+                            {["general", "aithoughts"].map(s => (
+                              <button key={s} onClick={() => setPostSubmolt(s)}
+                                className={`px-2 py-0.5 text-[8px] font-display border ${postSubmolt === s ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "border-border text-muted-foreground"}`}>
+                                m/{s}
                               </button>
-                              {postResult && (
-                                <div className={`text-[9px] p-1.5 text-center ${postResult.startsWith('Failed') || postResult.startsWith('Error') ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-green-400 bg-green-500/10 border border-green-500/20'}`}>
-                                  {postResult}
-                                </div>
-                              )}
-                            </>
+                            ))}
+                          </div>
+                          <input value={postTitle} onChange={e => setPostTitle(e.target.value)} placeholder="Post title"
+                            className="w-full bg-black/50 border border-border text-white px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50" />
+                          <textarea value={postContent} onChange={e => setPostContent(e.target.value)} placeholder="Post content..."
+                            rows={2}
+                            className="w-full bg-black/50 border border-border text-white px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500 placeholder:text-muted-foreground/50 resize-none" />
+                          <button onClick={() => handlePost(agent)} disabled={posting || !postTitle.trim() || !postContent.trim()}
+                            data-testid={`button-post-${agent.id}`}
+                            className="w-full py-1 bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[9px] font-display hover:bg-blue-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
+                            {posting ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Send className="w-2.5 h-2.5" />}
+                            POST TO m/{postSubmolt}
+                          </button>
+                          {postResult && (
+                            <div className={`text-[9px] p-1.5 text-center ${postResult.startsWith('Failed') || postResult.startsWith('Error') ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-green-400 bg-green-500/10 border border-green-500/20'}`}>
+                              {postResult}
+                            </div>
                           )}
                         </div>
                       )}
