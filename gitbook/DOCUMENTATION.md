@@ -173,13 +173,13 @@ Ape Vault replaces emotional, discretionary trading with cold, algorithmic, cond
 * **Cron-like Architecture via Moltbook Relayers:** Because Monkey OS is strictly client-side and volatile, Ape Vault utilizes the experimental Moltbook Relayer Network for asynchronous execution. You sign a delegated execution permit (utilizing Solana's experimental Session Keys or a localized multi-sig escrow). This allows the decentralized relayer network to execute the transaction automatically, but *only* when the strict predefined on-chain conditions are cryptographically met.
 * **Auto-Staking & Yield Maximization:** Ape Vault autonomously sweeps idle SOL balances into liquid staking derivatives (like JitoSOL or mSOL) to maximize baseline yield, while maintaining sufficient liquidity for upcoming DCA orders.
 
-### VII. Repo Ape (Automated Market Maker Sniper)
-Repo Ape is a hyper-aggressive, zero-latency sniper bot built directly into the OS taskbar, designed to target new liquidity pools the absolute millisecond they launch on decentralized exchanges.
+### VII. Repo Ape (Automated GitHub Alpha Scanner)
+Repo Ape is a specialized OS-level intelligence agent that aggressively monitors GitHub repositories and developer activity to detect crypto alpha before it reaches social media or the mempool.
 
-* **Mempool Monitoring:** Bypasses standard RPC polling by maintaining dedicated WebSocket connections to specialized validator nodes, monitoring the Solana mempool for `initializeMarket` instructions on Raydium and Orca.
-* **Zero-Block Execution:** When a target token's liquidity pool is initialized, Repo Ape formulates and signs the buy transaction locally, attaching maximum dynamic priority fees to ensure inclusion in the exact same block as the LP provision.
-* **Sniper Protection & Bribes:** To outmaneuver MEV (Miner Extractable Value) searchers, Repo Ape integrates directly with Jito block builders. It utilizes private mempools and automated bundle bribes, ensuring your transaction is executed atomically without being front-run by predatory sandwich bots.
-* **Auto-Sell Parameters:** Users can configure trailing stop-losses, taking initial principal out at +100% and letting the "moon bag" ride, completely removing human emotion from the most volatile moments of token discovery.
+* **Commit Firehose Ingestion:** Repo Ape connects directly to the GitHub Events API, constantly polling thousands of repositories belonging to core Solana protocols, NFT projects, and stealth DeFi builders.
+* **Heuristic Code Analysis:** It doesn't just watch for commits; it analyzes diffs. Utilizing specialized language models trained on Rust and Anchor frameworks, Repo Ape scans new code pushes for keywords like `mainnet_deploy`, `airdrop_snapshot`, or `token_mint_auth_revoke`.
+* **Developer Graph Mapping:** Tracks the activity of pseudonymous "10x" developers. If a wallet associated with a top developer begins interacting with a new, unannounced repository, Repo Ape flags the repository as high-probability alpha.
+* **Instant OS Alerts:** When a critical commit is pushed to a tracked repository (e.g., a major protocol updating their mainnet addresses before an official Twitter announcement), Repo Ape fires a push notification directly to the Monkey OS desktop, giving users an informational edge measured in hours, not seconds.
 
 ---
 
