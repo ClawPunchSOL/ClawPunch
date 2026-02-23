@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Cpu, ArrowDown, ArrowUp, Percent, Loader2 } from "lucide-react";
+import { useWalletState } from "@/components/WalletButton";
+import { Cpu, ArrowDown, ArrowUp, Percent, Loader2, Wallet, PieChart } from "lucide-react";
 
 interface VaultPosition {
   id: number;
@@ -12,6 +13,7 @@ interface VaultPosition {
 }
 
 export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string) => void }) {
+  const wallet = useWalletState();
   const [vaults, setVaults] = useState<VaultPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [stakeAmount, setStakeAmount] = useState<Record<number, string>>({});
@@ -23,6 +25,7 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
 
   const formatTVL = (n: number) => n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : `$${(n / 1e3).toFixed(0)}K`;
   const totalStaked = vaults.reduce((sum, v) => sum + v.stakedAmount, 0);
+  const avgApy = vaults.length > 0 ? vaults.reduce((sum, v) => sum + v.apy, 0) / vaults.length : 0;
 
   const handleStake = async (vault: VaultPosition) => {
     const amt = parseFloat(stakeAmount[vault.id] || "0");
@@ -77,10 +80,27 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
           <Cpu className="w-4 h-4 text-orange-400" />
           <span className="font-display text-[11px] text-white">DEFI VAULTS</span>
         </div>
-        {totalStaked > 0 && (
-          <span className="text-[10px] font-display text-orange-400">{totalStaked.toFixed(2)} TOTAL STAKED</span>
-        )}
+        <div className="flex items-center gap-3 text-[10px]">
+          {totalStaked > 0 && (
+            <span className="font-display text-orange-400">{totalStaked.toFixed(2)} STAKED</span>
+          )}
+          <span className="text-muted-foreground font-display">AVG APY: <span className="text-green-400">{avgApy.toFixed(1)}%</span></span>
+        </div>
       </div>
+
+      {wallet.connected && wallet.publicKey && (
+        <div className="flex items-center gap-2 p-2 border border-orange-500/20 bg-orange-500/5">
+          <Wallet className="w-3 h-3 text-orange-400" />
+          <span className="text-[9px] text-orange-400 font-display">STAKING AS:</span>
+          <span className="text-[9px] text-white font-mono">{wallet.publicKey.slice(0, 8)}...{wallet.publicKey.slice(-4)}</span>
+          {totalStaked > 0 && (
+            <div className="ml-auto flex items-center gap-1">
+              <PieChart className="w-3 h-3 text-orange-400" />
+              <span className="text-[9px] text-orange-400 font-display">{vaults.filter(v => v.stakedAmount > 0).length} ACTIVE</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar">
         {vaults.map(v => (

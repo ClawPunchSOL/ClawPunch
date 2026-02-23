@@ -12,6 +12,7 @@ import oracleMonkey from "@/assets/images/oracle-monkey.png";
 import trendMonkey from "@/assets/images/trend-monkey.png";
 import vaultMonkey from "@/assets/images/vault-monkey.png";
 
+import WalletButton from "@/components/WalletButton";
 import SwarmMonkeyPanel from "@/components/agents/SwarmMonkeyPanel";
 import PunchOraclePanel from "@/components/agents/PunchOraclePanel";
 import RugBusterPanel from "@/components/agents/RugBusterPanel";
@@ -277,7 +278,7 @@ export default function MonkeyOS() {
     if (!activeAgentId) return null;
     switch (activeAgentId) {
       case 'swarm-monkey': return <SwarmMonkeyPanel />;
-      case 'punch-oracle': return <PunchOraclePanel />;
+      case 'punch-oracle': return <PunchOraclePanel onSendChat={sendMessage} />;
       case 'rug-buster': return <RugBusterPanel />;
       case 'repo-ape': return <RepoApePanel />;
       case 'banana-bot': return <BananaBotPanel onSendChat={sendMessage} />;
@@ -301,7 +302,8 @@ export default function MonkeyOS() {
           )}
           <span className="font-display text-xs text-primary" data-testid="text-os-version">MONKEY OS v1.0.4</span>
         </div>
-        <div className="flex items-center gap-4 md:gap-6">
+        <div className="flex items-center gap-3 md:gap-4">
+          <WalletButton />
           <div className="flex items-center gap-2 text-yellow-400">
             <Banana className="w-4 h-4 fill-current" />
             <span className="font-display text-xs" data-testid="text-banana-balance">1,420</span>

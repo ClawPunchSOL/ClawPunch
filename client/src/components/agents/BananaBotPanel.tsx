@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { CircleDollarSign, Send, Loader2, ArrowUpRight } from "lucide-react";
+import { useWalletState } from "@/components/WalletButton";
+import { CircleDollarSign, Send, Loader2, ArrowUpRight, Wallet } from "lucide-react";
 
 interface Transaction {
   id: number;
@@ -13,6 +14,7 @@ interface Transaction {
 }
 
 export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: string) => void }) {
+  const wallet = useWalletState();
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState("USDC");
@@ -23,6 +25,8 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
   useEffect(() => {
     fetch("/api/transactions").then(r => r.json()).then(setTransactions).finally(() => setLoading(false));
   }, []);
+
+  const totalSent = transactions.reduce((sum, tx) => sum + tx.amount, 0);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,11 +53,25 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <CircleDollarSign className="w-4 h-4 text-green-400" />
-        <span className="font-display text-[11px] text-white">X402 QUICK SEND</span>
-        <span className="text-[10px] text-green-400 font-display">{transactions.length} TXS</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CircleDollarSign className="w-4 h-4 text-green-400" />
+          <span className="font-display text-[11px] text-white">X402 QUICK SEND</span>
+          <span className="text-[10px] text-green-400 font-display">{transactions.length} TXS</span>
+        </div>
+        {totalSent > 0 && (
+          <span className="text-[9px] text-muted-foreground font-display">${totalSent.toFixed(2)} TOTAL SENT</span>
+        )}
       </div>
+
+      {wallet.connected && wallet.publicKey && (
+        <div className="flex items-center gap-2 p-2 border border-green-500/20 bg-green-500/5">
+          <Wallet className="w-3 h-3 text-green-400" />
+          <span className="text-[9px] text-green-400 font-display">FROM:</span>
+          <span className="text-[9px] text-white font-mono">{wallet.publicKey.slice(0, 8)}...{wallet.publicKey.slice(-4)}</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-green-400 ml-auto animate-pulse" />
+        </div>
+      )}
 
       <form onSubmit={handleSend} className="p-3 border-2 border-green-500/30 bg-green-500/5 space-y-2">
         <input

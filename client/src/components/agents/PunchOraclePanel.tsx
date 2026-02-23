@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Target, Plus, Loader2, TrendingUp } from "lucide-react";
+import { useWalletState } from "@/components/WalletButton";
+import { connectWallet, shortAddress } from "@/lib/solanaWallet";
+import { Target, Plus, Loader2, TrendingUp, Wallet, ChevronUp } from "lucide-react";
 
 interface Prediction {
   id: number;
@@ -13,7 +15,8 @@ interface Prediction {
   status: string;
 }
 
-export default function PunchOraclePanel() {
+export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: string) => void }) {
+  const wallet = useWalletState();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -44,6 +47,7 @@ export default function PunchOraclePanel() {
         setTitle("");
         setDescription("");
         setShowCreate(false);
+        onSendChat?.(`Created prediction market: "${pred.title}"`);
       }
     } finally {
       setSubmitting(false);
@@ -53,15 +57,17 @@ export default function PunchOraclePanel() {
   const handleBet = async () => {
     if (!betModal) return;
     setSubmitting(true);
+    const walletAddr = wallet.connected && wallet.publicKey ? wallet.publicKey : "anon_" + Math.random().toString(36).slice(2, 8);
     try {
       const res = await fetch(`/api/predictions/${betModal.id}/bet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ side: betSide, amount: betAmount, walletAddress: "demo_" + Math.random().toString(36).slice(2, 8) }),
+        body: JSON.stringify({ side: betSide, amount: betAmount, walletAddress: walletAddr }),
       });
       if (res.ok) {
         const { prediction } = await res.json();
         setPredictions(prev => prev.map(p => p.id === prediction.id ? prediction : p));
+        onSendChat?.(`Bet ${betAmount} $PUNCH on ${betSide.toUpperCase()} for "${betModal.title}"`);
         setBetModal(null);
       }
     } finally {
@@ -70,6 +76,7 @@ export default function PunchOraclePanel() {
   };
 
   const totalPool = (p: Prediction) => p.poolYes + p.poolNo;
+  const totalVolume = predictions.reduce((sum, p) => sum + totalPool(p), 0);
 
   return (
     <div className="space-y-3">
@@ -79,9 +86,14 @@ export default function PunchOraclePanel() {
           <span className="font-display text-[11px] text-white">PREDICTION MARKETS</span>
           <span className="text-[10px] text-purple-400 font-display">{predictions.filter(p => p.status === 'active').length} LIVE</span>
         </div>
-        <button onClick={() => setShowCreate(!showCreate)} data-testid="button-create-prediction" className="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-500/50 text-purple-400 text-[10px] font-display hover:bg-purple-500/30 transition-colors">
-          <Plus className="w-3 h-3" /> CREATE MARKET
-        </button>
+        <div className="flex items-center gap-2">
+          {totalVolume > 0 && (
+            <span className="text-[9px] text-muted-foreground font-display">{totalVolume.toLocaleString()} $PUNCH TVL</span>
+          )}
+          <button onClick={() => setShowCreate(!showCreate)} data-testid="button-create-prediction" className="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-500/50 text-purple-400 text-[10px] font-display hover:bg-purple-500/30 transition-colors">
+            {showCreate ? <ChevronUp className="w-3 h-3" /> : <Plus className="w-3 h-3" />} {showCreate ? 'CLOSE' : 'CREATE'}
+          </button>
+        </div>
       </div>
 
       {showCreate && (
@@ -110,8 +122,19 @@ export default function PunchOraclePanel() {
               <input value={betAmount} onChange={e => setBetAmount(e.target.value)} type="number" data-testid="input-bet-amount" className="flex-1 bg-black/50 border-2 border-border text-white px-3 py-2 text-sm focus:outline-none focus:border-purple-500" />
               <span className="text-[10px] font-display text-purple-400">$PUNCH</span>
             </div>
+            {!wallet.connected && (
+              <button onClick={connectWallet} className="w-full flex items-center justify-center gap-2 py-2 border border-purple-500/30 text-purple-400 text-[10px] font-display hover:bg-purple-500/10 transition-colors">
+                <Wallet className="w-3 h-3" /> CONNECT WALLET FOR TRACKING
+              </button>
+            )}
+            {wallet.connected && wallet.publicKey && (
+              <div className="flex items-center gap-1.5 text-[9px] text-green-400 font-mono px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                {shortAddress(wallet.publicKey)}
+              </div>
+            )}
             <button onClick={handleBet} disabled={submitting} data-testid="button-place-bet" className="w-full retro-button retro-button-primary text-[10px] py-2.5 disabled:opacity-50">
-              {submitting ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : `STAKE ${betAmount} $PUNCH`}
+              {submitting ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : `STAKE ${betAmount} $PUNCH ON ${betSide.toUpperCase()}`}
             </button>
           </div>
         </div>

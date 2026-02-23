@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Zap, TrendingUp, TrendingDown, BarChart3, Loader2 } from "lucide-react";
+import { useWalletState } from "@/components/WalletButton";
+import { Zap, TrendingUp, TrendingDown, BarChart3, Loader2, Wallet } from "lucide-react";
 
 interface AttentionPosition {
   id: number;
@@ -12,6 +13,7 @@ interface AttentionPosition {
 }
 
 export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: string) => void }) {
+  const wallet = useWalletState();
   const [positions, setPositions] = useState<AttentionPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [trading, setTrading] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
   };
 
   const totalValue = positions.reduce((sum, p) => sum + (p.shares * p.currentPrice), 0);
+  const activePosCount = positions.filter(p => p.shares > 0).length;
 
   if (loading) {
     return (
@@ -54,13 +57,26 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
           <Zap className="w-4 h-4 text-yellow-400" />
           <span className="font-display text-[11px] text-white">ATTENTION MARKETS</span>
         </div>
-        {totalValue > 0 && (
-          <div className="flex items-center gap-1 text-[10px]">
-            <BarChart3 className="w-3 h-3 text-yellow-400" />
-            <span className="font-display text-yellow-400">${totalValue.toFixed(2)} PORTFOLIO</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {activePosCount > 0 && (
+            <span className="text-[9px] text-muted-foreground font-display">{activePosCount} POSITIONS</span>
+          )}
+          {totalValue > 0 && (
+            <div className="flex items-center gap-1 text-[10px]">
+              <BarChart3 className="w-3 h-3 text-yellow-400" />
+              <span className="font-display text-yellow-400">${totalValue.toFixed(2)}</span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {wallet.connected && wallet.publicKey && (
+        <div className="flex items-center gap-2 p-2 border border-yellow-500/20 bg-yellow-500/5">
+          <Wallet className="w-3 h-3 text-yellow-400" />
+          <span className="text-[9px] text-yellow-400 font-display">TRADING AS:</span>
+          <span className="text-[9px] text-white font-mono">{wallet.publicKey.slice(0, 8)}...{wallet.publicKey.slice(-4)}</span>
+        </div>
+      )}
 
       <div className="space-y-1.5 max-h-[350px] overflow-y-auto custom-scrollbar">
         {positions.map(p => (

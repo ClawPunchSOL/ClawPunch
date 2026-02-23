@@ -7,6 +7,7 @@ A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents
 - **Frontend**: React + Vite + Tailwind CSS + Framer Motion + wouter routing
 - **Backend**: Express.js + Drizzle ORM + PostgreSQL
 - **AI**: Anthropic Claude (claude-sonnet-4-5) via Replit AI Integrations
+- **Wallet**: Solana wallet integration via direct Phantom browser API + @solana/web3.js
 - **Styling**: Retro 16-bit pixel art aesthetic throughout
 
 ## Pages
@@ -14,13 +15,22 @@ A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents
 - `/app` or `/os` - MonkeyOS: AI agent dashboard with tool panels + chat
 - `/sanctuary` - Sanctuary: Interactive 1M pixel grid for conservation donations
 
+## Solana Wallet Integration
+- Direct Phantom wallet API (no React adapter wrappers due to Vite compatibility)
+- Wallet state management via `client/src/lib/solanaWallet.ts` (pub/sub pattern)
+- `useWalletState()` hook exported from `WalletButton.tsx` for use across agent panels
+- Shows wallet address, SOL balance, copy address, Solscan link
+- Auto-connects if Phantom is already connected
+- Balance refreshes every 30 seconds
+- Wallet address used in prediction bets, transaction tracking, vault staking
+
 ## 7 AI Utility Agents
 All agents are powered by Claude with custom system prompts AND specialized tool panels:
-1. **Banana Bot** - x402 payment form (send USDC/SOL/PUNCH) + chat
+1. **Banana Bot** - x402 payment form (send USDC/SOL/PUNCH) + wallet sender display + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
-3. **Punch Oracle** - Prediction market cards, betting modal, odds bars + chat
-4. **Trend Puncher** - Attention market dashboard, buy/sell narrative shares + chat
-5. **Ape Vault** - DeFi vault staking dashboard, APY display + chat
+3. **Punch Oracle** - Prediction market cards, betting modal with wallet integration, odds bars + chat
+4. **Trend Puncher** - Attention market dashboard, buy/sell narrative shares + wallet display + chat
+5. **Ape Vault** - DeFi vault staking dashboard, APY display + wallet staking identity + chat
 6. **Rug Buster** - Contract scanner with AI-generated safety scores + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat
 
@@ -42,7 +52,7 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `GET /api/moltbook/agents/:id/logs` - Get agent activity logs
 - `GET /api/moltbook/agents/:id/status` - Check claim status on Moltbook
 - `GET /api/moltbook/agents/:id/profile` - Get Moltbook profile
-- `POST /api/moltbook/agents/register` - Register agent (SSE, tries real API → local fallback)
+- `POST /api/moltbook/agents/register` - Register agent (SSE, tries real API)
 - `POST /api/moltbook/agents/:id/post` - Post to Moltbook (auto-solves verification challenges)
 - `POST /api/moltbook/agents/:id/upvote/:postId` - Upvote a post
 - `GET /api/moltbook/feed` - Get Moltbook feed (hot/new/top)
@@ -81,15 +91,19 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `server/routes.ts` - API endpoints (Claude + agent tools)
 - `server/storage.ts` - Database CRUD operations
 - `server/db.ts` - PostgreSQL connection
+- `client/src/lib/solanaWallet.ts` - Phantom wallet integration (pub/sub state management)
 - `client/src/pages/MonkeyOS.tsx` - Agent hub + tool panels + streaming chat
+- `client/src/components/WalletButton.tsx` - Wallet connect button + dropdown + useWalletState hook
 - `client/src/components/agents/` - Individual agent tool panel components
 - `client/src/pages/Sanctuary.tsx` - Pixel grid map
 - `client/src/pages/Home.tsx` - Landing page
 
 ## Design Choices
 - Client-side execution model (SCE) - no backend custody of keys
+- Direct Phantom API for wallet (not React adapter wrappers, due to Vite duplicate React issue)
 - x402 protocol for micropayments (simulated via AI agents)
 - Moltbook Network for decentralized agent orchestration
 - Each agent has a tool panel (forms, data displays) ABOVE the chat
 - AI scans (Rug Buster, Repo Ape) generate real analysis via Claude and persist results
+- Hub cards show live stats (agent count, market count, scan count, etc.)
 - Native browser scrolling for mobile compatibility on Sanctuary map
