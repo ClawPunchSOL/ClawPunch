@@ -1160,16 +1160,16 @@ export async function registerRoutes(
 
   app.post("/api/transactions", async (req, res) => {
     try {
-      const { recipient, amount, token } = req.body;
+      const { recipient, amount, token, txHash, fromWallet } = req.body;
       if (!recipient || !amount) return res.status(400).json({ error: "Recipient and amount are required" });
-      const txHash = `${Math.random().toString(36).slice(2, 8)}...${Math.random().toString(36).slice(2, 6)}`;
+      const signature = txHash || `local-${Date.now().toString(36)}`;
       const tx = await storage.createTransaction({
         recipient,
         amount: parseFloat(amount),
-        token: token || "USDC",
-        status: "confirmed",
-        txHash,
-        protocol: "x402",
+        token: token || "SOL",
+        status: txHash ? "confirmed" : "pending",
+        txHash: signature,
+        protocol: txHash ? "solana" : "local",
       });
       res.status(201).json(tx);
     } catch (error) {
@@ -1361,87 +1361,6 @@ export async function registerRoutes(
     }
   });
 
-  // === AI AGENT ANALYSIS — Claude analyzes live data for each agent ===
-
-  app.post("/api/agent-intel/:agentType", async (req, res) => {
-    try {
-      const { agentType } = req.params;
-      const { data } = req.body;
-
-      const prompts: Record<string, string> = {
-        "trend-puncher": `You are Trend Puncher, an elite onchain alpha scanner. Analyze these LIVE trending Solana tokens from DexScreener and give me your take in 3-5 bullet points. Focus on:
-- Which tokens show signs of genuine momentum vs pump-and-dump (look at liquidity vs volume ratio, price changes across timeframes)
-- Any narratives forming (multiple tokens in same category trending)
-- Red flags (extremely low liquidity, no socials, -90%+ dumps)
-- Your top 1-2 actionable calls (what to watch, what to avoid)
-Be direct, use trader slang, give specific ticker names. No fluff.
-
-LIVE DATA:
-${JSON.stringify(data, null, 2)}`,
-
-        "ape-vault": `You are Ape Vault, a DeFi yield strategist on Solana. Analyze these LIVE Solana DeFi pools from DeFi Llama and give me your strategy in 3-5 bullet points. Focus on:
-- Best risk-adjusted yields right now (high APY + high TVL = safer)
-- Protocols with suspicious APY (too high = risky)
-- Stablecoin vs volatile asset opportunities
-- Your recommended allocation if someone had 10 SOL to deploy
-Be specific with protocol names, APY numbers, and TVL. No generic advice.
-
-LIVE DATA:
-${JSON.stringify(data, null, 2)}`,
-
-        "punch-oracle": `You are Punch Oracle, a prediction market analyst. Analyze these LIVE prediction markets and give me your take in 3-5 bullet points. Focus on:
-- Markets where odds seem mispriced (the crowd might be wrong)
-- High volume markets worth watching
-- Any correlation between markets (if X happens, Y is likely)
-- Your strongest conviction bet and why
-Be specific with market names, odds, and your reasoning. Take a stance.
-
-LIVE DATA:
-${JSON.stringify(data, null, 2)}`,
-
-        "rug-buster": `You are Rug Buster, a Solana contract security analyst. Analyze this token scan data and give me your assessment in 3-5 bullet points. Focus on:
-- Critical red flags (mint authority, freeze authority still enabled)
-- Holder concentration risk (whale wallets)
-- LP status and what it means for exit liquidity
-- Your verdict: safe to trade, risky, or absolute rug
-Be blunt and direct. Protect the user.
-
-LIVE DATA:
-${JSON.stringify(data, null, 2)}`,
-      };
-
-      const systemPrompt = prompts[agentType];
-      if (!systemPrompt) return res.status(400).json({ error: "Unknown agent type" });
-
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-
-      const stream = anthropic.messages.stream({
-        model: "claude-sonnet-4-5-20250514",
-        max_tokens: 500,
-        messages: [{ role: "user", content: systemPrompt }],
-      });
-
-      for await (const event of stream) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
-        }
-      }
-
-      res.write("data: [DONE]\n\n");
-      res.end();
-    } catch (error: any) {
-      console.error("[AgentIntel] Error:", error.message);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Agent analysis failed" });
-      } else {
-        res.write(`data: ${JSON.stringify({ error: "Analysis interrupted" })}\n\n`);
-        res.end();
-      }
-    }
-  });
-
   // === VAULT POSITIONS (Ape Vault) — Real DeFi Llama Data ===
   const DEFI_LLAMA_POOLS_URL = "https://yields.llama.fi/pools";
   const VAULT_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -1611,6 +1530,271 @@ ${JSON.stringify(data, null, 2)}`,
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update vault stake" });
+    }
+  });
+
+  // === AI AGENT SCANNER — Claude fetches live data AND analyzes it ===
+
+  const fetchLiveDataForAgent = async (agentType: string, context: any = {}): Promise<{ data: any; source: string }> => {
+    switch (agentType) {
+      case "trend-puncher": {
+        const tokens = await fetchDexScreenerTrending();
+        let globalTrends: any[] = [];
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 8000);
+          const gRes = await fetch("https://api.coingecko.com/api/v3/search/trending", { signal: ctrl.signal });
+          clearTimeout(t);
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            globalTrends = (gData.coins || []).slice(0, 7).map((c: any) => ({
+              name: c.item?.name, symbol: c.item?.symbol, rank: c.item?.market_cap_rank,
+              price: c.item?.data?.price, change24h: c.item?.data?.price_change_percentage_24h?.usd,
+            }));
+          }
+        } catch {}
+        return {
+          data: {
+            solanaTrending: tokens.slice(0, 10).map(t => ({
+              symbol: t.symbol, name: t.name, price: t.price,
+              change5m: t.priceChange5m, change1h: t.priceChange1h, change24h: t.priceChange24h,
+              volume24h: t.volume24h, liquidity: t.liquidity, marketCap: t.marketCap,
+              boostAmount: t.boostAmount, socials: t.socials, address: t.address,
+            })),
+            globalTrending: globalTrends,
+          },
+          source: "DexScreener + CoinGecko",
+        };
+      }
+      case "ape-vault": {
+        const pools = await fetchDefiLlamaPools();
+        return {
+          data: pools.slice(0, 15).map(p => ({
+            name: p.vaultName, protocol: p.protocol, token: p.token,
+            apy: p.apy, tvl: p.tvl,
+          })),
+          source: "DeFi Llama Yields API",
+        };
+      }
+      case "punch-oracle": {
+        const preds = await storage.getAllPredictions();
+        const activePreds = preds.filter(p => p.status === "active").slice(0, 8);
+        let marketPrices: Record<string, any> = {};
+        try {
+          const tokenIds = Object.keys(PREDICTION_TOKENS);
+          marketPrices = await fetchPredictionPrices(tokenIds);
+        } catch {}
+        return {
+          data: {
+            activeMarkets: activePreds.map(p => ({
+              title: p.title, odds: `${p.oddsYes}/${p.oddsNo}`,
+              tokenId: p.tokenId, targetPrice: p.targetPrice,
+              currentPrice: p.currentPrice, expiresAt: p.expiresAt,
+              poolYes: p.poolYes, poolNo: p.poolNo,
+            })),
+            livePrices: Object.entries(marketPrices).slice(0, 8).map(([id, d]: [string, any]) => ({
+              token: PREDICTION_TOKENS[id] || id, price: d.usd, change24h: d.usd_24h_change,
+            })),
+          },
+          source: "CoinGecko + Local Markets",
+        };
+      }
+      case "rug-buster": {
+        if (context.address) {
+          const onChain = await scanSolanaToken(context.address);
+          return {
+            data: { address: context.address, ...onChain },
+            source: "Solana RPC (Mainnet)",
+          };
+        }
+        const recentScans = await storage.getAllSecurityScans();
+        return {
+          data: recentScans.slice(0, 5).map(s => ({
+            address: s.contractAddress, name: s.tokenName, score: s.safetyScore,
+            mint: s.mintAuth, freeze: s.freezeAuth, lp: s.lpLocked,
+            holders: s.holderDistribution, verdict: s.verdict,
+          })),
+          source: "Solana RPC scan history",
+        };
+      }
+      case "banana-bot": {
+        const txs = await storage.getAllTransactions();
+        let networkStatus = "healthy";
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 5000);
+          const rpcRes = await fetch("https://api.mainnet-beta.solana.com", {
+            method: "POST", signal: ctrl.signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getRecentPerformanceSamples", params: [5] }),
+          });
+          clearTimeout(t);
+          if (rpcRes.ok) {
+            const rpcData = await rpcRes.json();
+            const samples = rpcData.result || [];
+            if (samples.length > 0) {
+              const avgTps = samples.reduce((s: number, x: any) => s + (x.numTransactions / x.samplePeriodSecs), 0) / samples.length;
+              networkStatus = `TPS: ${Math.round(avgTps)}, ${samples.length} samples`;
+            }
+          }
+        } catch {}
+        return {
+          data: {
+            recentTxs: txs.slice(0, 5).map(t => ({
+              amount: t.amount, token: t.token, to: t.recipient, status: t.status,
+            })),
+            network: networkStatus,
+          },
+          source: "Solana RPC + Local History",
+        };
+      }
+      default:
+        return { data: {}, source: "unknown" };
+    }
+  };
+
+  app.post("/api/agent-scan/:agentType", async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      const { context: ctx } = req.body;
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      res.write(`data: ${JSON.stringify({ status: "fetching", phase: "Pulling live data..." })}\n\n`);
+
+      const { data, source } = await fetchLiveDataForAgent(agentType, ctx || {});
+
+      res.write(`data: ${JSON.stringify({ source, status: "analyzing" })}\n\n`);
+
+      const prompts: Record<string, string> = {
+        "trend-puncher": `You are TREND PUNCHER — an elite Solana alpha scanner inside MonkeyOS. I just pulled LIVE data from DexScreener and CoinGecko for you. Analyze it and give me your intel report.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+🔥 TOP PICKS (tokens worth watching):
+- List 2-3 tokens with specific reasoning (volume/liquidity ratio, momentum across timeframes, social signals)
+
+⚠️ RED FLAGS (avoid these):
+- List any tokens showing pump-and-dump patterns, no liquidity, or suspicious activity
+
+📊 MARKET PULSE:
+- What narrative is forming? Are we in a meme cycle, DeFi rotation, or AI hype?
+- One sentence on overall Solana sentiment based on what's trending
+
+💡 ALPHA CALL:
+- Your single best actionable take right now. Be specific. Name the ticker.
+
+LIVE DATA FROM DEXSCREENER + COINGECKO:
+${JSON.stringify(data, null, 2)}`,
+
+        "ape-vault": `You are APE VAULT — a DeFi yield strategist inside MonkeyOS. I just pulled LIVE yield data from DeFi Llama's Solana pools. Analyze it and give me your strategy.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+💰 BEST YIELDS RIGHT NOW:
+- Top 3 pools ranked by risk-adjusted return (balance APY vs TVL safety)
+- Include protocol name, APY, and TVL for each
+
+🛡️ SAFE PLAYS:
+- Best options for someone who wants yield but low risk (stablecoins, LSTs with high TVL)
+
+⚡ DEGEN PLAYS:
+- Higher APY opportunities and what risks come with them
+
+📋 RECOMMENDED ALLOCATION (for 10 SOL):
+- Specific split across 2-4 protocols with amounts and reasoning
+
+LIVE DATA FROM DEFI LLAMA:
+${JSON.stringify(data, null, 2)}`,
+
+        "punch-oracle": `You are PUNCH ORACLE — a prediction market analyst inside MonkeyOS. I just pulled live market data and active predictions. Analyze them and find edge.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+🎯 MISPRICED MARKETS:
+- Any markets where the odds don't match reality? Where is the crowd wrong?
+
+📈 MARKET CONTEXT:
+- Current crypto prices and what they mean for open predictions
+- Are targets realistic based on recent price action?
+
+🔮 CONVICTION PICKS:
+- Your top 1-2 bets with specific reasoning (which side and why)
+
+⏰ EXPIRING SOON:
+- Any urgent markets that need attention before they resolve
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+
+        "rug-buster": `You are RUG BUSTER — a Solana token security analyst inside MonkeyOS. I just pulled REAL on-chain data from Solana mainnet. Analyze it and protect the user.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+🔍 SECURITY SCAN RESULTS:
+- Mint authority status and what it means
+- Freeze authority status and risk level
+- Holder distribution analysis
+
+🚨 RED FLAGS:
+- List every concerning signal found
+- Rate severity: CRITICAL / WARNING / INFO
+
+✅ POSITIVE SIGNALS:
+- Any good signs (revoked authorities, healthy distribution, etc.)
+
+⚖️ FINAL VERDICT:
+- SAFE / CAUTION / DANGER / RUG — with one-line reasoning
+- Should the user trade this? Be blunt.
+
+LIVE ON-CHAIN DATA:
+${JSON.stringify(data, null, 2)}`,
+
+        "banana-bot": `You are BANANA BOT — a Solana transaction specialist inside MonkeyOS. I just checked the Solana network status and recent transaction history. Give me your briefing.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+🌐 NETWORK STATUS:
+- Current Solana network health and TPS
+- Is now a good time to send transactions? (congestion/fees)
+
+📊 TX HISTORY SUMMARY:
+- Summary of recent sends and their status
+
+💡 RECOMMENDATIONS:
+- Any tips for the user based on current network conditions
+- Optimal time/strategy for sending transactions
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+      };
+
+      const prompt = prompts[agentType];
+      if (!prompt) {
+        res.write(`data: ${JSON.stringify({ error: "Unknown agent type" })}\n\n`);
+        res.end();
+        return;
+      }
+
+      const stream = anthropic.messages.stream({
+        model: "claude-sonnet-4-5",
+        max_tokens: 700,
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+        }
+      }
+
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (error: any) {
+      console.error("[AgentScan] Error:", error.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Agent scan failed" });
+      } else {
+        res.write(`data: ${JSON.stringify({ error: "Scan interrupted" })}\n\n`);
+        res.end();
+      }
     }
   });
 

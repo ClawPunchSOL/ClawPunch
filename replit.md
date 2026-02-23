@@ -25,13 +25,17 @@ A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents
 - Wallet address used in prediction bets, transaction tracking, vault staking
 
 ## 7 AI Utility Agents
-All agents are powered by Claude with custom system prompts AND specialized tool panels:
-1. **Banana Bot** - Real Solana SOL transfers via Phantom wallet signing + Solscan tx links + chat
+All agents are powered by Claude with AI-first scanning architecture. Each agent has:
+- **AgentScanner component** that auto-triggers on panel open, fetches live data from APIs, feeds it to Claude for analysis, and streams back curated intel reports
+- **Backend `/api/agent-scan/:agentType`** endpoint that pulls live data from external APIs AND feeds it to Claude in one shot
+- Raw data is available in collapsible secondary views below the AI analysis
+
+1. **Banana Bot** - Real Solana SOL transfers via Phantom wallet signing + AI network analysis (Solana RPC TPS) + Solscan tx links + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
-3. **Punch Oracle** - Live prediction markets with real SOL betting via Phantom wallet, real odds/volumes/expiry, auto-resolution + chat
-4. **Trend Puncher** - DexScreener viral token scanner showing trending Solana tokens with real-time prices, 5m/1h/24h changes, volume, liquidity, boost amounts, social signals, Jupiter swap links + CoinGecko global trends + chat
-5. **Ape Vault** - Real Solana DeFi vault data from DeFi Llama API (Jito, Marinade, Raydium, Orca, Kamino) + staking dashboard + chat
-6. **Rug Buster** - Contract scanner with AI-generated safety scores + chat
+3. **Punch Oracle** - Live prediction markets with real SOL betting via Phantom wallet + AI market analysis (CoinGecko prices) + auto-resolution + chat
+4. **Trend Puncher** - AI-first alpha scanner: Claude analyzes live DexScreener + CoinGecko data and presents TOP PICKS, RED FLAGS, MARKET PULSE, ALPHA CALLS. Raw token data collapsible below.
+5. **Ape Vault** - AI-first yield strategist: Claude analyzes live DeFi Llama Solana pools and recommends BEST YIELDS, SAFE PLAYS, DEGEN PLAYS, ALLOCATION STRATEGY. Raw vault data below.
+6. **Rug Buster** - AI-first security scanner: Claude analyzes real on-chain Solana RPC data and presents SECURITY SCAN, RED FLAGS, POSITIVE SIGNALS, FINAL VERDICT + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat
 
 ## API Routes
@@ -78,6 +82,8 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `GET /api/vaults` - List DeFi vaults from DeFi Llama (Solana pools)
 - `POST /api/vaults/refresh` - Force refresh vault data from DeFi Llama
 - `POST /api/vaults/:id/stake` - Stake/unstake in vault
+### AI Agent Scanner
+- `POST /api/agent-scan/:agentType` - AI-first scanner: backend fetches live data from APIs (DexScreener, DeFi Llama, CoinGecko, Solana RPC) AND feeds it to Claude for analysis. Streams back structured intel report via SSE. Supports: trend-puncher, ape-vault, punch-oracle, rug-buster, banana-bot
 
 ## Database Schema
 - `users` - Basic user table

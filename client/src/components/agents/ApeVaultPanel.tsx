@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useWalletState } from "@/components/WalletButton";
-import { Cpu, ArrowDown, ArrowUp, Percent, Loader2, Wallet, PieChart, RefreshCw } from "lucide-react";
-import AgentIntel from "@/components/AgentIntel";
+import { Cpu, ArrowDown, ArrowUp, Percent, Loader2, Wallet, PieChart, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import AgentScanner from "@/components/AgentScanner";
 
 interface VaultPosition {
   id: number;
@@ -145,14 +145,12 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
         </div>
       )}
 
-      {vaults.length > 0 && (
-        <AgentIntel
-          agentType="ape-vault"
-          data={vaults.slice(0, 10).map(v => ({ name: v.vaultName, protocol: v.protocol, token: v.token, apy: v.apy, tvl: v.tvl, staked: v.stakedAmount }))}
-          accentColor="green"
-          label="VAULT STRATEGIST"
-        />
-      )}
+      <AgentScanner
+        agentType="ape-vault"
+        accentColor="orange"
+        label="🧠 VAULT STRATEGIST AI"
+        autoScan={vaults.length > 0}
+      />
 
       <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar">
         {vaults.map(v => (

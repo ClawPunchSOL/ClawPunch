@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, shortAddress } from "@/lib/solanaWallet";
-import { Zap, TrendingUp, TrendingDown, Loader2, Wallet, RefreshCw, ExternalLink, Flame, Twitter, MessageCircle, BarChart3 } from "lucide-react";
-import AgentIntel from "@/components/AgentIntel";
+import { Zap, TrendingUp, TrendingDown, Loader2, Wallet, RefreshCw, ExternalLink, Flame, Twitter, MessageCircle, BarChart3, ChevronDown, ChevronUp } from "lucide-react";
+import AgentScanner from "@/components/AgentScanner";
 
 interface TrendingToken {
   address: string;
@@ -66,6 +66,7 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"solana" | "global">("solana");
+  const [showRawData, setShowRawData] = useState(false);
 
   const fetchTrending = useCallback(async () => {
     try {
@@ -145,14 +146,12 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
         </button>
       </div>
 
-      {tokens.length > 0 && (
-        <AgentIntel
-          agentType="trend-puncher"
-          data={tokens.slice(0, 8).map(t => ({ symbol: t.symbol, name: t.name, price: t.price, change5m: t.priceChange5m, change1h: t.priceChange1h, change24h: t.priceChange24h, vol24h: t.volume24h, liq: t.liquidity, mcap: t.marketCap, boost: t.boostAmount, socials: t.socials }))}
-          accentColor="yellow"
-          label="TREND PUNCHER INTEL"
-        />
-      )}
+      <AgentScanner
+        agentType="trend-puncher"
+        accentColor="yellow"
+        label="🧠 TREND PUNCHER AI"
+        autoScan={tokens.length > 0}
+      />
 
       {wallet.connected && wallet.publicKey && (
         <div className="flex items-center gap-2 px-2 py-1.5 border border-yellow-500/20 bg-yellow-500/5">
@@ -165,136 +164,135 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
         </div>
       )}
 
-      {activeTab === "solana" ? (
-        <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar">
-          {tokens.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground text-xs">
-              No trending tokens found. Hit SCAN to refresh.
-            </div>
-          ) : (
-            <>
-              <div className="text-[8px] text-muted-foreground/60 px-1">
-                Live from DexScreener — most boosted Solana tokens right now
-              </div>
-              {tokens.map((t, i) => {
-                const isHot = t.priceChange5m > 5 || t.priceChange1h > 10;
-                const isDumping = t.priceChange1h < -15;
-                return (
-                  <div key={t.address} className={`p-2.5 border bg-black/30 hover:bg-black/50 transition-colors ${isHot ? 'border-yellow-500/40' : isDumping ? 'border-red-500/30' : 'border-border'}`} data-testid={`trending-token-${t.address}`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-muted-foreground font-display">#{i + 1}</span>
-                        <span className="font-display text-xs text-white">${t.symbol}</span>
-                        <span className="text-[9px] text-muted-foreground truncate max-w-[100px]">{t.name}</span>
-                        {isHot && <Flame className="w-3 h-3 text-orange-400" />}
-                        {t.socials.includes("twitter") && <Twitter className="w-2.5 h-2.5 text-blue-400/60" />}
-                        {t.socials.includes("telegram") && <MessageCircle className="w-2.5 h-2.5 text-blue-400/60" />}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-display text-yellow-400">{formatPrice(t.price)}</span>
-                        <span className="text-[8px] text-muted-foreground/50 font-display">BOOST:{t.boostAmount}</span>
-                      </div>
-                    </div>
+      <button
+        onClick={() => setShowRawData(!showRawData)}
+        className="w-full flex items-center justify-between px-2 py-1.5 border border-border bg-black/20 hover:bg-black/40 transition-colors"
+        data-testid="toggle-raw-data"
+      >
+        <span className="text-[9px] text-muted-foreground font-display">RAW TOKEN DATA ({tokens.length} tokens)</span>
+        {showRawData ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+      </button>
 
-                    <div className="flex items-center justify-between mb-1.5 text-[9px]">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1">
-                          <span className="text-muted-foreground">5m:</span>
-                          <ChangeTag val={t.priceChange5m} />
+      {showRawData && (
+        <>
+          {activeTab === "solana" && (
+            <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar">
+              {tokens.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-xs">
+                  No trending tokens found. Hit SCAN to refresh.
+                </div>
+              ) : (
+                <>
+                  <div className="text-[8px] text-muted-foreground/60 px-1">
+                    Live from DexScreener — most boosted Solana tokens right now
+                  </div>
+                  {tokens.map((t, i) => {
+                    const isHot = t.priceChange5m > 5 || t.priceChange1h > 10;
+                    const isDumping = t.priceChange1h < -15;
+                    return (
+                      <div key={t.address} className={`p-2.5 border bg-black/30 hover:bg-black/50 transition-colors ${isHot ? 'border-yellow-500/40' : isDumping ? 'border-red-500/30' : 'border-border'}`} data-testid={`trending-token-${t.address}`}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-muted-foreground font-display">#{i + 1}</span>
+                            <span className="font-display text-xs text-white">${t.symbol}</span>
+                            <span className="text-[9px] text-muted-foreground truncate max-w-[100px]">{t.name}</span>
+                            {isHot && <Flame className="w-3 h-3 text-orange-400" />}
+                            {t.socials.includes("twitter") && <Twitter className="w-2.5 h-2.5 text-blue-400/60" />}
+                            {t.socials.includes("telegram") && <MessageCircle className="w-2.5 h-2.5 text-blue-400/60" />}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-display text-yellow-400">{formatPrice(t.price)}</span>
+                            <span className="text-[8px] text-muted-foreground/50 font-display">BOOST:{t.boostAmount}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-muted-foreground">1h:</span>
-                          <ChangeTag val={t.priceChange1h} />
+
+                        <div className="flex items-center justify-between mb-1.5 text-[9px]">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">5m:</span>
+                              <ChangeTag val={t.priceChange5m} />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">1h:</span>
+                              <ChangeTag val={t.priceChange1h} />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">24h:</span>
+                              <ChangeTag val={t.priceChange24h} />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-muted-foreground">24h:</span>
+
+                        <div className="flex items-center justify-between text-[9px] mb-2">
+                          <div className="flex items-center gap-3">
+                            {t.volume24h > 0 && (
+                              <span className="text-muted-foreground">Vol: <span className="text-white">{formatCompact(t.volume24h)}</span></span>
+                            )}
+                            {t.liquidity > 0 && (
+                              <span className="text-muted-foreground">Liq: <span className="text-white">{formatCompact(t.liquidity)}</span></span>
+                            )}
+                            {t.marketCap > 0 && (
+                              <span className="text-muted-foreground">MCap: <span className="text-white">{formatCompact(t.marketCap)}</span></span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1.5">
+                          <a href={t.dexUrl} target="_blank" rel="noopener noreferrer" data-testid={`dex-link-${t.address}`}
+                            className="flex-1 py-1 border border-yellow-500/50 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/10 transition-colors flex items-center justify-center gap-1">
+                            <ExternalLink className="w-2.5 h-2.5" /> CHART
+                          </a>
+                          <a href={`https://jup.ag/swap/SOL-${t.address}`} target="_blank" rel="noopener noreferrer" data-testid={`buy-link-${t.address}`}
+                            className="flex-1 py-1 border border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1">
+                            <TrendingUp className="w-2.5 h-2.5" /> BUY
+                          </a>
+                          <a href={`https://jup.ag/swap/${t.address}-SOL`} target="_blank" rel="noopener noreferrer" data-testid={`sell-link-${t.address}`}
+                            className="flex-1 py-1 border border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1">
+                            <TrendingDown className="w-2.5 h-2.5" /> SELL
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
+          {activeTab === "global" && (
+            <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar">
+              {globalTrends.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-xs">
+                  Loading global trends...
+                </div>
+              ) : (
+                <>
+                  <div className="text-[8px] text-muted-foreground/60 px-1">
+                    CoinGecko trending — what the world is searching right now
+                  </div>
+                  {globalTrends.map((t, i) => (
+                    <div key={t.id} className="p-2.5 border border-border bg-black/30 hover:bg-black/50 transition-colors" data-testid={`global-trend-${t.id}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-muted-foreground font-display">#{i + 1}</span>
+                          {t.thumb && <img src={t.thumb} alt="" className="w-4 h-4 rounded-full" />}
+                          <span className="font-display text-xs text-white">{t.symbol}</span>
+                          <span className="text-[9px] text-muted-foreground">{t.name}</span>
+                          {t.marketCapRank && (
+                            <span className="text-[8px] text-muted-foreground/50">Rank #{t.marketCapRank}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {t.price > 0 && <span className="text-[10px] font-display text-yellow-400">{formatPrice(t.price)}</span>}
                           <ChangeTag val={t.priceChange24h} />
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between text-[9px] mb-2">
-                      <div className="flex items-center gap-3">
-                        {t.volume24h > 0 && (
-                          <span className="text-muted-foreground">Vol: <span className="text-white">{formatCompact(t.volume24h)}</span></span>
-                        )}
-                        {t.liquidity > 0 && (
-                          <span className="text-muted-foreground">Liq: <span className="text-white">{formatCompact(t.liquidity)}</span></span>
-                        )}
-                        {t.marketCap > 0 && (
-                          <span className="text-muted-foreground">MCap: <span className="text-white">{formatCompact(t.marketCap)}</span></span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-1.5">
-                      <a
-                        href={t.dexUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-testid={`dex-link-${t.address}`}
-                        className="flex-1 py-1 border border-yellow-500/50 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/10 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <ExternalLink className="w-2.5 h-2.5" /> CHART
-                      </a>
-                      <a
-                        href={`https://jup.ag/swap/SOL-${t.address}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-testid={`buy-link-${t.address}`}
-                        className="flex-1 py-1 border border-green-500/50 text-green-400 text-[9px] font-display hover:bg-green-500/10 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <TrendingUp className="w-2.5 h-2.5" /> BUY
-                      </a>
-                      <a
-                        href={`https://jup.ag/swap/${t.address}-SOL`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-testid={`sell-link-${t.address}`}
-                        className="flex-1 py-1 border border-red-500/50 text-red-400 text-[9px] font-display hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <TrendingDown className="w-2.5 h-2.5" /> SELL
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar">
-          {globalTrends.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground text-xs">
-              Loading global trends...
+                  ))}
+                </>
+              )}
             </div>
-          ) : (
-            <>
-              <div className="text-[8px] text-muted-foreground/60 px-1">
-                CoinGecko trending — what the world is searching right now
-              </div>
-              {globalTrends.map((t, i) => (
-                <div key={t.id} className="p-2.5 border border-border bg-black/30 hover:bg-black/50 transition-colors" data-testid={`global-trend-${t.id}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-muted-foreground font-display">#{i + 1}</span>
-                      {t.thumb && <img src={t.thumb} alt="" className="w-4 h-4 rounded-full" />}
-                      <span className="font-display text-xs text-white">{t.symbol}</span>
-                      <span className="text-[9px] text-muted-foreground">{t.name}</span>
-                      {t.marketCapRank && (
-                        <span className="text-[8px] text-muted-foreground/50">Rank #{t.marketCapRank}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {t.price > 0 && <span className="text-[10px] font-display text-yellow-400">{formatPrice(t.price)}</span>}
-                      <ChangeTag val={t.priceChange24h} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </>
           )}
-        </div>
+        </>
       )}
     </div>
   );

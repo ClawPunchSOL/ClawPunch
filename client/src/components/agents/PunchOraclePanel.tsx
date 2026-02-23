@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, shortAddress, sendSolTransfer, refreshBalance } from "@/lib/solanaWallet";
-import { Target, Plus, Loader2, TrendingUp, Wallet, ChevronUp, Zap, RefreshCw, Clock, CheckCircle, XCircle, DollarSign, AlertTriangle } from "lucide-react";
-import AgentIntel from "@/components/AgentIntel";
+import { Target, Plus, Loader2, TrendingUp, Wallet, ChevronUp, ChevronDown, Zap, RefreshCw, Clock, CheckCircle, XCircle, DollarSign, AlertTriangle } from "lucide-react";
+import AgentScanner from "@/components/AgentScanner";
 
 interface Prediction {
   id: number;
@@ -301,14 +301,12 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
         </div>
       </div>
 
-      {liveMarkets.length > 0 && (
-        <AgentIntel
-          agentType="punch-oracle"
-          data={liveMarkets.slice(0, 8).map(m => ({ question: m.question, yesOdds: Math.round((m.outcomePrices[0] || 0.5) * 100), volume: m.volume, vol24h: m.volume24hr, endDate: m.endDate, dayChange: m.oneDayPriceChange }))}
-          accentColor="purple"
-          label="ORACLE INTEL"
-        />
-      )}
+      <AgentScanner
+        agentType="punch-oracle"
+        accentColor="purple"
+        label="🧠 ORACLE AI"
+        autoScan={predictions.length > 0 || prices.length > 0}
+      />
 
       {prices.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
