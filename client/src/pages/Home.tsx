@@ -490,9 +490,9 @@ export default function Home() {
                 <a href="#" className="retro-button bg-[#0088cc] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#0088cc] flex-1">
                   TELEGRAM
                 </a>
-                <a href="#" className="retro-button bg-card text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-black flex-1 border-2 border-border">
+                <button onClick={() => setLocation('/docs')} className="retro-button bg-card text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-black flex-1 border-2 border-border">
                   GITBOOK
-                </a>
+                </button>
               </div>
 
               <div className="mt-8 text-center text-muted-foreground/50 font-sans text-sm">
