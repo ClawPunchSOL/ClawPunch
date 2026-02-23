@@ -152,6 +152,24 @@ export const vaultPositions = pgTable("vault_positions", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+export const tokenLaunches = pgTable("token_launches", {
+  id: serial("id").primaryKey(),
+  tokenName: text("token_name").notNull(),
+  tokenSymbol: text("token_symbol").notNull(),
+  description: text("description").notNull(),
+  personality: text("personality").notNull().default(""),
+  imageUrl: text("image_url"),
+  metadataUri: text("metadata_uri"),
+  mintAddress: text("mint_address"),
+  txSignature: text("tx_signature"),
+  pumpUrl: text("pump_url"),
+  devBuyAmount: real("dev_buy_amount").notNull().default(0),
+  feeAmount: real("fee_amount").notNull().default(0),
+  status: text("status").notNull().default("concept"),
+  aiPromptUsed: text("ai_prompt_used"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({ username: true, password: true });
 export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
@@ -165,6 +183,7 @@ export const insertRepoScanSchema = createInsertSchema(repoScans).omit({ id: tru
 export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, createdAt: true });
 export const insertAttentionPositionSchema = createInsertSchema(attentionPositions).omit({ id: true, updatedAt: true });
 export const insertVaultPositionSchema = createInsertSchema(vaultPositions).omit({ id: true, createdAt: true });
+export const insertTokenLaunchSchema = createInsertSchema(tokenLaunches).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -192,3 +211,5 @@ export type AttentionPosition = typeof attentionPositions.$inferSelect;
 export type InsertAttentionPosition = z.infer<typeof insertAttentionPositionSchema>;
 export type VaultPosition = typeof vaultPositions.$inferSelect;
 export type InsertVaultPosition = z.infer<typeof insertVaultPositionSchema>;
+export type TokenLaunch = typeof tokenLaunches.$inferSelect;
+export type InsertTokenLaunch = z.infer<typeof insertTokenLaunchSchema>;
