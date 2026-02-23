@@ -147,16 +147,17 @@ Trend Puncher is a high-frequency sentiment analysis engine integrated directly 
 * **Volume Delta Correlation:** Correlates social sentiment spikes with on-chain volume anomalies using Birdeye or DexScreener websockets. It looks for divergences—high social velocity preceding high volume.
 * **Actionable Alerts:** It does not just provide data; it provides actionable intelligence. Alert: *"Macaque meta is trending. +400% mention volume in 5m. Associated ticker: $MONK. Queue swap?"*
 
-### IV. Rug Buster (Automated Security & Audit Heuristics)
-In the Solana trenches, security is paramount. Rug Buster is an automated, lightning-fast smart contract auditor that analyzes token mints in milliseconds to protect users from malicious actors.
+### IV. Rug Buster (Solana-Native Rug-Pull Detection)
+Rug Buster is a Solana-native rug-pull detection protocol powering Monkey OS — autonomous agents that unlock security scans via x402 payments. Instead of manual audits or pre-loaded checks, risk assessment is dynamically performed at request time through on-chain contract analysis proofs.
 
-* **Bytecode Analysis:** When fed a contract address by the user or another agent (via IPC), Rug Buster instantly decompiles the SPL Token configuration.
+* **x402 Micropayment Triggers:** Every ad-hoc scan utilizes the x402 protocol. Users stream fractional USDC (e.g., $0.05 per scan) through ephemeral state channels to the Rug Buster relayer node, unlocking the cryptographic proof generation without waiting for L1 settlement.
+* **Dynamic Bytecode Analysis:** When fed a contract address, Rug Buster instantly decompiles the SPL Token configuration in real-time, verifying live state rather than relying on cached, potentially stale database entries.
 * **Verification Matrix:**
   1. **Mint Authority:** Verifies if the mint authority has been permanently revoked (`mintAuthority == null`), preventing infinite supply inflation.
   2. **Freeze Authority:** Verifies if the freeze authority is revoked (`freezeAuthority == null`), ensuring the creator cannot freeze user balances.
   3. **Liquidity Provider (LP) Lock:** Queries the Raydium, Orca, or Meteora AMM programs to verify if the LP tokens are burned or cryptographically locked in a verifiable time-lock contract.
   4. **Top Holder Distribution:** Calculates the Gini coefficient of token distribution. If the top 10 non-contract wallets hold > 50% of the circulating supply, it flags an extreme Rug Risk.
-* **Output Heuristic:** Generates a deterministic "Safety Score" (0-100). If the score falls below a user-defined threshold, Monkey OS will soft-block interactions with that contract across all other agents.
+* **Output Heuristic & On-Chain Proof:** Generates a deterministic "Safety Score" (0-100) alongside a verifiable cryptographic receipt of the scan, ensuring the audit result itself hasn't been tampered with.
 
 ### V. Punch Oracle (Decentralized Prediction Markets)
 Punch Oracle connects the localized Monkey OS environment to real-world data and decentralized prediction markets.
