@@ -148,21 +148,176 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/moltbook/agents", async (req, res) => {
+  app.get("/api/moltbook/agents/:id", async (req, res) => {
     try {
-      const { name, type, capabilities } = req.body;
+      const agent = await storage.getMoltbookAgent(parseInt(req.params.id));
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      res.json(agent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch agent" });
+    }
+  });
+
+  app.get("/api/moltbook/agents/:id/logs", async (req, res) => {
+    try {
+      const logs = await storage.getTaskLogsByAgent(parseInt(req.params.id));
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch logs" });
+    }
+  });
+
+  app.post("/api/moltbook/agents/deploy", async (req, res) => {
+    try {
+      const { name, type, capabilities, region } = req.body;
       if (!name || !type) return res.status(400).json({ error: "Name and type are required" });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders();
+
+      const send = (data: any) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+      send({ stage: "init", message: "Initializing deployment pipeline..." });
+      await new Promise(r => setTimeout(r, 400));
+
       const apiKeyPrefix = `molt_${Math.random().toString(36).slice(2, 10)}`;
+      const endpoint = `https://moltbook.network/v1/agents/${name.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).slice(2, 6)}`;
+      const selectedRegion = region || ["us-east-1", "eu-west-1", "ap-southeast-1"][Math.floor(Math.random() * 3)];
+
+      send({ stage: "provisioning", message: `Provisioning compute node in ${selectedRegion}...` });
+      await new Promise(r => setTimeout(r, 600));
+
+      send({ stage: "keys", message: `Generating API key: ${apiKeyPrefix}••••••` });
+      await new Promise(r => setTimeout(r, 400));
+
+      send({ stage: "configuring", message: "Configuring agent runtime and capabilities..." });
+      await new Promise(r => setTimeout(r, 500));
+
+      let aiConfig = "";
+      try {
+        const stream = anthropic.messages.stream({
+          model: "claude-sonnet-4-5-20250514",
+          max_tokens: 300,
+          messages: [{ role: "user", content: `You are the Moltbook Network deployment system. An agent named "${name}" (type: ${type}, capabilities: ${capabilities || "general"}) is being deployed to ${selectedRegion}. Generate a brief deployment config report (3-5 lines) in a terminal/log style. Include: allocated resources (vCPU, RAM), network endpoint, security policy, and heartbeat interval. Keep it terse and technical like real infrastructure logs. No markdown.` }],
+        });
+        for await (const event of stream) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            aiConfig += event.delta.text;
+            send({ stage: "configuring", message: event.delta.text, streaming: true });
+          }
+        }
+      } catch {
+        aiConfig = `Resources: 2 vCPU / 4GB RAM | Endpoint: ${endpoint} | Security: mTLS | Heartbeat: 30s`;
+        send({ stage: "configuring", message: aiConfig });
+      }
+
+      send({ stage: "deploying", message: "Deploying container to Moltbook Network..." });
+      await new Promise(r => setTimeout(r, 600));
+
+      send({ stage: "healthcheck", message: "Running health check..." });
+      await new Promise(r => setTimeout(r, 400));
+
       const agent = await storage.createMoltbookAgent({
         name,
         type,
         capabilities: capabilities || "general",
         apiKeyPrefix,
         status: "active",
+        endpoint,
+        region: selectedRegion,
+        tasksCompleted: 0,
+        tasksFailed: 0,
+        uptimeSeconds: 0,
       });
-      res.status(201).json(agent);
+
+      await storage.createTaskLog({
+        agentId: agent.id,
+        taskType: "deployment",
+        description: `Agent deployed to ${selectedRegion} | Endpoint: ${endpoint}`,
+        status: "completed",
+        durationMs: 2400,
+      });
+
+      send({ stage: "live", message: `Agent "${name}" is LIVE on Moltbook Network`, agent });
+      res.end();
     } catch (error) {
-      res.status(500).json({ error: "Failed to register agent" });
+      res.write(`data: ${JSON.stringify({ error: "Deployment failed" })}\n\n`);
+      res.end();
+    }
+  });
+
+  app.post("/api/moltbook/agents/:id/dispatch", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { taskType, prompt } = req.body;
+      if (!taskType) return res.status(400).json({ error: "Task type is required" });
+
+      const agent = await storage.getMoltbookAgent(id);
+      if (!agent) return res.status(404).json({ error: "Agent not found" });
+      if (agent.status !== "active") return res.status(400).json({ error: "Agent is not active" });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders();
+
+      const send = (data: any) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+      const startTime = Date.now();
+
+      send({ stage: "dispatching", message: `Dispatching "${taskType}" task to ${agent.name}...` });
+      await new Promise(r => setTimeout(r, 300));
+
+      send({ stage: "executing", message: `${agent.name} executing on ${agent.endpoint}...` });
+
+      let result = "";
+      try {
+        const taskPrompts: Record<string, string> = {
+          scan: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute a blockchain scan task. Report findings in 3-5 terse lines. Include: blocks scanned, anomalies found, risk level. No markdown, terminal style.`,
+          monitor: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute a monitoring sweep. Report: active pools checked, price deviations detected, whale movements, alert level. 3-5 terse lines, terminal style. No markdown.`,
+          trade: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute a trade analysis task. Report: opportunities identified, risk/reward ratios, recommended action. 3-5 terse lines, terminal style. No markdown.`,
+          analyze: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute an analysis task. ${prompt || 'Analyze current market conditions.'}. Report findings in 3-5 terse lines, terminal style. No markdown.`,
+        };
+
+        const stream = anthropic.messages.stream({
+          model: "claude-sonnet-4-5-20250514",
+          max_tokens: 300,
+          messages: [{ role: "user", content: taskPrompts[taskType] || taskPrompts.analyze }],
+        });
+        for await (const event of stream) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            result += event.delta.text;
+            send({ stage: "executing", message: event.delta.text, streaming: true });
+          }
+        }
+      } catch {
+        result = `Task completed with default handler. No anomalies detected.`;
+        send({ stage: "executing", message: result });
+      }
+
+      const durationMs = Date.now() - startTime;
+      const success = Math.random() > 0.05;
+
+      const log = await storage.createTaskLog({
+        agentId: agent.id,
+        taskType,
+        description: result.slice(0, 500),
+        status: success ? "completed" : "failed",
+        durationMs,
+      });
+
+      await storage.updateMoltbookAgent(agent.id, {
+        tasksCompleted: agent.tasksCompleted + (success ? 1 : 0),
+        tasksFailed: agent.tasksFailed + (success ? 0 : 1),
+        lastHeartbeat: new Date(),
+      });
+
+      send({ stage: "complete", message: `Task ${success ? 'completed' : 'failed'} in ${durationMs}ms`, log, success });
+      res.end();
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: "Task dispatch failed" })}\n\n`);
+      res.end();
     }
   });
 

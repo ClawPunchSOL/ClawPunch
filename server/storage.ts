@@ -2,13 +2,14 @@ import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import {
   users, conversations, messages, sanctuaryPixels,
-  moltbookAgents, predictions, predictionBets, securityScans, repoScans,
+  moltbookAgents, agentTaskLogs, predictions, predictionBets, securityScans, repoScans,
   transactions, attentionPositions, vaultPositions,
   type User, type InsertUser,
   type Conversation, type InsertConversation,
   type Message, type InsertMessage,
   type SanctuaryPixel, type InsertSanctuaryPixel,
   type MoltbookAgent, type InsertMoltbookAgent,
+  type AgentTaskLog, type InsertAgentTaskLog,
   type Prediction, type InsertPrediction,
   type PredictionBet, type InsertPredictionBet,
   type SecurityScan, type InsertSecurityScan,
@@ -38,6 +39,12 @@ export interface IStorage {
   getAllMoltbookAgents(): Promise<MoltbookAgent[]>;
   createMoltbookAgent(data: InsertMoltbookAgent): Promise<MoltbookAgent>;
   updateMoltbookAgentStatus(id: number, status: string): Promise<MoltbookAgent | undefined>;
+  updateMoltbookAgent(id: number, data: Partial<MoltbookAgent>): Promise<MoltbookAgent | undefined>;
+  getMoltbookAgent(id: number): Promise<MoltbookAgent | undefined>;
+
+  getTaskLogsByAgent(agentId: number): Promise<AgentTaskLog[]>;
+  createTaskLog(data: InsertAgentTaskLog): Promise<AgentTaskLog>;
+  getAllTaskLogs(): Promise<AgentTaskLog[]>;
 
   getAllPredictions(): Promise<Prediction[]>;
   getPrediction(id: number): Promise<Prediction | undefined>;
@@ -126,6 +133,25 @@ export class DatabaseStorage implements IStorage {
   async updateMoltbookAgentStatus(id: number, status: string) {
     const [agent] = await db.update(moltbookAgents).set({ status }).where(eq(moltbookAgents.id, id)).returning();
     return agent;
+  }
+  async updateMoltbookAgent(id: number, data: Partial<MoltbookAgent>) {
+    const [agent] = await db.update(moltbookAgents).set(data).where(eq(moltbookAgents.id, id)).returning();
+    return agent;
+  }
+  async getMoltbookAgent(id: number) {
+    const [agent] = await db.select().from(moltbookAgents).where(eq(moltbookAgents.id, id));
+    return agent;
+  }
+
+  async getTaskLogsByAgent(agentId: number) {
+    return db.select().from(agentTaskLogs).where(eq(agentTaskLogs.agentId, agentId)).orderBy(desc(agentTaskLogs.createdAt));
+  }
+  async createTaskLog(data: InsertAgentTaskLog) {
+    const [log] = await db.insert(agentTaskLogs).values(data).returning();
+    return log;
+  }
+  async getAllTaskLogs() {
+    return db.select().from(agentTaskLogs).orderBy(desc(agentTaskLogs.createdAt));
   }
 
   async getAllPredictions() {
