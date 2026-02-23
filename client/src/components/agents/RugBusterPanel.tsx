@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShieldAlert, Search, Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { ShieldAlert, Search, Loader2, CheckCircle, XCircle, AlertTriangle, Globe } from "lucide-react";
 
 interface SecurityScan {
   id: number;
@@ -20,6 +20,7 @@ export default function RugBusterPanel() {
   const [scanning, setScanning] = useState(false);
   const [address, setAddress] = useState("");
   const [activeScan, setActiveScan] = useState<SecurityScan | null>(null);
+  const [scanStatus, setScanStatus] = useState("");
 
   useEffect(() => {
     fetch("/api/security/scans").then(r => r.json()).then(setScans).finally(() => setLoading(false));
@@ -30,6 +31,7 @@ export default function RugBusterPanel() {
     if (!address.trim() || scanning) return;
     setScanning(true);
     setActiveScan(null);
+    setScanStatus("Connecting to Solana mainnet...");
 
     try {
       const res = await fetch("/api/security/scan", {
@@ -53,6 +55,7 @@ export default function RugBusterPanel() {
           if (!line.startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.slice(6));
+            if (data.message) setScanStatus(data.message);
             if (data.scan) {
               setActiveScan(data.scan);
               setScans(prev => [data.scan, ...prev]);
@@ -65,6 +68,7 @@ export default function RugBusterPanel() {
     } finally {
       setScanning(false);
       setAddress("");
+      setScanStatus("");
     }
   };
 
@@ -78,17 +82,23 @@ export default function RugBusterPanel() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <ShieldAlert className="w-4 h-4 text-red-400" />
-        <span className="font-display text-[11px] text-white">RUG SCANNER</span>
-        <span className="text-[10px] text-red-400 font-display">{scans.length} SCANS</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-red-400" />
+          <span className="font-display text-[11px] text-white">RUG SCANNER</span>
+          <span className="text-[10px] text-red-400 font-display">{scans.length} SCANS</span>
+        </div>
+        <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+          <Globe className="w-3 h-3" />
+          <span className="font-display">SOLANA MAINNET</span>
+        </div>
       </div>
 
       <form onSubmit={handleScan} className="flex gap-2">
         <input
           value={address}
           onChange={e => setAddress(e.target.value)}
-          placeholder="Paste Solana contract address..."
+          placeholder="Paste Solana token mint address..."
           disabled={scanning}
           data-testid="input-contract-address"
           className="flex-1 bg-black/50 border-2 border-border text-white px-3 py-2 text-sm focus:outline-none focus:border-red-500 placeholder:text-muted-foreground/50 disabled:opacity-50 font-mono text-xs"
@@ -100,11 +110,16 @@ export default function RugBusterPanel() {
       </form>
 
       {scanning && !activeScan && (
-        <div className="flex items-center gap-3 p-4 border-2 border-red-500/30 bg-red-500/5 animate-pulse">
-          <Loader2 className="w-5 h-5 text-red-400 animate-spin" />
-          <div>
-            <div className="font-display text-[10px] text-red-400">ANALYZING CONTRACT</div>
-            <div className="text-[10px] text-muted-foreground">Checking bytecode, authorities, LP locks...</div>
+        <div className="p-4 border-2 border-red-500/30 bg-red-500/5">
+          <div className="flex items-center gap-3 mb-2">
+            <Loader2 className="w-5 h-5 text-red-400 animate-spin" />
+            <div>
+              <div className="font-display text-[10px] text-red-400">SCANNING ON-CHAIN DATA</div>
+              <div className="text-[10px] text-muted-foreground">{scanStatus}</div>
+            </div>
+          </div>
+          <div className="w-full h-1 bg-black/50 overflow-hidden">
+            <div className="h-full bg-red-500/60 animate-pulse" style={{ width: '60%' }} />
           </div>
         </div>
       )}
@@ -129,6 +144,10 @@ export default function RugBusterPanel() {
             <div className="flex items-center gap-1.5 p-1.5 bg-black/30 border border-border">{checkIcon(activeScan.freezeAuth)} <span className="text-muted-foreground">Freeze:</span> <span className="text-white font-display">{activeScan.freezeAuth}</span></div>
             <div className="flex items-center gap-1.5 p-1.5 bg-black/30 border border-border">{checkIcon(activeScan.lpLocked)} <span className="text-muted-foreground">LP:</span> <span className="text-white font-display">{activeScan.lpLocked}</span></div>
             <div className="flex items-center gap-1.5 p-1.5 bg-black/30 border border-border">{checkIcon(activeScan.holderDistribution)} <span className="text-muted-foreground">Holders:</span> <span className="text-white font-display">{activeScan.holderDistribution}</span></div>
+          </div>
+          <div className="flex items-center gap-1 text-[8px] text-muted-foreground/60 justify-center">
+            <Globe className="w-2.5 h-2.5" />
+            <span>DATA FROM SOLANA MAINNET RPC</span>
           </div>
           <div className={`text-center py-1.5 font-display text-xs border ${
             activeScan.verdict === 'SAFE' ? 'border-green-500/50 bg-green-500/10 text-green-400' :

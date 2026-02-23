@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { getAgentConfig } from "./agents";
 import Anthropic from "@anthropic-ai/sdk";
 import { insertConversationSchema, insertMessageSchema, insertSanctuaryPixelSchema, insertMoltbookAgentSchema, insertPredictionSchema, insertPredictionBetSchema, insertTransactionSchema } from "@shared/schema";
+import { scanSolanaToken } from "./solanaScanner";
 
 const anthropic = new Anthropic({
   apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
@@ -567,51 +568,80 @@ export async function registerRoutes(
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      res.write(`data: ${JSON.stringify({ status: "scanning", message: "Analyzing contract bytecode..." })}\n\n`);
+      res.write(`data: ${JSON.stringify({ status: "scanning", message: "Fetching on-chain data from Solana mainnet..." })}\n\n`);
+
+      const onChainData = await scanSolanaToken(contractAddress);
+
+      res.write(`data: ${JSON.stringify({ status: "scanning", message: "Analyzing token authorities and holder distribution..." })}\n\n`);
+
+      let safetyScore = 50;
+      let verdict: string = "CAUTION";
+      let lpStatus: string = "UNKNOWN";
+
+      if (!onChainData.isValidAddress) {
+        safetyScore = 0;
+        verdict = "DANGER";
+        lpStatus = "UNKNOWN";
+      } else if (!onChainData.isToken) {
+        safetyScore = 10;
+        verdict = "DANGER";
+        lpStatus = "NOT_A_TOKEN";
+      } else {
+        let score = 100;
+
+        if (onChainData.mintAuthority === "ACTIVE") score -= 30;
+        if (onChainData.freezeAuthority === "ACTIVE") score -= 20;
+
+        if (onChainData.holderDistribution === "WHALE_HEAVY") score -= 25;
+        else if (onChainData.holderDistribution === "CONCENTRATED") score -= 15;
+
+        if (onChainData.lpInfo.startsWith("LOCKED_IN_LP")) {
+          lpStatus = "LOCKED";
+          score += 5;
+        } else if (onChainData.lpInfo === "NO_LP_FOUND") {
+          lpStatus = "UNLOCKED";
+          score -= 10;
+        } else {
+          lpStatus = onChainData.lpInfo;
+        }
+
+        safetyScore = Math.max(0, Math.min(100, score));
+
+        if (safetyScore >= 70) verdict = "SAFE";
+        else if (safetyScore >= 40) verdict = "CAUTION";
+        else if (safetyScore >= 20) verdict = "DANGER";
+        else verdict = "HIGH_RISK";
+      }
 
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
-        max_tokens: 1024,
-        system: `You are a Solana smart contract security analyzer. Analyze the given contract address and return ONLY valid JSON with these exact fields:
+        max_tokens: 512,
+        system: `You are a Solana token security analyst. You are given REAL on-chain data that was just fetched from Solana mainnet. Based on this data, provide a token name if you recognize the address, and confirm the analysis. Return ONLY valid JSON:
 {
-  "tokenName": "string (inferred token name or 'Unknown Token')",
-  "safetyScore": number (0-100),
-  "mintAuth": "REVOKED" or "ACTIVE" or "UNKNOWN",
-  "freezeAuth": "REVOKED" or "ACTIVE" or "UNKNOWN",
-  "lpLocked": "LOCKED" or "UNLOCKED" or "BURNED" or "UNKNOWN",
-  "holderDistribution": "HEALTHY" or "CONCENTRATED" or "WHALE_HEAVY",
-  "verdict": "SAFE" or "CAUTION" or "DANGER" or "HIGH_RISK"
-}
-Generate realistic but simulated analysis data. Be varied in your results - not everything should be safe.`,
-        messages: [{ role: "user", content: `Analyze Solana contract: ${contractAddress}` }],
+  "tokenName": "string (recognized name or 'Unknown Token')"
+}`,
+        messages: [{ role: "user", content: `Contract: ${contractAddress}\nOn-chain data: mint authority ${onChainData.mintAuthority}, freeze authority ${onChainData.freezeAuthority}, ${onChainData.holderCount} top holders found, distribution: ${onChainData.holderDistribution}, LP: ${onChainData.lpInfo}, supply: ${onChainData.supply}, decimals: ${onChainData.decimals}${onChainData.tokenName ? `, metadata name: ${onChainData.tokenName}` : ''}${onChainData.error ? `, error: ${onChainData.error}` : ''}` }],
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-      let scanData;
+      let tokenName = onChainData.tokenName || "Unknown Token";
       try {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        scanData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
-      } catch {
-        scanData = {
-          tokenName: "Unknown Token",
-          safetyScore: 45,
-          mintAuth: "UNKNOWN",
-          freezeAuth: "UNKNOWN",
-          lpLocked: "UNKNOWN",
-          holderDistribution: "UNKNOWN",
-          verdict: "CAUTION",
-        };
-      }
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.tokenName) tokenName = parsed.tokenName;
+        }
+      } catch {}
 
       const scan = await storage.createSecurityScan({
         contractAddress,
-        tokenName: scanData.tokenName || "Unknown Token",
-        safetyScore: scanData.safetyScore || 50,
-        mintAuth: scanData.mintAuth || "UNKNOWN",
-        freezeAuth: scanData.freezeAuth || "UNKNOWN",
-        lpLocked: scanData.lpLocked || "UNKNOWN",
-        holderDistribution: scanData.holderDistribution || "UNKNOWN",
-        verdict: scanData.verdict || "CAUTION",
+        tokenName,
+        safetyScore,
+        mintAuth: onChainData.isToken ? onChainData.mintAuthority : "UNKNOWN",
+        freezeAuth: onChainData.isToken ? onChainData.freezeAuthority : "UNKNOWN",
+        lpLocked: lpStatus,
+        holderDistribution: onChainData.isToken ? onChainData.holderDistribution : "UNKNOWN",
+        verdict,
       });
 
       res.write(`data: ${JSON.stringify({ status: "complete", scan })}\n\n`);
