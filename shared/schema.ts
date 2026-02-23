@@ -37,15 +37,16 @@ export const moltbookAgents = pgTable("moltbook_agents", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(),
-  status: text("status").notNull().default("active"),
+  status: text("status").notNull().default("pending"),
+  apiKey: text("api_key"),
   apiKeyPrefix: text("api_key_prefix").notNull(),
   capabilities: text("capabilities").notNull(),
-  endpoint: text("endpoint").notNull().default("https://moltbook.network/v1"),
-  region: text("region").notNull().default("us-east-1"),
-  tasksCompleted: integer("tasks_completed").notNull().default(0),
-  tasksFailed: integer("tasks_failed").notNull().default(0),
-  uptimeSeconds: integer("uptime_seconds").notNull().default(0),
-  lastHeartbeat: timestamp("last_heartbeat").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  claimUrl: text("claim_url"),
+  verificationCode: text("verification_code"),
+  moltbookAgentId: text("moltbook_agent_id"),
+  profileUrl: text("profile_url"),
+  description: text("description").notNull().default(""),
+  postsCount: integer("posts_count").notNull().default(0),
   registeredAt: timestamp("registered_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -144,7 +145,7 @@ export const insertUserSchema = createInsertSchema(users).pick({ username: true,
 export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertSanctuaryPixelSchema = createInsertSchema(sanctuaryPixels).omit({ id: true, createdAt: true });
-export const insertMoltbookAgentSchema = createInsertSchema(moltbookAgents).omit({ id: true, registeredAt: true, lastHeartbeat: true });
+export const insertMoltbookAgentSchema = createInsertSchema(moltbookAgents).omit({ id: true, registeredAt: true });
 export const insertAgentTaskLogSchema = createInsertSchema(agentTaskLogs).omit({ id: true, createdAt: true });
 export const insertPredictionSchema = createInsertSchema(predictions).omit({ id: true, createdAt: true, resolvedOutcome: true });
 export const insertPredictionBetSchema = createInsertSchema(predictionBets).omit({ id: true, createdAt: true });

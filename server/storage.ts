@@ -41,6 +41,7 @@ export interface IStorage {
   updateMoltbookAgentStatus(id: number, status: string): Promise<MoltbookAgent | undefined>;
   updateMoltbookAgent(id: number, data: Partial<MoltbookAgent>): Promise<MoltbookAgent | undefined>;
   getMoltbookAgent(id: number): Promise<MoltbookAgent | undefined>;
+  deleteMoltbookAgent(id: number): Promise<void>;
 
   getTaskLogsByAgent(agentId: number): Promise<AgentTaskLog[]>;
   createTaskLog(data: InsertAgentTaskLog): Promise<AgentTaskLog>;
@@ -141,6 +142,10 @@ export class DatabaseStorage implements IStorage {
   async getMoltbookAgent(id: number) {
     const [agent] = await db.select().from(moltbookAgents).where(eq(moltbookAgents.id, id));
     return agent;
+  }
+  async deleteMoltbookAgent(id: number) {
+    await db.delete(agentTaskLogs).where(eq(agentTaskLogs.agentId, id));
+    await db.delete(moltbookAgents).where(eq(moltbookAgents.id, id));
   }
 
   async getTaskLogsByAgent(agentId: number) {

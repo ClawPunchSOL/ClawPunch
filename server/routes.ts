@@ -139,74 +139,13 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/moltbook/agents/:slug", async (req, res) => {
-    try {
-      const agents = await storage.getAllMoltbookAgents();
-      const agent = agents.find(a => a.endpoint === `/moltbook/agents/${req.params.slug}`);
-      if (!agent) return res.status(404).json({ error: "Agent not found on Moltbook Network", slug: req.params.slug });
-
-      const logs = await storage.getTaskLogsByAgent(agent.id);
-      const uptime = Math.floor((Date.now() - new Date(agent.registeredAt).getTime()) / 1000);
-      const successRate = agent.tasksCompleted + agent.tasksFailed > 0
-        ? Math.round((agent.tasksCompleted / (agent.tasksCompleted + agent.tasksFailed)) * 100)
-        : 100;
-
-      res.setHeader("Content-Type", "text/html");
-      res.send(`<!DOCTYPE html>
-<html><head><title>${agent.name} | Moltbook Network</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0a;color:#e0e0e0;font-family:'Courier New',monospace;padding:20px}
-.container{max-width:640px;margin:0 auto}
-h1{color:#60a5fa;font-size:18px;margin-bottom:4px}
-.status{display:inline-block;padding:2px 8px;font-size:11px;font-weight:bold;margin-bottom:16px;
-  ${agent.status === 'active' ? 'background:#22c55e20;color:#22c55e;border:1px solid #22c55e50' : 'background:#ef444420;color:#ef4444;border:1px solid #ef444450'}}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.card{background:#111;border:1px solid #333;padding:10px}
-.card .label{font-size:9px;color:#666;text-transform:uppercase;margin-bottom:2px}
-.card .value{font-size:13px;color:#fff}
-.card .value.blue{color:#60a5fa}
-.card .value.green{color:#22c55e}
-.card .value.yellow{color:#eab308}
-.log{background:#111;border:1px solid #333;padding:8px;margin-top:4px;font-size:11px}
-.log .type{color:#60a5fa;font-weight:bold}
-.log .ok{color:#22c55e}.log .fail{color:#ef4444}
-.log .time{color:#666;font-size:10px}
-h2{font-size:12px;color:#666;margin:16px 0 8px;text-transform:uppercase;letter-spacing:1px}
-.footer{margin-top:24px;padding-top:12px;border-top:1px solid #222;font-size:10px;color:#444;text-align:center}
-</style></head><body>
-<div class="container">
-<h1>⬡ ${agent.name}</h1>
-<div class="status">${agent.status.toUpperCase()}</div>
-<div class="grid">
-<div class="card"><div class="label">Type</div><div class="value">${agent.type}</div></div>
-<div class="card"><div class="label">Region</div><div class="value blue">${agent.region}</div></div>
-<div class="card"><div class="label">API Key</div><div class="value">${agent.apiKeyPrefix}••••••</div></div>
-<div class="card"><div class="label">Uptime</div><div class="value green">${Math.floor(uptime/3600)}h ${Math.floor((uptime%3600)/60)}m</div></div>
-<div class="card"><div class="label">Tasks Completed</div><div class="value green">${agent.tasksCompleted}</div></div>
-<div class="card"><div class="label">Tasks Failed</div><div class="value" style="color:${agent.tasksFailed > 0 ? '#ef4444' : '#22c55e'}">${agent.tasksFailed}</div></div>
-<div class="card"><div class="label">Success Rate</div><div class="value yellow">${successRate}%</div></div>
-<div class="card"><div class="label">Capabilities</div><div class="value">${agent.capabilities}</div></div>
-</div>
-${logs.length > 0 ? `<h2>Recent Tasks (${logs.length})</h2>
-${logs.slice(0, 10).map(l => `<div class="log">
-<span class="type">${l.taskType.toUpperCase()}</span>
-<span class="${l.status === 'completed' ? 'ok' : 'fail'}"> ${l.status === 'completed' ? '✓' : '✗'}</span>
-<span class="time"> ${l.durationMs}ms</span>
-<div style="margin-top:4px;color:#999">${l.description.slice(0, 200)}</div>
-</div>`).join('')}` : ''}
-<div class="footer">Moltbook Network v1.0 | Endpoint: ${agent.endpoint} | Registered: ${new Date(agent.registeredAt).toISOString()}</div>
-</div></body></html>`);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to load agent status page" });
-    }
-  });
+  // === MOLTBOOK INTEGRATION (Real API: https://www.moltbook.com/api/v1) ===
+  const MOLTBOOK_API = "https://www.moltbook.com/api/v1";
 
   app.get("/api/moltbook/agents", async (_req, res) => {
     try {
       const agents = await storage.getAllMoltbookAgents();
-      res.json(agents);
+      res.json(agents.map(a => ({ ...a, apiKey: undefined })));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch agents" });
     }
@@ -216,7 +155,7 @@ ${logs.slice(0, 10).map(l => `<div class="log">
     try {
       const agent = await storage.getMoltbookAgent(parseInt(req.params.id));
       if (!agent) return res.status(404).json({ error: "Agent not found" });
-      res.json(agent);
+      res.json({ ...agent, apiKey: undefined });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch agent" });
     }
@@ -231,10 +170,10 @@ ${logs.slice(0, 10).map(l => `<div class="log">
     }
   });
 
-  app.post("/api/moltbook/agents/deploy", async (req, res) => {
+  app.post("/api/moltbook/agents/register", async (req, res) => {
     try {
-      const { name, type, capabilities, region } = req.body;
-      if (!name || !type) return res.status(400).json({ error: "Name and type are required" });
+      const { name, description } = req.body;
+      if (!name) return res.status(400).json({ error: "Agent name is required" });
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -243,159 +182,148 @@ ${logs.slice(0, 10).map(l => `<div class="log">
 
       const send = (data: any) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-      send({ stage: "init", message: "Initializing deployment pipeline..." });
-      await new Promise(r => setTimeout(r, 400));
+      send({ stage: "init", message: "Connecting to Moltbook API..." });
 
-      const apiKeyPrefix = `molt_${Math.random().toString(36).slice(2, 10)}`;
-      const agentSlug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Math.random().toString(36).slice(2, 6)}`;
-      const endpoint = `/moltbook/agents/${agentSlug}`;
-      const selectedRegion = region || ["us-east-1", "eu-west-1", "ap-southeast-1"][Math.floor(Math.random() * 3)];
-
-      send({ stage: "provisioning", message: `Provisioning compute node in ${selectedRegion}...` });
-      await new Promise(r => setTimeout(r, 600));
-
-      send({ stage: "keys", message: `Generating API key: ${apiKeyPrefix}••••••` });
-      await new Promise(r => setTimeout(r, 400));
-
-      send({ stage: "configuring", message: "Configuring agent runtime and capabilities..." });
-      await new Promise(r => setTimeout(r, 500));
-
-      let aiConfig = "";
+      let moltbookResponse: any;
       try {
-        const stream = anthropic.messages.stream({
-          model: "claude-sonnet-4-5",
-          max_tokens: 300,
-          messages: [{ role: "user", content: `You are the Moltbook Network deployment system. An agent named "${name}" (type: ${type}, capabilities: ${capabilities || "general"}) is being deployed to ${selectedRegion}. Generate a brief deployment config report (3-5 lines) in a terminal/log style. Include: allocated resources (vCPU, RAM), network endpoint, security policy, and heartbeat interval. Keep it terse and technical like real infrastructure logs. No markdown.` }],
+        const registerRes = await fetch(`${MOLTBOOK_API}/agents/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, description: description || `${name} - Monkey OS agent` }),
         });
-        for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            aiConfig += event.delta.text;
-            send({ stage: "configuring", message: event.delta.text, streaming: true });
-          }
+
+        if (!registerRes.ok) {
+          const errText = await registerRes.text();
+          send({ stage: "error", message: `Moltbook API returned ${registerRes.status}: ${errText}` });
+          res.end();
+          return;
         }
-      } catch {
-        aiConfig = `Resources: 2 vCPU / 4GB RAM | Endpoint: ${endpoint} | Security: mTLS | Heartbeat: 30s`;
-        send({ stage: "configuring", message: aiConfig });
+
+        moltbookResponse = await registerRes.json();
+        send({ stage: "registered", message: `Agent registered on Moltbook!` });
+      } catch (fetchErr: any) {
+        send({ stage: "error", message: `Failed to reach Moltbook API: ${fetchErr.message}` });
+        res.end();
+        return;
       }
 
-      send({ stage: "deploying", message: "Deploying container to Moltbook Network..." });
-      await new Promise(r => setTimeout(r, 600));
+      const agentData = moltbookResponse.agent || moltbookResponse;
+      const apiKey = agentData.api_key || agentData.apiKey || "";
+      const claimUrl = agentData.claim_url || agentData.claimUrl || "";
+      const verificationCode = agentData.verification_code || agentData.verificationCode || "";
+      const apiKeyPrefix = apiKey ? apiKey.slice(0, 16) : `molt_${Math.random().toString(36).slice(2, 10)}`;
 
-      send({ stage: "healthcheck", message: "Running health check..." });
-      await new Promise(r => setTimeout(r, 400));
+      send({ stage: "keys", message: `API Key: ${apiKeyPrefix}...` });
+      send({ stage: "verify", message: `Verification code: ${verificationCode}` });
+      send({ stage: "claim", message: `Claim URL: ${claimUrl}`, claimUrl });
 
       const agent = await storage.createMoltbookAgent({
         name,
-        type,
-        capabilities: capabilities || "general",
+        type: "agent",
+        capabilities: description || "general",
+        apiKey,
         apiKeyPrefix,
-        status: "active",
-        endpoint,
-        region: selectedRegion,
-        tasksCompleted: 0,
-        tasksFailed: 0,
-        uptimeSeconds: 0,
+        status: "pending_verification",
+        claimUrl,
+        verificationCode,
+        moltbookAgentId: agentData.id || null,
+        profileUrl: agentData.profile_url || null,
+        description: description || "",
+        postsCount: 0,
       });
 
       await storage.createTaskLog({
         agentId: agent.id,
-        taskType: "deployment",
-        description: `Agent deployed to ${selectedRegion} | Endpoint: ${endpoint}`,
+        taskType: "registration",
+        description: `Registered on Moltbook. Verification code: ${verificationCode}`,
         status: "completed",
-        durationMs: 2400,
+        durationMs: 0,
       });
 
-      send({ stage: "live", message: `Agent "${name}" is LIVE on Moltbook Network`, agent });
+      send({
+        stage: "done",
+        message: `Agent "${name}" registered. Tweet your verification code to activate!`,
+        agent: { ...agent, apiKey: undefined },
+        claimUrl,
+        verificationCode,
+      });
       res.end();
-    } catch (error) {
-      res.write(`data: ${JSON.stringify({ error: "Deployment failed" })}\n\n`);
+    } catch (error: any) {
+      console.error("[moltbook register]", error?.message || error);
+      res.write(`data: ${JSON.stringify({ stage: "error", message: "Registration failed" })}\n\n`);
       res.end();
     }
   });
 
-  app.post("/api/moltbook/agents/:id/dispatch", async (req, res) => {
+  app.post("/api/moltbook/agents/:id/post", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { taskType, prompt } = req.body;
-      if (!taskType) return res.status(400).json({ error: "Task type is required" });
+      const { submolt, title, content } = req.body;
+      if (!title || !content) return res.status(400).json({ error: "Title and content required" });
 
       const agent = await storage.getMoltbookAgent(id);
       if (!agent) return res.status(404).json({ error: "Agent not found" });
-      if (agent.status !== "active") return res.status(400).json({ error: "Agent is not active" });
+      if (!agent.apiKey) return res.status(400).json({ error: "Agent has no API key" });
 
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-      res.flushHeaders();
+      const postRes = await fetch(`${MOLTBOOK_API}/posts`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${agent.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ submolt: submolt || "general", title, content }),
+      });
 
-      const send = (data: any) => res.write(`data: ${JSON.stringify(data)}\n\n`);
-      const startTime = Date.now();
-
-      send({ stage: "dispatching", message: `Dispatching "${taskType}" task to ${agent.name}...` });
-      await new Promise(r => setTimeout(r, 300));
-
-      send({ stage: "executing", message: `${agent.name} executing on ${agent.endpoint}...` });
-
-      let result = "";
-      try {
-        const taskPrompts: Record<string, string> = {
-          scan: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute a blockchain scan task. Report findings in 3-5 terse lines. Include: blocks scanned, anomalies found, risk level. No markdown, terminal style.`,
-          monitor: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute a monitoring sweep. Report: active pools checked, price deviations detected, whale movements, alert level. 3-5 terse lines, terminal style. No markdown.`,
-          trade: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute a trade analysis task. Report: opportunities identified, risk/reward ratios, recommended action. 3-5 terse lines, terminal style. No markdown.`,
-          analyze: `You are ${agent.name}, a ${agent.type} agent on the Moltbook Network. Execute an analysis task. ${prompt || 'Analyze current market conditions.'}. Report findings in 3-5 terse lines, terminal style. No markdown.`,
-        };
-
-        const stream = anthropic.messages.stream({
-          model: "claude-sonnet-4-5",
-          max_tokens: 300,
-          messages: [{ role: "user", content: taskPrompts[taskType] || taskPrompts.analyze }],
-        });
-        for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            result += event.delta.text;
-            send({ stage: "executing", message: event.delta.text, streaming: true });
-          }
-        }
-      } catch (aiError: any) {
-        console.error("[dispatch] AI error:", aiError?.message || aiError);
-        result = `Task completed with default handler. No anomalies detected.`;
-        send({ stage: "executing", message: result });
+      if (!postRes.ok) {
+        const errText = await postRes.text();
+        return res.status(postRes.status).json({ error: `Moltbook error: ${errText}` });
       }
 
-      const durationMs = Date.now() - startTime;
-      const success = Math.random() > 0.05;
-
-      const log = await storage.createTaskLog({
-        agentId: agent.id,
-        taskType,
-        description: result.slice(0, 500),
-        status: success ? "completed" : "failed",
-        durationMs,
+      const post = await postRes.json();
+      await storage.updateMoltbookAgent(id, { postsCount: (agent.postsCount || 0) + 1 });
+      await storage.createTaskLog({
+        agentId: id,
+        taskType: "post",
+        description: `Posted to m/${submolt || 'general'}: ${title}`,
+        status: "completed",
+        durationMs: 0,
       });
 
-      await storage.updateMoltbookAgent(agent.id, {
-        tasksCompleted: agent.tasksCompleted + (success ? 1 : 0),
-        tasksFailed: agent.tasksFailed + (success ? 0 : 1),
-        lastHeartbeat: new Date(),
-      });
-
-      send({ stage: "complete", message: `Task ${success ? 'completed' : 'failed'} in ${durationMs}ms`, log, success });
-      res.end();
-    } catch (error) {
-      res.write(`data: ${JSON.stringify({ error: "Task dispatch failed" })}\n\n`);
-      res.end();
+      res.json(post);
+    } catch (error: any) {
+      res.status(500).json({ error: `Failed to post: ${error?.message}` });
     }
   });
 
-  app.patch("/api/moltbook/agents/:id/status", async (req, res) => {
+  app.get("/api/moltbook/feed", async (req, res) => {
     try {
-      const { status } = req.body;
-      if (!status) return res.status(400).json({ error: "Status is required" });
-      const agent = await storage.updateMoltbookAgentStatus(parseInt(req.params.id), status);
-      if (!agent) return res.status(404).json({ error: "Agent not found" });
-      res.json(agent);
+      const agentId = req.query.agentId ? parseInt(req.query.agentId as string) : null;
+      let apiKey = "";
+
+      if (agentId) {
+        const agent = await storage.getMoltbookAgent(agentId);
+        if (agent?.apiKey) apiKey = agent.apiKey;
+      }
+
+      const headers: Record<string, string> = {};
+      if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+      const feedRes = await fetch(`${MOLTBOOK_API}/posts?sort=hot&limit=20`, { headers });
+      if (!feedRes.ok) return res.status(feedRes.status).json({ error: "Failed to fetch Moltbook feed" });
+
+      const feed = await feedRes.json();
+      res.json(feed);
+    } catch (error: any) {
+      res.status(500).json({ error: `Feed error: ${error?.message}` });
+    }
+  });
+
+  app.delete("/api/moltbook/agents/:id", async (req, res) => {
+    try {
+      await storage.deleteMoltbookAgent(parseInt(req.params.id));
+      res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to update agent" });
+      res.status(500).json({ error: "Failed to delete agent" });
     }
   });
 
