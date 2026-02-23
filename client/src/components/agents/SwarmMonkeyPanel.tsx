@@ -345,7 +345,11 @@ export default function SwarmMonkeyPanel() {
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
                     <div className="p-2 border border-border bg-black/30">
                       <div className="text-muted-foreground text-[8px] font-display mb-0.5">ENDPOINT</div>
-                      <div className="text-blue-400 font-mono text-[9px] break-all">{agent.endpoint}</div>
+                      {agent.endpoint.startsWith('/') ? (
+                        <a href={agent.endpoint} target="_blank" rel="noopener noreferrer" className="text-blue-400 font-mono text-[9px] break-all hover:text-blue-300 underline underline-offset-2">{agent.endpoint}</a>
+                      ) : (
+                        <div className="text-blue-400/50 font-mono text-[9px] break-all">{agent.endpoint} <span className="text-muted-foreground">(legacy)</span></div>
+                      )}
                     </div>
                     <div className="p-2 border border-border bg-black/30">
                       <div className="text-muted-foreground text-[8px] font-display mb-0.5">CAPABILITIES</div>

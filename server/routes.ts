@@ -139,6 +139,70 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/moltbook/agents/:slug", async (req, res) => {
+    try {
+      const agents = await storage.getAllMoltbookAgents();
+      const agent = agents.find(a => a.endpoint === `/moltbook/agents/${req.params.slug}`);
+      if (!agent) return res.status(404).json({ error: "Agent not found on Moltbook Network", slug: req.params.slug });
+
+      const logs = await storage.getTaskLogsByAgent(agent.id);
+      const uptime = Math.floor((Date.now() - new Date(agent.registeredAt).getTime()) / 1000);
+      const successRate = agent.tasksCompleted + agent.tasksFailed > 0
+        ? Math.round((agent.tasksCompleted / (agent.tasksCompleted + agent.tasksFailed)) * 100)
+        : 100;
+
+      res.setHeader("Content-Type", "text/html");
+      res.send(`<!DOCTYPE html>
+<html><head><title>${agent.name} | Moltbook Network</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:'Courier New',monospace;padding:20px}
+.container{max-width:640px;margin:0 auto}
+h1{color:#60a5fa;font-size:18px;margin-bottom:4px}
+.status{display:inline-block;padding:2px 8px;font-size:11px;font-weight:bold;margin-bottom:16px;
+  ${agent.status === 'active' ? 'background:#22c55e20;color:#22c55e;border:1px solid #22c55e50' : 'background:#ef444420;color:#ef4444;border:1px solid #ef444450'}}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.card{background:#111;border:1px solid #333;padding:10px}
+.card .label{font-size:9px;color:#666;text-transform:uppercase;margin-bottom:2px}
+.card .value{font-size:13px;color:#fff}
+.card .value.blue{color:#60a5fa}
+.card .value.green{color:#22c55e}
+.card .value.yellow{color:#eab308}
+.log{background:#111;border:1px solid #333;padding:8px;margin-top:4px;font-size:11px}
+.log .type{color:#60a5fa;font-weight:bold}
+.log .ok{color:#22c55e}.log .fail{color:#ef4444}
+.log .time{color:#666;font-size:10px}
+h2{font-size:12px;color:#666;margin:16px 0 8px;text-transform:uppercase;letter-spacing:1px}
+.footer{margin-top:24px;padding-top:12px;border-top:1px solid #222;font-size:10px;color:#444;text-align:center}
+</style></head><body>
+<div class="container">
+<h1>⬡ ${agent.name}</h1>
+<div class="status">${agent.status.toUpperCase()}</div>
+<div class="grid">
+<div class="card"><div class="label">Type</div><div class="value">${agent.type}</div></div>
+<div class="card"><div class="label">Region</div><div class="value blue">${agent.region}</div></div>
+<div class="card"><div class="label">API Key</div><div class="value">${agent.apiKeyPrefix}••••••</div></div>
+<div class="card"><div class="label">Uptime</div><div class="value green">${Math.floor(uptime/3600)}h ${Math.floor((uptime%3600)/60)}m</div></div>
+<div class="card"><div class="label">Tasks Completed</div><div class="value green">${agent.tasksCompleted}</div></div>
+<div class="card"><div class="label">Tasks Failed</div><div class="value" style="color:${agent.tasksFailed > 0 ? '#ef4444' : '#22c55e'}">${agent.tasksFailed}</div></div>
+<div class="card"><div class="label">Success Rate</div><div class="value yellow">${successRate}%</div></div>
+<div class="card"><div class="label">Capabilities</div><div class="value">${agent.capabilities}</div></div>
+</div>
+${logs.length > 0 ? `<h2>Recent Tasks (${logs.length})</h2>
+${logs.slice(0, 10).map(l => `<div class="log">
+<span class="type">${l.taskType.toUpperCase()}</span>
+<span class="${l.status === 'completed' ? 'ok' : 'fail'}"> ${l.status === 'completed' ? '✓' : '✗'}</span>
+<span class="time"> ${l.durationMs}ms</span>
+<div style="margin-top:4px;color:#999">${l.description.slice(0, 200)}</div>
+</div>`).join('')}` : ''}
+<div class="footer">Moltbook Network v1.0 | Endpoint: ${agent.endpoint} | Registered: ${new Date(agent.registeredAt).toISOString()}</div>
+</div></body></html>`);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load agent status page" });
+    }
+  });
+
   app.get("/api/moltbook/agents", async (_req, res) => {
     try {
       const agents = await storage.getAllMoltbookAgents();
@@ -183,7 +247,8 @@ export async function registerRoutes(
       await new Promise(r => setTimeout(r, 400));
 
       const apiKeyPrefix = `molt_${Math.random().toString(36).slice(2, 10)}`;
-      const endpoint = `https://moltbook.network/v1/agents/${name.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).slice(2, 6)}`;
+      const agentSlug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Math.random().toString(36).slice(2, 6)}`;
+      const endpoint = `/moltbook/agents/${agentSlug}`;
       const selectedRegion = region || ["us-east-1", "eu-west-1", "ap-southeast-1"][Math.floor(Math.random() * 3)];
 
       send({ stage: "provisioning", message: `Provisioning compute node in ${selectedRegion}...` });
