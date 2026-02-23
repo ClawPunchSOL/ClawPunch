@@ -127,6 +127,11 @@ export const attentionPositions = pgTable("attention_positions", {
   currentPrice: real("current_price").notNull(),
   virality: integer("virality").notNull().default(50),
   momentum: text("momentum").notNull().default("flat"),
+  category: text("category").notNull().default("crypto"),
+  coinIds: text("coin_ids").notNull().default(""),
+  priceChange24h: real("price_change_24h").notNull().default(0),
+  volume24h: real("volume_24h").notNull().default(0),
+  marketCap: real("market_cap").notNull().default(0),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

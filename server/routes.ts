@@ -927,34 +927,139 @@ export async function registerRoutes(
     }
   });
 
-  // === ATTENTION POSITIONS (Trend Puncher) ===
+  // === ATTENTION POSITIONS (Trend Puncher) — Real CoinGecko market data ===
+
+  const NARRATIVE_COINS: Record<string, { coins: string; category: string }> = {
+    "AI & Machine Learning": { coins: "render-token,fetch-ai,ocean-protocol,singularitynet,bittensor", category: "ai" },
+    "Solana Ecosystem": { coins: "solana,raydium,jupiter-exchange-solana,jito-governance-token,marinade", category: "l1" },
+    "Memecoins": { coins: "dogecoin,shiba-inu,pepe,bonk,dogwifcoin", category: "meme" },
+    "DePIN": { coins: "helium,hivemapper,render-token,filecoin,arweave", category: "infra" },
+    "RWA Tokenization": { coins: "ondo-finance,centrifuge,maple-finance,goldfinch,polymesh", category: "rwa" },
+    "Layer 2 & ZK": { coins: "starknet,polygon-ecosystem-token,arbitrum,optimism,zksync", category: "l2" },
+    "DeFi Blue Chips": { coins: "uniswap,aave,maker,lido-dao,curve-dao-token", category: "defi" },
+    "Gaming & Metaverse": { coins: "the-sandbox,axie-infinity,immutable-x,gala,illuvium", category: "gaming" },
+  };
+
+  let lastMarketRefresh = 0;
+  const REFRESH_INTERVAL = 120_000;
+
+  const fetchCoinGeckoData = async (): Promise<Record<string, any> | null> => {
+    const allCoinIds = [...new Set(Object.values(NARRATIVE_COINS).flatMap(n => n.coins.split(',')))].join(',');
+    try {
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${allCoinIds}&order=market_cap_desc&per_page=250&sparkline=false&price_change_percentage=24h`,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const map: Record<string, any> = {};
+      for (const coin of data) {
+        map[coin.id] = coin;
+      }
+      return map;
+    } catch (e) {
+      console.error("[TrendPuncher] CoinGecko fetch error:", e);
+      return null;
+    }
+  };
+
+  const computeNarrativeMetrics = (narrative: string, coinMap: Record<string, any>) => {
+    const config = NARRATIVE_COINS[narrative];
+    if (!config) return null;
+    const coinIds = config.coins.split(',');
+    const coins = coinIds.map(id => coinMap[id]).filter(Boolean);
+    if (coins.length === 0) return null;
+
+    const totalMarketCap = coins.reduce((s: number, c: any) => s + (c.market_cap || 0), 0);
+    const totalVolume = coins.reduce((s: number, c: any) => s + (c.total_volume || 0), 0);
+    const avgPriceChange = coins.reduce((s: number, c: any) => s + (c.price_change_percentage_24h || 0), 0) / coins.length;
+
+    const volToCapRatio = totalMarketCap > 0 ? (totalVolume / totalMarketCap) * 100 : 0;
+    let virality = Math.min(99, Math.max(5, Math.round(
+      50 + (avgPriceChange * 2) + (volToCapRatio * 3)
+    )));
+
+    const momentum = avgPriceChange > 2 ? "up" : avgPriceChange < -2 ? "down" : "flat";
+
+    const priceIndex = totalMarketCap > 0 ? parseFloat((totalVolume / 1e8).toFixed(2)) : 0.01;
+
+    return {
+      currentPrice: Math.max(0.01, priceIndex),
+      virality,
+      momentum,
+      priceChange24h: parseFloat(avgPriceChange.toFixed(2)),
+      volume24h: totalVolume,
+      marketCap: totalMarketCap,
+    };
+  };
+
+  const refreshNarrativeData = async () => {
+    const now = Date.now();
+    if (now - lastMarketRefresh < REFRESH_INTERVAL) return;
+    lastMarketRefresh = now;
+
+    const coinMap = await fetchCoinGeckoData();
+    if (!coinMap) return;
+
+    const positions = await storage.getAllAttentionPositions();
+
+    for (const pos of positions) {
+      const metrics = computeNarrativeMetrics(pos.narrative, coinMap);
+      if (!metrics) continue;
+
+      await storage.updateAttentionMarketData(pos.id, {
+        currentPrice: metrics.currentPrice,
+        virality: metrics.virality,
+        momentum: metrics.momentum,
+        priceChange24h: metrics.priceChange24h,
+        volume24h: metrics.volume24h,
+        marketCap: metrics.marketCap,
+      });
+    }
+  };
+
   app.get("/api/attention/positions", async (_req, res) => {
     try {
       let positions = await storage.getAllAttentionPositions();
+
       if (positions.length === 0) {
-        const seeds = [
-          { narrative: "#AI", virality: 94, momentum: "up", currentPrice: 2.45 },
-          { narrative: "#Solana", virality: 87, momentum: "up", currentPrice: 1.82 },
-          { narrative: "#RWA", virality: 72, momentum: "flat", currentPrice: 0.94 },
-          { narrative: "#DePIN", virality: 68, momentum: "down", currentPrice: 0.67 },
-          { narrative: "#Memecoins", virality: 81, momentum: "up", currentPrice: 1.23 },
-          { narrative: "#ZK", virality: 59, momentum: "down", currentPrice: 0.45 },
-        ];
-        for (const s of seeds) {
+        const coinMap = await fetchCoinGeckoData();
+
+        for (const [narrative, config] of Object.entries(NARRATIVE_COINS)) {
+          const metrics = coinMap ? computeNarrativeMetrics(narrative, coinMap) : null;
           await storage.createAttentionPosition({
-            narrative: s.narrative,
+            narrative,
             shares: 0,
-            avgPrice: s.currentPrice,
-            currentPrice: s.currentPrice,
-            virality: s.virality,
-            momentum: s.momentum,
+            avgPrice: metrics?.currentPrice || 1.0,
+            currentPrice: metrics?.currentPrice || 1.0,
+            virality: metrics?.virality || 50,
+            momentum: metrics?.momentum || "flat",
+            category: config.category,
+            coinIds: config.coins,
+            priceChange24h: metrics?.priceChange24h || 0,
+            volume24h: metrics?.volume24h || 0,
+            marketCap: metrics?.marketCap || 0,
           });
         }
         positions = await storage.getAllAttentionPositions();
+      } else {
+        refreshNarrativeData().catch(() => {});
       }
+
       res.json(positions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch attention positions" });
+    }
+  });
+
+  app.post("/api/attention/refresh", async (_req, res) => {
+    try {
+      lastMarketRefresh = 0;
+      await refreshNarrativeData();
+      const positions = await storage.getAllAttentionPositions();
+      res.json(positions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to refresh market data" });
     }
   });
 

@@ -68,6 +68,8 @@ export interface IStorage {
   getAttentionPosition(narrative: string): Promise<AttentionPosition | undefined>;
   createAttentionPosition(data: InsertAttentionPosition): Promise<AttentionPosition>;
   updateAttentionPosition(id: number, shares: number, avgPrice: number): Promise<AttentionPosition | undefined>;
+  updateAttentionMarketData(id: number, data: Partial<AttentionPosition>): Promise<AttentionPosition | undefined>;
+  deleteAllAttentionPositions(): Promise<void>;
 
   getAllVaultPositions(): Promise<VaultPosition[]>;
   getVaultPosition(vaultName: string): Promise<VaultPosition | undefined>;
@@ -230,6 +232,13 @@ export class DatabaseStorage implements IStorage {
   async updateAttentionPosition(id: number, shares: number, avgPrice: number) {
     const [pos] = await db.update(attentionPositions).set({ shares, avgPrice }).where(eq(attentionPositions.id, id)).returning();
     return pos;
+  }
+  async updateAttentionMarketData(id: number, data: Partial<AttentionPosition>) {
+    const [pos] = await db.update(attentionPositions).set(data).where(eq(attentionPositions.id, id)).returning();
+    return pos;
+  }
+  async deleteAllAttentionPositions() {
+    await db.delete(attentionPositions);
   }
 
   async getAllVaultPositions() {

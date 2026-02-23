@@ -29,7 +29,7 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 1. **Banana Bot** - x402 payment form (send USDC/SOL/PUNCH) + wallet sender display + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
 3. **Punch Oracle** - Prediction market cards, betting modal with wallet integration, odds bars + chat
-4. **Trend Puncher** - Attention market dashboard, buy/sell narrative shares + wallet display + chat
+4. **Trend Puncher** - Live narrative tracker powered by CoinGecko API, buy/sell attention shares, real market caps/volumes/24h changes + wallet display + chat
 5. **Ape Vault** - DeFi vault staking dashboard, APY display + wallet staking identity + chat
 6. **Rug Buster** - Contract scanner with AI-generated safety scores + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat
@@ -66,7 +66,8 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `GET /api/repos/scans` - List repo scan history
 - `POST /api/repos/scan` - AI-powered repo legitimacy scan (SSE)
 - `GET/POST /api/transactions` - List/create x402 transactions (Banana Bot)
-- `GET /api/attention/positions` - List attention market narratives (Trend Puncher)
+- `GET /api/attention/positions` - List attention market narratives with live CoinGecko data (Trend Puncher)
+- `POST /api/attention/refresh` - Force refresh market data from CoinGecko
 - `POST /api/attention/trade` - Buy/sell attention shares
 - `GET /api/vaults` - List DeFi vault positions (Ape Vault)
 - `POST /api/vaults/:id/stake` - Stake/unstake in vault
@@ -82,7 +83,7 @@ All agents are powered by Claude with custom system prompts AND specialized tool
 - `security_scans` - Contract scan results (safetyScore, mintAuth, freezeAuth, etc.)
 - `repo_scans` - Repo analysis results (legitScore, commitCount, findings, etc.)
 - `transactions` - x402 payment transactions (recipient, amount, token, txHash)
-- `attention_positions` - Narrative attention markets (narrative, shares, virality, momentum)
+- `attention_positions` - Narrative attention markets with live CoinGecko data (narrative, shares, virality, momentum, category, coinIds, priceChange24h, volume24h, marketCap)
 - `vault_positions` - DeFi vault staking positions (vaultName, protocol, apy, tvl, stakedAmount)
 
 ## Key Files
