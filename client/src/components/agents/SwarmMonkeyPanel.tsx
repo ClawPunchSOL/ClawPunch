@@ -37,7 +37,7 @@ interface FeedPost {
   created_at: string;
 }
 
-function SwarmVisualization({ agentCount, activeCount }: { agentCount: number; activeCount: number }) {
+function SwarmVisualization({ agents }: { agents: MoltbookAgent[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const nodesRef = useRef<{ x: number; y: number; vx: number; vy: number; size: number; active: boolean; pulse: number; label: string }[]>([]);
@@ -54,19 +54,23 @@ function SwarmVisualization({ agentCount, activeCount }: { agentCount: number; a
     const dw = w / 2;
     const dh = h / 2;
 
-    const nodeCount = Math.max(agentCount, 5);
+    const nodeCount = Math.max(agents.length, 1);
     if (nodesRef.current.length !== nodeCount) {
-      const labels = ["SCOUT", "GUARD", "RELAY", "ALPHA", "OMEGA", "SIGMA", "DELTA", "RECON", "CORE", "SYNC"];
-      nodesRef.current = Array.from({ length: nodeCount }, (_, i) => ({
-        x: Math.random() * dw * 0.7 + dw * 0.15,
-        y: Math.random() * dh * 0.7 + dh * 0.15,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: i < activeCount ? 4 + Math.random() * 3 : 2 + Math.random() * 2,
-        active: i < activeCount,
-        pulse: Math.random() * Math.PI * 2,
-        label: labels[i % labels.length],
-      }));
+      nodesRef.current = Array.from({ length: nodeCount }, (_, i) => {
+        const agent = agents[i];
+        const isActive = agent ? agent.status === "active" : false;
+        const agentLabel = agent ? agent.name.slice(0, 8).toUpperCase() : "";
+        return {
+          x: Math.random() * dw * 0.7 + dw * 0.15,
+          y: Math.random() * dh * 0.7 + dh * 0.15,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          size: isActive ? 4 + Math.random() * 3 : 2 + Math.random() * 2,
+          active: isActive,
+          pulse: Math.random() * Math.PI * 2,
+          label: agentLabel,
+        };
+      });
     }
 
     let frame = 0;
@@ -177,7 +181,7 @@ function SwarmVisualization({ agentCount, activeCount }: { agentCount: number; a
 
     animate();
     return () => cancelAnimationFrame(animRef.current);
-  }, [agentCount, activeCount]);
+  }, [agents]);
 
   return <canvas ref={canvasRef} className="w-full h-full" style={{ imageRendering: "auto" }} />;
 }
@@ -477,7 +481,7 @@ export default function SwarmMonkeyPanel() {
     <div className="space-y-3">
       <div className="border-4 border-cyan-500/30 bg-black/80 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.8)] overflow-hidden">
         <div className="h-[120px] relative">
-          <SwarmVisualization agentCount={agents.length} activeCount={activeCount} />
+          <SwarmVisualization agents={agents} />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 pointer-events-none" />
           <div className="absolute top-2 left-2 flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_6px_rgba(34,211,238,0.6)]" />
