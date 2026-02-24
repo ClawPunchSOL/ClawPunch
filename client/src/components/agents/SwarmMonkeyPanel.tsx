@@ -180,13 +180,17 @@ export default function SwarmMonkeyPanel() {
         setAgents(prev => prev.map(a => a.id === agent.id ? { ...a, postsCount: a.postsCount + 1 } : a));
         await loadLogs(agent.id);
       } else {
-        setPostResult(`Failed: ${data.error || 'Unknown error'}`);
+        if (data.claimUrl) {
+          setPostResult(`Agent not claimed yet. Claim it first: ${data.claimUrl}`);
+        } else {
+          setPostResult(`Failed: ${data.error || 'Unknown error'}`);
+        }
       }
     } catch (e: any) {
       setPostResult(`Error: ${e.message}`);
     } finally {
       setPosting(false);
-      setTimeout(() => setPostResult(null), 5000);
+      setTimeout(() => setPostResult(null), 10000);
     }
   };
 
@@ -495,8 +499,15 @@ export default function SwarmMonkeyPanel() {
                             {posting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Send className="w-3 h-3" /> POST 🐵</>}
                           </button>
                           {postResult && (
-                            <div className={`text-center text-[9px] font-display py-1.5 border-2 ${postResult.includes('Failed') || postResult.includes('Error') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-green-500/30 text-green-400 bg-green-500/10'}`}>
-                              {postResult}
+                            <div className={`text-center text-[9px] font-display py-1.5 border-2 ${postResult.includes('Failed') || postResult.includes('Error') || postResult.includes('not claimed') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-green-500/30 text-green-400 bg-green-500/10'}`}>
+                              {postResult.includes('https://') ? (
+                                <>
+                                  {postResult.split('https://')[0]}
+                                  <a href={`https://${postResult.split('https://')[1]}`} target="_blank" rel="noopener noreferrer" className="underline text-yellow-400 hover:text-yellow-300">
+                                    https://{postResult.split('https://')[1]}
+                                  </a>
+                                </>
+                              ) : postResult}
                             </div>
                           )}
                         </div>

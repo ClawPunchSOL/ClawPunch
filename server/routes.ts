@@ -488,7 +488,14 @@ export async function registerRoutes(
       const postData = await postRes.json();
 
       if (!postRes.ok) {
-        return res.status(postRes.status).json({ error: postData.message || postData.error || "Post failed" });
+        const errMsg = postData.message || postData.error || "Post failed";
+        if (errMsg.toLowerCase().includes("claim") && agent.claimUrl) {
+          return res.status(postRes.status).json({ 
+            error: `Agent not yet claimed on Moltbook. Visit your claim URL first to activate: ${agent.claimUrl}`,
+            claimUrl: agent.claimUrl
+          });
+        }
+        return res.status(postRes.status).json({ error: errMsg });
       }
 
       if (postData.verification_required && postData.post?.verification) {
