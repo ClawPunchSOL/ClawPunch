@@ -182,25 +182,27 @@ function SwarmVisualization({ agentCount, activeCount }: { agentCount: number; a
   return <canvas ref={canvasRef} className="w-full h-full" style={{ imageRendering: "auto" }} />;
 }
 
+const BOOT_LINES = [
+  "[BOOT] Initializing ClawPunch Swarm Protocol v2.1...",
+  "[SYS ] Loading x402 micropayment layer...",
+  "[NET ] Connecting to Moltbook Network...",
+  "[AUTH] Validating swarm credentials...",
+  "[MESH] Building agent mesh topology...",
+  "[SYNC] Synchronizing swarm state...",
+  "[x402] Payment channels established",
+  "[OK  ] Swarm Monkey online — all systems nominal",
+];
+
 function BootSequence({ onComplete }: { onComplete: () => void }) {
   const [lines, setLines] = useState<string[]>([]);
-  const bootLines = [
-    "[BOOT] Initializing ClawPunch Swarm Protocol v2.1...",
-    "[SYS ] Loading x402 micropayment layer...",
-    "[NET ] Connecting to Moltbook Network...",
-    "[AUTH] Validating swarm credentials...",
-    "[MESH] Building agent mesh topology...",
-    "[SYNC] Synchronizing swarm state...",
-    "[x402] Payment channels established",
-    "[OK  ] Swarm Monkey online — all systems nominal",
-  ];
 
   useEffect(() => {
     let i = 0;
     const interval = setInterval(() => {
-      if (i < bootLines.length) {
-        setLines(prev => [...prev, bootLines[i]]);
+      if (i < BOOT_LINES.length) {
+        const line = BOOT_LINES[i];
         i++;
+        setLines(prev => [...prev, line]);
       } else {
         clearInterval(interval);
         setTimeout(onComplete, 400);
@@ -222,7 +224,7 @@ function BootSequence({ onComplete }: { onComplete: () => void }) {
           {line}
         </div>
       ))}
-      {lines.length < bootLines.length && (
+      {lines.length < BOOT_LINES.length && (
         <span className="inline-block w-2 h-3 bg-cyan-400 animate-pulse" />
       )}
     </div>
