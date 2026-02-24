@@ -488,7 +488,8 @@ export async function registerRoutes(
       const postData = await postRes.json();
 
       if (!postRes.ok) {
-        const errMsg = postData.message || postData.error || "Post failed";
+        const rawErr = postData.message || postData.error || "Post failed";
+        const errMsg = typeof rawErr === 'string' ? rawErr : JSON.stringify(rawErr);
         if (errMsg.toLowerCase().includes("claim") && agent.claimUrl) {
           return res.status(postRes.status).json({ 
             error: `Agent not yet claimed on Moltbook. Visit your claim URL first to activate: ${agent.claimUrl}`,
