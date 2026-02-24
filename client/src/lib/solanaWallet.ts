@@ -158,100 +158,46 @@ export async function sendSolTransfer(recipientAddress: string, amountSol: numbe
 
 export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: number): Promise<string> {
   const phantom = getPhantom();
-  if (!phantom) {
-    throw new Error("Phantom wallet not found. Please install Phantom browser extension.");
-  }
-  if (!walletState.connected || !walletState.publicKey) {
-    throw new Error("Wallet not connected. Please connect your wallet first.");
-  }
+  if (!phantom) throw new Error("Phantom wallet not found. Install the Phantom extension.");
+  if (!walletState.connected || !walletState.publicKey) throw new Error("Connect your wallet first.");
 
-  const conn = getConnection();
   const fromPubkey = new PublicKey(walletState.publicKey);
   const toPubkey = new PublicKey(recipientAddress);
-
   const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-  const USDC_DECIMALS = 6;
-  const amount = Math.round(amountUsdc * Math.pow(10, USDC_DECIMALS));
+  const amount = Math.round(amountUsdc * 1_000_000);
 
-  let splToken;
-  try {
-    splToken = await import("@solana/spl-token");
-  } catch {
-    throw new Error("Failed to load SPL token library. Please refresh and try again.");
-  }
-
-  const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount, TOKEN_PROGRAM_ID } = splToken;
+  const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } = await import("@solana/spl-token");
 
   const fromAta = await getAssociatedTokenAddress(USDC_MINT, fromPubkey);
   const toAta = await getAssociatedTokenAddress(USDC_MINT, toPubkey);
 
-  async function rpcCall<T>(fn: (c: Connection) => Promise<T>): Promise<T> {
-    let lastErr: any;
-    for (let attempt = 0; attempt < RPC_ENDPOINTS.length; attempt++) {
-      try {
-        const c = attempt === 0 ? conn : rotateRpc();
-        return await fn(c);
-      } catch (e: any) {
-        lastErr = e;
-        const msg = e.message || "";
-        if (msg.includes("Insufficient USDC")) throw e;
-        const isTokenNotFound = e.name === "TokenAccountNotFoundError"
-          || msg.includes("could not find account")
-          || msg.includes("Account does not exist")
-          || msg.includes("Invalid param: could not find");
-        if (isTokenNotFound) throw e;
-      }
-    }
-    throw lastErr;
-  }
-
-  let senderHasUsdc = false;
-  try {
-    const fromAccount = await rpcCall(c => getAccount(c, fromAta));
-    if (fromAccount.amount < BigInt(amount)) {
-      const has = Number(fromAccount.amount) / Math.pow(10, USDC_DECIMALS);
-      throw new Error(`Insufficient USDC balance. You have ${has.toFixed(2)} USDC but need ${amountUsdc} USDC.`);
-    }
-    senderHasUsdc = true;
-  } catch (e: any) {
-    if (e.message?.includes("Insufficient USDC")) throw e;
-    if (e.name === "TokenAccountNotFoundError" || e.message?.includes("could not find account") || e.message?.includes("Account does not exist")) {
-      throw new Error("No USDC token account found for your wallet. You need USDC (SPL) on Solana to make this payment.");
-    }
-    throw new Error("Could not check your USDC balance — Solana network may be congested. Please try again.");
-  }
-
   const transaction = new Transaction();
 
-  let recipientNeedsAta = false;
-  try {
-    await rpcCall(c => getAccount(c, toAta));
-  } catch (e: any) {
-    recipientNeedsAta = true;
-    transaction.add(
-      createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT)
-    );
-  }
-
-  transaction.add(
-    createTransferInstruction(fromAta, toAta, fromPubkey, amount)
-  );
-
-  transaction.feePayer = fromPubkey;
-
-  const { blockhash } = await rpcCall(c => c.getLatestBlockhash("confirmed"));
-  transaction.recentBlockhash = blockhash;
-
-  try {
-    const { signature } = await phantom.signAndSendTransaction(transaction);
-    setTimeout(fetchBalance, 3000);
-    return signature;
-  } catch (e: any) {
-    if (e.message?.includes("User rejected")) {
-      throw new Error("Transaction cancelled by user.");
+  for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
+    const c = i === 0 ? getConnection() : rotateRpc();
+    try {
+      await getAccount(c, toAta);
+    } catch {
+      transaction.instructions = [];
+      transaction.add(createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT));
     }
-    throw new Error(e.message || "Transaction failed. Please try again.");
+
+    transaction.add(createTransferInstruction(fromAta, toAta, fromPubkey, amount));
+    transaction.feePayer = fromPubkey;
+
+    try {
+      const { blockhash } = await c.getLatestBlockhash("confirmed");
+      transaction.recentBlockhash = blockhash;
+      break;
+    } catch {
+      if (i === RPC_ENDPOINTS.length - 1) throw new Error("Solana network unavailable. Try again in a moment.");
+      transaction.instructions = [];
+    }
   }
+
+  const { signature } = await phantom.signAndSendTransaction(transaction);
+  setTimeout(fetchBalance, 3000);
+  return signature;
 }
 
 export async function signAndSendSerializedTransaction(serializedBase64: string): Promise<string> {
