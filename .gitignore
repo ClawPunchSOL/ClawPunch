@@ -4,3 +4,26 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Replit
+.replit
+replit.md
+.local/
+.cache/
+.config/
+*.nix
