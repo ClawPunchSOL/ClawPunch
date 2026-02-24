@@ -2,7 +2,7 @@
 
 Welcome to the official documentation for **Monkey OS**, the premier decentralized, client-side financial orchestration layer disguised as a retro 16-bit pixel-art operating system. 
 
-Behind the nostalgic, hyper-optimized aesthetic lives a suite of **seven autonomous utility agents** — each mathematically optimized and purpose-built for a different sector of the Solana Decentralized Finance (DeFi) ecosystem. 
+Behind the nostalgic, hyper-optimized aesthetic lives a suite of **eight autonomous utility agents** — each mathematically optimized and purpose-built for a different sector of the Solana Decentralized Finance (DeFi) ecosystem. 
 
 By leveraging an asynchronous state-channel multiplexer (the x402 Protocol) and the Moltbook Swarm Network, Monkey OS allows users to execute complex, multi-hop DeFi strategies through natural language interfaces without ever exposing their private keys to a centralized backend. 
 
@@ -120,9 +120,9 @@ These metrics are converted into a proprietary "Attention Score." The higher you
 
 ---
 
-## Part 5: The Seven Utility Agents (Deep Dive)
+## Part 5: The Eight Utility Agents (Deep Dive)
 
-Monkey OS ships out-of-the-box with 7 native, LLM-powered utility applications. Each app runs as an isolated process within the OS environment, communicating via the IPC bridge.
+Monkey OS ships out-of-the-box with 8 native, LLM-powered utility applications. Each app runs as an isolated process within the OS environment, communicating via the IPC bridge.
 
 ### I. Banana Bot (Cross-Chain Payments & Wallet Core)
 Banana Bot is the foundational financial primitive of Monkey OS. It serves as a hyper-intelligent, natural language interface for all core wallet operations.
@@ -181,6 +181,15 @@ Repo Ape is a specialized OS-level intelligence agent that aggressively monitors
 * **Heuristic Code Analysis:** It doesn't just watch for commits; it analyzes diffs. Utilizing specialized language models trained on Rust and Anchor frameworks, Repo Ape scans new code pushes for keywords like `mainnet_deploy`, `airdrop_snapshot`, or `token_mint_auth_revoke`.
 * **Developer Graph Mapping:** Tracks the activity of pseudonymous "10x" developers. If a wallet associated with a top developer begins interacting with a new, unannounced repository, Repo Ape flags the repository as high-probability alpha.
 * **Instant OS Alerts:** When a critical commit is pushed to a tracked repository (e.g., a major protocol updating their mainnet addresses before an official Twitter announcement), Repo Ape fires a push notification directly to the Monkey OS desktop, giving users an informational edge measured in hours, not seconds.
+
+### VIII. Banana Cannon (Autonomous Token Launcher)
+Banana Cannon is the token genesis engine of Monkey OS — a zero-friction, AI-assisted token deployment pipeline built on top of the Pump Portal API, enabling permissionless token creation on pump.fun directly from the OS desktop.
+
+* **AI Concept Generation:** Rather than manually configuring tokenomics, users can instruct the LLM Cortex with high-level creative briefs: *"Launch a meme token about a surfing capybara with a 500M supply and 2 SOL dev buy."* The Cortex generates the complete token concept — name, ticker, description, and suggested initial parameters — autonomously.
+* **Pump Portal Integration:** Banana Cannon interfaces directly with the Pump Portal `POST /api/trade` endpoint, constructing the `create` action payload with the token metadata (name, symbol, description, image URI), dev buy allocation in SOL, and fee routing. The serialized transaction is returned to the client for Phantom wallet signing — maintaining strict SCE compliance.
+* **Tokenomics Configuration:** Users retain granular control over launch parameters including dev buy amount (in SOL), initial liquidity allocation, and metadata fields. All parameters are validated client-side before transaction formulation to prevent malformed launches.
+* **Launch History & Tracking:** Every token launch is persisted with its mint address, transaction signature, pump.fun URL, and status (pending → launched → failed). Users can track their full launch history and verify on-chain deployment via Solscan deep links.
+* **Anti-Rug Compliance:** Banana Cannon enforces transparency by logging all launch parameters immutably. Combined with Rug Buster's verification matrix, users deploying tokens through Monkey OS signal credibility — their mint authority revocation and LP lock status are immediately verifiable by the community.
 
 ---
 
