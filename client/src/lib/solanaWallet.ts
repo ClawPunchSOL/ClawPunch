@@ -166,34 +166,37 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
   const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
   const amount = Math.round(amountUsdc * 1_000_000);
 
-  const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } = await import("@solana/spl-token");
+  const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction } = await import("@solana/spl-token");
 
   const fromAta = await getAssociatedTokenAddress(USDC_MINT, fromPubkey);
   const toAta = await getAssociatedTokenAddress(USDC_MINT, toPubkey);
 
+  const res = await fetch("/api/solana/build-usdc-tx", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: walletState.publicKey,
+      to: recipientAddress,
+      amount: amountUsdc,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Server error" }));
+    throw new Error(err.error || "Failed to build transaction");
+  }
+
+  const { blockhash, createAta } = await res.json();
+
   const transaction = new Transaction();
 
-  for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
-    const c = i === 0 ? getConnection() : rotateRpc();
-    try {
-      await getAccount(c, toAta);
-    } catch {
-      transaction.instructions = [];
-      transaction.add(createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT));
-    }
-
-    transaction.add(createTransferInstruction(fromAta, toAta, fromPubkey, amount));
-    transaction.feePayer = fromPubkey;
-
-    try {
-      const { blockhash } = await c.getLatestBlockhash("confirmed");
-      transaction.recentBlockhash = blockhash;
-      break;
-    } catch {
-      if (i === RPC_ENDPOINTS.length - 1) throw new Error("Solana network unavailable. Try again in a moment.");
-      transaction.instructions = [];
-    }
+  if (createAta) {
+    transaction.add(createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT));
   }
+
+  transaction.add(createTransferInstruction(fromAta, toAta, fromPubkey, amount));
+  transaction.feePayer = fromPubkey;
+  transaction.recentBlockhash = blockhash;
 
   const { signature } = await phantom.signAndSendTransaction(transaction);
   setTimeout(fetchBalance, 3000);

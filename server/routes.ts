@@ -175,6 +175,35 @@ export async function registerRoutes(
     throw lastErr || new Error("All Solana RPC endpoints failed");
   }
 
+  app.post("/api/solana/build-usdc-tx", async (req, res) => {
+    try {
+      const { from, to } = req.body;
+      if (!from || !to) return res.status(400).json({ error: "Missing from/to" });
+
+      const blockhashData = await solanaRpcCall({
+        jsonrpc: "2.0", id: 1,
+        method: "getLatestBlockhash",
+        params: [{ commitment: "confirmed" }],
+      });
+
+      if (!blockhashData?.result?.value?.blockhash) {
+        return res.status(502).json({ error: "Could not get blockhash from Solana" });
+      }
+
+      const toAtaCheck = await solanaRpcCall({
+        jsonrpc: "2.0", id: 2,
+        method: "getTokenAccountsByOwner",
+        params: [to, { mint: USDC_MINT }, { encoding: "jsonParsed" }],
+      });
+
+      const createAta = !toAtaCheck?.result?.value?.length;
+
+      res.json({ blockhash: blockhashData.result.value.blockhash, createAta });
+    } catch (e: any) {
+      res.status(502).json({ error: "Solana network unavailable. Try again shortly." });
+    }
+  });
+
   async function verifySolanaTransaction(txSignature: string, expectedSender: string, expectedAmountUsdc: number): Promise<{ valid: boolean; error?: string }> {
     try {
       const rpcData = await solanaRpcCall({
