@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, ZoomIn, ZoomOut, Move, Info, X, Map } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -10,6 +10,10 @@ import type { SanctuaryPixel } from "@shared/schema";
 const GRID_SIZE = 100;
 const TOTAL_PLOTS = GRID_SIZE * GRID_SIZE;
 const BASE_MAP_SIZE = 10000;
+
+const toRow = (i: number) => Math.floor(i / GRID_SIZE);
+const toCol = (i: number) => i % GRID_SIZE;
+const toIndex = (row: number, col: number) => row * GRID_SIZE + col;
 
 export default function Sanctuary() {
   const [, setLocation] = useLocation();
@@ -31,26 +35,54 @@ export default function Sanctuary() {
 
   const totalDonated = pixels.length;
 
-  const [selectedPlot, setSelectedPlot] = useState<number | null>(null);
+  const [selectedPlots, setSelectedPlots] = useState<Set<number>>(new Set());
   const [ownerName, setOwnerName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#a855f7");
   const [scale, setScale] = useState(0.1);
   const [mobilePanel, setMobilePanel] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<number | null>(null);
+  const [dragEnd, setDragEnd] = useState<number | null>(null);
+
+  const getDragSelection = useCallback((): Set<number> => {
+    if (dragStart === null || dragEnd === null) return new Set();
+    const r1 = toRow(dragStart), c1 = toCol(dragStart);
+    const r2 = toRow(dragEnd), c2 = toCol(dragEnd);
+    const minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+    const minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+    const selection = new Set<number>();
+    for (let r = minR; r <= maxR; r++) {
+      for (let c = minC; c <= maxC; c++) {
+        selection.add(toIndex(r, c));
+      }
+    }
+    return selection;
+  }, [dragStart, dragEnd]);
+
+  const activeSelection = isDragging ? getDragSelection() : selectedPlots;
+  const availableInSelection = Array.from(activeSelection).filter(i => !purchasedPlots[i]);
+  const claimedInSelection = Array.from(activeSelection).filter(i => purchasedPlots[i]);
+
   const claimMutation = useMutation({
-    mutationFn: async (data: { plotIndex: number; ownerName: string; color: string }) => {
-      const res = await apiRequest("POST", "/api/sanctuary/pixels", data);
-      return res.json();
+    mutationFn: async (plots: { plotIndex: number; ownerName: string; color: string }[]) => {
+      const results = [];
+      for (const plot of plots) {
+        const res = await apiRequest("POST", "/api/sanctuary/pixels", plot);
+        results.push(await res.json());
+      }
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sanctuary/pixels"] });
+      const count = availableInSelection.length;
       toast({
-        title: "Pixels Acquired! 🍌",
-        description: `Your donation of $1 to Punch has been processed. The pixel is yours!`,
+        title: `${count} Pixel${count > 1 ? 's' : ''} Acquired! 🍌`,
+        description: `Your donation of $${count} to Punch has been processed.`,
       });
       setOwnerName("");
-      setSelectedPlot(null);
+      setSelectedPlots(new Set());
       setMobilePanel(false);
     },
     onError: (error: Error) => {
@@ -74,39 +106,86 @@ export default function Sanctuary() {
   const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.05));
 
   const handleBuy = () => {
-    if (selectedPlot === null || !ownerName.trim()) return;
-    claimMutation.mutate({ plotIndex: selectedPlot, ownerName: ownerName.trim(), color: selectedColor });
+    if (availableInSelection.length === 0 || !ownerName.trim()) return;
+    const plots = availableInSelection.map(plotIndex => ({
+      plotIndex,
+      ownerName: ownerName.trim(),
+      color: selectedColor,
+    }));
+    claimMutation.mutate(plots);
   };
+
+  const handleMouseDown = (index: number) => {
+    setIsDragging(true);
+    setDragStart(index);
+    setDragEnd(index);
+  };
+
+  const handleMouseEnter = (index: number) => {
+    if (isDragging) {
+      setDragEnd(index);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      const selection = getDragSelection();
+      setSelectedPlots(selection);
+      setIsDragging(false);
+      setDragStart(null);
+      setDragEnd(null);
+      if (selection.size > 0) {
+        setMobilePanel(true);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isDragging) {
+        handleMouseUp();
+      }
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [isDragging, dragStart, dragEnd]);
 
   const sidebarContent = (
     <>
       <div className="p-6 border-b-2 border-border/50">
         <h2 className="font-display text-xl text-white mb-2">CLAIM YOUR LAND</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Buy a plot in the jungle. Every dollar goes to the Punch Foundation. 
-          Claim your pixels, upload your image, and leave your mark on the ecosystem.
+          Click a pixel or click & drag to select multiple. Every dollar goes to the Punch Foundation.
         </p>
       </div>
       
       <div className="flex-1 p-6 flex flex-col">
-        {selectedPlot !== null ? (
+        {activeSelection.size > 0 ? (
           <div className="space-y-6">
             <div className="retro-container p-4 bg-black/50">
-              <div className="font-display text-xs text-muted-foreground mb-1">SELECTED PLOT</div>
-              <div className="font-display text-2xl text-white" data-testid="text-selected-plot">#{selectedPlot}</div>
-            </div>
-            
-            {purchasedPlots[selectedPlot] ? (
-              <div className="space-y-4">
-                <div className="bg-destructive/10 border-2 border-destructive p-4 text-destructive font-display text-sm" data-testid="text-plot-claimed">
-                  PLOT ALREADY CLAIMED
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">OWNER:</div>
-                  <div className="text-white font-bold" data-testid="text-plot-owner">{purchasedPlots[selectedPlot].name}</div>
-                </div>
+              <div className="font-display text-xs text-muted-foreground mb-1">SELECTED</div>
+              <div className="font-display text-2xl text-white" data-testid="text-selected-plot">
+                {activeSelection.size} PIXEL{activeSelection.size > 1 ? 'S' : ''}
               </div>
-            ) : (
+              {activeSelection.size > 1 && (
+                <div className="text-[10px] text-muted-foreground mt-1 font-mono">
+                  {(() => {
+                    const indices = Array.from(activeSelection);
+                    const rows = indices.map(toRow);
+                    const cols = indices.map(toCol);
+                    return `(${Math.min(...cols)},${Math.min(...rows)}) → (${Math.max(...cols)},${Math.max(...rows)})`;
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {claimedInSelection.length > 0 && (
+              <div className="bg-yellow-500/10 border-2 border-yellow-500/50 p-3 text-yellow-400 font-display text-[10px]">
+                {claimedInSelection.length} PIXEL{claimedInSelection.length > 1 ? 'S' : ''} ALREADY CLAIMED — WILL BE SKIPPED
+              </div>
+            )}
+            
+            {availableInSelection.length > 0 ? (
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-display text-muted-foreground">YOUR NAME</label>
@@ -133,7 +212,9 @@ export default function Sanctuary() {
                 
                 <div className="flex justify-between items-end border-b-2 border-border pb-2 mt-4">
                   <span className="font-sans text-muted-foreground">Total Price</span>
-                  <span className="font-display text-2xl text-green-500" data-testid="text-total-price">$1</span>
+                  <span className="font-display text-2xl text-green-500" data-testid="text-total-price">
+                    ${availableInSelection.length}
+                  </span>
                 </div>
                 
                 <button 
@@ -142,19 +223,30 @@ export default function Sanctuary() {
                   disabled={claimMutation.isPending || !ownerName.trim()}
                   className="retro-button bg-green-500 text-black py-4 w-full text-lg hover:bg-white hover:text-black disabled:opacity-50"
                 >
-                  {claimMutation.isPending ? 'PROCESSING...' : 'MINT PIXELS'}
+                  {claimMutation.isPending ? 'PROCESSING...' : `MINT ${availableInSelection.length} PIXEL${availableInSelection.length > 1 ? 'S' : ''}`}
                 </button>
                 
                 <div className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
                   <Info className="w-4 h-4" /> 100% goes to Punch
                 </div>
               </div>
+            ) : (
+              <div className="bg-destructive/10 border-2 border-destructive p-4 text-destructive font-display text-sm" data-testid="text-plot-claimed">
+                ALL SELECTED PLOTS ALREADY CLAIMED
+              </div>
             )}
+
+            <button
+              onClick={() => { setSelectedPlots(new Set()); setMobilePanel(false); }}
+              className="retro-button border-2 border-border text-muted-foreground py-2 w-full text-xs hover:text-white"
+            >
+              CLEAR SELECTION
+            </button>
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
             <Move className="w-12 h-12 mb-4" />
-            <p className="font-display text-sm">SELECT A PLOT<br/>ON THE MAP TO BEGIN</p>
+            <p className="font-display text-sm">CLICK OR DRAG<br/>ON THE MAP TO SELECT</p>
           </div>
         )}
       </div>
@@ -210,7 +302,7 @@ export default function Sanctuary() {
 
           <div 
             ref={containerRef}
-            className="w-full h-full overflow-auto custom-scrollbar touch-pan-x touch-pan-y"
+            className="w-full h-full overflow-auto custom-scrollbar touch-pan-x touch-pan-y select-none"
           >
             <div 
               className="relative transition-all duration-200 ease-out"
@@ -242,26 +334,30 @@ export default function Sanctuary() {
                     gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
                     gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`
                   }}
+                  onMouseLeave={() => { if (isDragging) handleMouseUp(); }}
                 >
                   {Array.from({ length: TOTAL_PLOTS }).map((_, i) => {
                     const isPurchased = purchasedPlots[i];
-                    const isSelected = selectedPlot === i;
+                    const isInSelection = activeSelection.has(i);
                     
                     return (
                       <div 
                         key={i}
                         data-testid={`grid-cell-${i}`}
-                        onClick={() => {
-                          setSelectedPlot(i);
-                          setMobilePanel(true);
-                        }}
+                        onMouseDown={(e) => { e.preventDefault(); handleMouseDown(i); }}
+                        onMouseEnter={() => handleMouseEnter(i)}
+                        onMouseUp={() => handleMouseUp()}
                         className={`
-                          border border-white/5 cursor-pointer transition-colors min-w-[4px] min-h-[4px]
-                          ${isSelected ? 'bg-primary/40 border-primary z-10 scale-110 shadow-[0_0_15px_rgba(255,200,0,0.8)]' : 'hover:bg-white/20 hover:border-white/50'}
+                          border border-white/5 cursor-crosshair transition-colors min-w-[4px] min-h-[4px]
+                          ${isInSelection && !isPurchased ? 'bg-primary/40 border-primary z-10 shadow-[0_0_8px_rgba(255,200,0,0.6)]' : ''}
+                          ${isInSelection && isPurchased ? 'border-red-500/60 z-10' : ''}
+                          ${!isInSelection ? 'hover:bg-white/20 hover:border-white/50' : ''}
                         `}
                         style={{
-                          backgroundColor: isPurchased ? `${isPurchased.color}80` : undefined,
-                          borderColor: isPurchased ? isPurchased.color : undefined,
+                          backgroundColor: isPurchased 
+                            ? (isInSelection ? `${isPurchased.color}40` : `${isPurchased.color}80`) 
+                            : undefined,
+                          borderColor: isPurchased && !isInSelection ? isPurchased.color : undefined,
                         }}
                       />
                     );
