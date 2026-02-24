@@ -189,10 +189,17 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
     let lastErr: any;
     for (let attempt = 0; attempt < RPC_ENDPOINTS.length; attempt++) {
       try {
-        return await fn(attempt === 0 ? conn : rotateRpc());
+        const c = attempt === 0 ? conn : rotateRpc();
+        return await fn(c);
       } catch (e: any) {
         lastErr = e;
-        if (e.message?.includes("Insufficient USDC") || e.message?.includes("No USDC")) throw e;
+        const msg = e.message || "";
+        if (msg.includes("Insufficient USDC")) throw e;
+        const isTokenNotFound = e.name === "TokenAccountNotFoundError"
+          || msg.includes("could not find account")
+          || msg.includes("Account does not exist")
+          || msg.includes("Invalid param: could not find");
+        if (isTokenNotFound) throw e;
       }
     }
     throw lastErr;
@@ -208,14 +215,19 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
     senderHasUsdc = true;
   } catch (e: any) {
     if (e.message?.includes("Insufficient USDC")) throw e;
-    throw new Error("No USDC token account found for your wallet. You need USDC (SPL) on Solana to make this payment.");
+    if (e.name === "TokenAccountNotFoundError" || e.message?.includes("could not find account") || e.message?.includes("Account does not exist")) {
+      throw new Error("No USDC token account found for your wallet. You need USDC (SPL) on Solana to make this payment.");
+    }
+    throw new Error("Could not check your USDC balance — Solana network may be congested. Please try again.");
   }
 
   const transaction = new Transaction();
 
+  let recipientNeedsAta = false;
   try {
     await rpcCall(c => getAccount(c, toAta));
-  } catch {
+  } catch (e: any) {
+    recipientNeedsAta = true;
     transaction.add(
       createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT)
     );
