@@ -109,7 +109,7 @@ const AGENTS: Record<AgentId, Agent> = {
     icon: <Users className="w-5 h-5 text-blue-400" />,
     description: 'Agent Manager', longDescription: 'Register AI agents on the Moltbook Network. Coordinate swarm operations and monitor agent health.',
     placeholder: "Ask about Moltbook or agent swarms...",
-    scannerColor: 'cyan', scannerType: 'banana-bot', scannerLabel: 'SWARM AI',
+    scannerColor: 'cyan', scannerType: 'swarm-monkey', scannerLabel: 'SWARM AI',
     category: 'MANAGEMENT'
   },
   'banana-cannon': {

@@ -1710,6 +1710,34 @@ export async function registerRoutes(
           source: "Solana RPC + Local History",
         };
       }
+      case "swarm-monkey": {
+        const agents = await storage.getAllMoltbookAgents();
+        return {
+          data: {
+            totalAgents: agents.length,
+            activeAgents: agents.filter(a => a.status === "active").length,
+            pendingAgents: agents.filter(a => a.status === "pending_claim").length,
+            agents: agents.slice(0, 10).map(a => ({
+              name: a.name, status: a.status, type: a.type, postsCount: a.postsCount,
+            })),
+          },
+          source: "Moltbook Network",
+        };
+      }
+      case "banana-cannon": {
+        const launches = await storage.getAllTokenLaunches();
+        return {
+          data: {
+            totalLaunches: launches.length,
+            launched: launches.filter(l => l.status === "launched").length,
+            pending: launches.filter(l => l.status === "pending").length,
+            recentLaunches: launches.slice(0, 5).map(l => ({
+              name: l.tokenName, symbol: l.tokenSymbol, status: l.status, devBuy: l.devBuyAmount,
+            })),
+          },
+          source: "ClawPunch Launch Engine",
+        };
+      }
       default:
         return { data: {}, source: "unknown" };
     }
@@ -1823,6 +1851,51 @@ FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 💡 RECOMMENDATIONS:
 - Any tips for the user based on current network conditions
 - Optimal time/strategy for sending transactions
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+
+        "swarm-monkey": `You are SWARM MONKEY — a Moltbook Network operations specialist inside MonkeyOS. I just pulled the latest agent registry and network status. Give me your swarm briefing.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+🐵 SWARM STATUS:
+- How many agents are registered, active, and pending
+- Overall health of the swarm
+
+📊 AGENT ROSTER:
+- Brief summary of each registered agent and their activity
+- Which agents are performing well (posts, engagement)
+
+🔗 NETWORK INTEL:
+- Moltbook network status and recommendations
+- Tips for optimizing agent deployment and swarm coordination
+
+💡 NEXT MOVES:
+- What should the user do next to grow their swarm?
+- Any strategic recommendations for agent deployment
+
+LIVE DATA:
+${JSON.stringify(data, null, 2)}`,
+
+        "banana-cannon": `You are BANANA CANNON — a token launch strategist inside MonkeyOS. I just pulled the latest launch history and deployment data. Give me your launch briefing.
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+🚀 LAUNCH STATUS:
+- Summary of total launches, successful deployments, and pending
+- Current deployment pipeline health
+
+📋 RECENT DEPLOYMENTS:
+- Brief overview of recent token launches and their status
+- Any notable trends in launch parameters
+
+💡 LAUNCH STRATEGY:
+- Recommendations for next token launch
+- Tips on tokenomics, naming, and dev buy allocation
+- Current market conditions for launching
+
+⚠️ RISK NOTES:
+- Any warnings or considerations for token deployers
+- Best practices for transparent, community-trusted launches
 
 LIVE DATA:
 ${JSON.stringify(data, null, 2)}`,

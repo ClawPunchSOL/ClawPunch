@@ -46,6 +46,20 @@ const SCAN_PHASES: Record<string, string[]> = {
     "SCANNING RECENT TRANSFER PATTERNS...",
     "GENERATING TX RECOMMENDATIONS...",
   ],
+  "swarm-monkey": [
+    "CONNECTING TO MOLTBOOK NETWORK...",
+    "SCANNING REGISTERED AGENTS...",
+    "ANALYZING SWARM HEALTH METRICS...",
+    "CHECKING AGENT ACTIVITY LOGS...",
+    "GENERATING NETWORK INTEL...",
+  ],
+  "banana-cannon": [
+    "LOADING TOKEN LAUNCH ENGINE...",
+    "SCANNING RECENT DEPLOYMENTS...",
+    "ANALYZING LAUNCH TRENDS...",
+    "CHECKING DEPLOYMENT STATUS...",
+    "GENERATING LAUNCH INTEL...",
+  ],
 };
 
 const colorMap: Record<string, { accent: string; dim: string }> = {
