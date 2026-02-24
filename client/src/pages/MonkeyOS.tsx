@@ -53,7 +53,7 @@ const AGENTS: Record<AgentId, Agent> = {
     id: 'trend-puncher', name: 'TREND PUNCHER', avatar: trendMonkey,
     status: 'SCANNING', statusColor: 'text-yellow-400', glowColor: 'rgba(234,179,8,0.3)', borderGlow: 'border-yellow-500/60',
     icon: <Zap className="w-5 h-5 text-yellow-400" />,
-    description: 'Alpha Scanner', longDescription: 'AI scans DexScreener + CoinGecko for trending Solana tokens, finds alpha plays, flags rug signals.',
+    description: 'Alpha Scanner', longDescription: 'AI scans live Solana markets for trending tokens, finds alpha plays, flags rug signals.',
     placeholder: "Ask about trends, tokens, or alpha...",
     scannerColor: 'yellow', scannerType: 'trend-puncher', scannerLabel: 'TREND PUNCHER AI',
     category: 'TRADING'
@@ -62,7 +62,7 @@ const AGENTS: Record<AgentId, Agent> = {
     id: 'punch-oracle', name: 'PUNCH ORACLE', avatar: oracleMonkey,
     status: 'SYNCING', statusColor: 'text-purple-400', glowColor: 'rgba(168,85,247,0.3)', borderGlow: 'border-purple-500/60',
     icon: <Terminal className="w-5 h-5 text-purple-400" />,
-    description: 'Predictions', longDescription: 'Live prediction markets with real SOL betting. AI analyzes CoinGecko prices + Polymarket odds.',
+    description: 'Predictions', longDescription: 'Live prediction markets with real SOL betting. AI analyzes real-time prices and market odds.',
     placeholder: "Ask about predictions or market odds...",
     scannerColor: 'purple', scannerType: 'punch-oracle', scannerLabel: 'ORACLE AI',
     category: 'TRADING'
@@ -89,7 +89,7 @@ const AGENTS: Record<AgentId, Agent> = {
     id: 'vault-swinger', name: 'APE VAULT', avatar: vaultMonkey,
     status: 'FARMING', statusColor: 'text-orange-400', glowColor: 'rgba(249,115,22,0.3)', borderGlow: 'border-orange-500/60',
     icon: <Cpu className="w-5 h-5 text-orange-400" />,
-    description: 'Yield Farming', longDescription: 'Real DeFi vault data from DeFi Llama. Analyzes APY, TVL, and risk across Solana protocols.',
+    description: 'Yield Farming', longDescription: 'Real DeFi vault data aggregated across Solana. Analyzes APY, TVL, and risk across protocols.',
     placeholder: "Ask about yields or farming strategy...",
     scannerColor: 'orange', scannerType: 'ape-vault', scannerLabel: 'VAULT STRATEGIST AI',
     category: 'DEFI'
@@ -116,7 +116,7 @@ const AGENTS: Record<AgentId, Agent> = {
     id: 'banana-cannon', name: 'BANANA CANNON', avatar: bananaBot,
     status: 'LOADED', statusColor: 'text-pink-400', glowColor: 'rgba(236,72,153,0.3)', borderGlow: 'border-pink-500/60',
     icon: <Rocket className="w-5 h-5 text-pink-400" />,
-    description: 'Token Launcher', longDescription: 'Launch tokens on pump.fun via Pump Portal. AI-generated concepts, one-click deploy to Solana.',
+    description: 'Token Launcher', longDescription: 'AI-powered token launcher. Generate concepts and deploy tokens directly on Solana.',
     placeholder: "Ask about launching tokens...",
     scannerColor: 'pink', scannerType: 'banana-cannon', scannerLabel: 'CANNON AI',
     category: 'DEFI'
@@ -496,7 +496,7 @@ export default function MonkeyOS() {
                     THE TROOP IS READY
                   </h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">
-                    All agents are powered by real data feeds — DexScreener, DeFi Llama, CoinGecko, Polymarket, Solana RPC, GitHub API.
+                    All agents are powered by ClawPunch's proprietary data engine — real-time on-chain feeds, yield aggregation, and AI analysis.
                     Select an agent above to deploy it. The monkey army awaits your command.
                   </p>
                 </div>

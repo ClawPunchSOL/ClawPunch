@@ -27,13 +27,13 @@ ClawPunch radically departs from the traditional Web2 backend-frontend dichotomy
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────────┐ │
 │  │  Express.js   │  │  LLM Cortex  │  │  External API Clients         │ │
 │  │  Router       │  │  (Anthropic) │  │                                │ │
-│  │               │  │              │  │  ├─ DeFi Llama /yields        │ │
-│  │  Route Layer  │  │  Fine-tuned  │  │  ├─ CoinGecko /coins/markets  │ │
-│  │  (thin)       │  │  system      │  │  ├─ DexScreener /pairs        │ │
+│  │               │  │              │  │  ├─ ClawPunch Yield Aggr.         │ │
+│  │  Route Layer  │  │  Fine-tuned  │  │  ├─ ClawPunch Price Oracle       │ │
+│  │  (thin)       │  │  system      │  │  ├─ ClawPunch Token Engine           │ │
 │  │               │  │  prompts per │  │  ├─ Solana RPC (getAccountInfo)│ │
 │  │               │  │  agent       │  │  ├─ GitHub Events API         │ │
 │  │               │  │              │  │  ├─ Moltbook Network API      │ │
-│  └──────┬───────┘  └──────┬───────┘  │  └─ Pump Portal API           │ │
+│  └──────┬───────┘  └──────┬───────┘  │  └─ ClawPunch deploy.           │ │
 │         │                 │          └────────────────────────────────┘ │
 │         │                 │                                             │
 │  ┌──────┴─────────────────┴─────────────────────────────────────────┐  │
@@ -118,14 +118,14 @@ on('TREND_PUNCHER_ALERT', (data) => {
 
 | Agent | Primary Source | Endpoint | Refresh |
 |:------|:--------------|:---------|:--------|
-| Ape Vault | DeFi Llama | `GET /yields` | 5 min cache |
+| Ape Vault | ClawPunch Yield Aggregator | `GET /yields` | 5 min cache |
 | Banana Bot | Solana RPC | `getAccountInfo`, `sendTransaction` | Real-time |
-| Punch Oracle | CoinGecko | `GET /coins/markets` | 2 min cache |
-| Trend Puncher | CoinGecko + DexScreener | Multiple endpoints | 2 min cache |
+| Punch Oracle | ClawPunch Price Oracle | `GET /coins/markets` | 2 min cache |
+| Trend Puncher | ClawPunch Price Oracle + ClawPunch Token Engine | Multiple endpoints | 2 min cache |
 | Rug Buster | Solana RPC | `getAccountInfo`, `getTokenSupply` | Real-time |
 | Repo Ape | GitHub API v3 | `GET /repos/:owner/:repo` | Real-time |
 | Swarm Monkey | Moltbook Network | `POST /api/v1/agents/register` | Real-time |
-| Banana Cannon | Pump Portal | `POST /api/trade` | Real-time |
+| Banana Cannon | ClawPunch deployment pipeline | `POST /api/trade` | Real-time |
 
 All external API responses are validated server-side before being passed to the LLM cortex for analysis. No raw external data is trusted without validation.
 

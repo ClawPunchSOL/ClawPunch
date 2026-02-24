@@ -201,7 +201,7 @@ export default function Home() {
               
               <div className="mt-12 flex gap-6 justify-center font-display text-xs md:text-sm text-muted-foreground">
                 <div className="bg-card px-4 py-2 border-2 border-border flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> LIVE ON PUMP.FUN
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> LIVE ON SOLANA
                 </div>
                 <div className="bg-card px-4 py-2 border-2 border-border blur-[2px] select-none">
                   CA: TBA...
@@ -310,7 +310,7 @@ export default function Home() {
                   { icon: <Cpu />, name: 'Vault Swinger', desc: 'Yield farming + agent treasury manager. Swing vines to farm APY boosts.' },
                   { icon: <ShieldAlert />, name: 'Rug Buster', desc: 'Solana-native rug-pull detection. Risk assessment via on-chain contract analysis.' },
                   { icon: <FileCode />, name: 'Repo Ape', desc: 'GitHub scanner for AI/LARP scoring. Evaluation through code and commit proofs.' },
-                  { icon: <Rocket />, name: 'Banana Cannon', desc: 'AI-powered token launcher via Pump Portal. Generate concepts and deploy tokens on Solana.' }
+                  { icon: <Rocket />, name: 'Banana Cannon', desc: 'AI-powered token launcher. Generate concepts and deploy tokens directly on Solana.' }
                 ].map((agent, i) => (
                   <div key={i} className="retro-container p-6 bg-black/60 backdrop-blur-sm hover:-translate-y-2 transition-transform">
                     <div className="text-primary mb-4 w-10 h-10">{agent.icon}</div>
@@ -410,7 +410,7 @@ export default function Home() {
                   </div>
                   <div className="flex justify-between items-end border-b-2 border-border pb-2">
                     <span className="font-sans text-xl text-muted-foreground">Launch</span>
-                    <span className="font-display text-2xl text-white">FAIR PUMP.FUN</span>
+                    <span className="font-display text-2xl text-white">FAIR LAUNCH</span>
                   </div>
                   <div className="pt-4 flex items-center gap-3 text-sm font-sans text-muted-foreground">
                     <Shield className="text-primary w-5 h-5" /> Liquidity locked. No dev allocations.

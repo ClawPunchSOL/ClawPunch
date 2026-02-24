@@ -105,7 +105,7 @@ Moltbook truly shines through Swarm Orchestration. Users can link multiple speci
 ### 4.3 Attention Yield Farming
 Perhaps the most revolutionary aspect of the ecosystem is **Attention Yield**. 
 
-When you deploy a Swarm Agent to social platforms, it begins generating views, likes, retweets, and organic engagement. The Moltbook protocol tracks these metrics cryptographically using decentralized oracle networks (like Switchboard).
+When you deploy a Swarm Agent to social platforms, it begins generating views, likes, retweets, and organic engagement. The Moltbook protocol tracks these metrics cryptographically using decentralized oracle networks.
 
 Engagement metrics are fed into the Attention Yield Formula:
 
@@ -128,7 +128,7 @@ Monkey OS ships out-of-the-box with 8 native, LLM-powered utility applications. 
 Banana Bot is the foundational financial primitive of Monkey OS. It serves as a hyper-intelligent, natural language interface for all core wallet operations.
 
 * **Natural Language Processing:** Instead of navigating complex DEX UIs, you instruct Banana Bot using plain English: *"Swap 2 SOL for exactly 300 USDC, use a maximum of 1% slippage and route through Orca."*
-* **Jupiter API Integration:** Banana Bot parses the query, extracts the intent using a localized Named Entity Recognition (NER) model, and queries the Jupiter Aggregator API (`quote` and `swap` endpoints). It autonomously evaluates dozens of liquidity pools to find the optimal routing path with the lowest price impact.
+* **Optimal Routing:** Banana Bot parses the query, extracts the intent using a localized Named Entity Recognition (NER) model, and queries the ClawPunch routing engine (`quote` and `swap` endpoints). It autonomously evaluates dozens of liquidity pools to find the optimal routing path with the lowest price impact.
 * **x402 Integration:** For USDC micropayments, Banana Bot seamlessly routes through the x402 protocol, abstracting gas fees and settling transactions near-instantly.
 * **Execution Output:** Banana Bot returns a base64 encoded, simulated transaction buffer ready for wallet signature, alongside a clear, human-readable breakdown of the expected outcome.
 
@@ -144,7 +144,7 @@ Trend Puncher is a high-frequency sentiment analysis engine integrated directly 
 
 * **Social Ingestion Firehose:** Ingests vast amounts of unstructured data from Twitter APIs, Telegram alpha groups, and Discord whale channels.
 * **Custom NLP Pipeline:** Runs real-time sentiment analysis utilizing VADER and custom BERT-based models specifically fine-tuned on crypto slang, ticker mentions, and cashtag velocity.
-* **Volume Delta Correlation:** Correlates social sentiment spikes with on-chain volume anomalies using Birdeye or DexScreener websockets. It looks for divergences—high social velocity preceding high volume.
+* **Volume Delta Correlation:** Correlates social sentiment spikes with on-chain volume anomalies using ClawPunch Token Engine websockets. It looks for divergences—high social velocity preceding high volume.
 * **Actionable Alerts:** It does not just provide data; it provides actionable intelligence. Alert: *"Macaque meta is trending. +400% mention volume in 5m. Associated ticker: $MONK. Queue swap?"*
 
 ### IV. Rug Buster (Solana-Native Rug-Pull Detection)
@@ -163,7 +163,7 @@ Rug Buster is a Solana-native rug-pull detection protocol powering Monkey OS —
 Punch Oracle connects the localized Monkey OS environment to real-world data and decentralized prediction markets.
 
 * **Event Staking:** Users can stake USDC on binary or scalar outcomes of real-world events. Examples: *"Will Solana TPS drop below 1000 today?", "Will the fed cut rates in March?", "Will $ClawPunch break $0.05 by Friday?"*
-* **Oracle Aggregation:** To ensure absolute integrity, Punch Oracle does not rely on a single source of truth. It aggregates data feeds from the Pyth Network and Switchboard, utilizing a mathematical medianizer function to establish the immutable "true" state of the off-chain world.
+* **Oracle Aggregation:** To ensure absolute integrity, Punch Oracle does not rely on a single source of truth. It aggregates data feeds from decentralized oracle networks, utilizing a mathematical medianizer function to establish the immutable "true" state of the off-chain world.
 * **Atomic Smart Contract Settlement:** Once the decentralized oracle consensus is reached, the underlying Escrow Program automatically distributes the staked USDC pool to the winning addresses. A minimal 1% protocol fee is routed directly to The Sanctuary to further fund conservation efforts.
 
 ### VI. Ape Vault (Automated DCA & Portfolio Rebalancing)
@@ -183,12 +183,12 @@ Repo Ape is a specialized OS-level intelligence agent that aggressively monitors
 * **Instant OS Alerts:** When a critical commit is pushed to a tracked repository (e.g., a major protocol updating their mainnet addresses before an official Twitter announcement), Repo Ape fires a push notification directly to the Monkey OS desktop, giving users an informational edge measured in hours, not seconds.
 
 ### VIII. Banana Cannon (Autonomous Token Launcher)
-Banana Cannon is the token genesis engine of Monkey OS — a zero-friction, AI-assisted token deployment pipeline built on top of the Pump Portal API, enabling permissionless token creation on pump.fun directly from the OS desktop.
+Banana Cannon is the token genesis engine of Monkey OS — a zero-friction, AI-assisted token deployment pipeline built on top of the ClawPunch deployment pipeline, enabling permissionless token creation on Solana directly from the OS desktop.
 
 * **AI Concept Generation:** Rather than manually configuring tokenomics, users can instruct the LLM Cortex with high-level creative briefs: *"Launch a meme token about a surfing capybara with a 500M supply and 2 SOL dev buy."* The Cortex generates the complete token concept — name, ticker, description, and suggested initial parameters — autonomously.
-* **Pump Portal Integration:** Banana Cannon interfaces directly with the Pump Portal `POST /api/trade` endpoint, constructing the `create` action payload with the token metadata (name, symbol, description, image URI), dev buy allocation in SOL, and fee routing. The serialized transaction is returned to the client for Phantom wallet signing — maintaining strict SCE compliance.
+* **Deployment Pipeline Integration:** Banana Cannon interfaces directly with the ClawPunch deployment pipeline `POST /api/trade` endpoint, constructing the `create` action payload with the token metadata (name, symbol, description, image URI), dev buy allocation in SOL, and fee routing. The serialized transaction is returned to the client for Phantom wallet signing — maintaining strict SCE compliance.
 * **Tokenomics Configuration:** Users retain granular control over launch parameters including dev buy amount (in SOL), initial liquidity allocation, and metadata fields. All parameters are validated client-side before transaction formulation to prevent malformed launches.
-* **Launch History & Tracking:** Every token launch is persisted with its mint address, transaction signature, pump.fun URL, and status (pending → launched → failed). Users can track their full launch history and verify on-chain deployment via Solscan deep links.
+* **Launch History & Tracking:** Every token launch is persisted with its mint address, transaction signature, deployment URL, and status (pending → launched → failed). Users can track their full launch history and verify on-chain deployment via Solscan deep links.
 * **Anti-Rug Compliance:** Banana Cannon enforces transparency by logging all launch parameters immutably. Combined with Rug Buster's verification matrix, users deploying tokens through Monkey OS signal credibility — their mint authority revocation and LP lock status are immediately verifiable by the community.
 
 ---

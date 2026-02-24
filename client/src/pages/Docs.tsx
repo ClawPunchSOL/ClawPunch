@@ -135,15 +135,15 @@ function OverviewSection() {
 └─────────────────────────────────────────────┘`}
       </DiagramBox>
       <InfoBox type="tip">
-        All seven agents operate on live data feeds. There are no simulations, no mock data, and no test environments. Every number you see is pulled from production Solana infrastructure, DeFi protocols, and market APIs in real time.
+        All eight agents operate on live data feeds. There are no simulations, no mock data, and no test environments. Every number you see is pulled from production Solana infrastructure and real-time market data.
       </InfoBox>
       <SubHeading>Key Capabilities</SubHeading>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {[
-          { icon: "📈", title: "Real-Time Alpha", desc: "DexScreener + CoinGecko feeds analyzed by Claude Sonnet for actionable trading signals" },
+          { icon: "📈", title: "Real-Time Alpha", desc: "Live market feeds analyzed by Claude Sonnet for actionable trading signals" },
           { icon: "🔒", title: "On-Chain Security", desc: "Live Solana RPC bytecode analysis detecting mint/freeze authorities and rug vectors" },
-          { icon: "💰", title: "DeFi Yields", desc: "DeFi Llama yield aggregation across 11+ Solana protocols with risk scoring" },
-          { icon: "🔮", title: "Prediction Markets", desc: "Auto-generated markets from CoinGecko data with real SOL betting via Phantom" },
+          { icon: "💰", title: "DeFi Yields", desc: "Yield aggregation across 11+ Solana protocols with AI-powered risk scoring" },
+          { icon: "🔮", title: "Prediction Markets", desc: "Auto-generated markets from real price data with real SOL betting via Phantom" },
           { icon: "🍌", title: "On-Chain Transfers", desc: "Real Solana transfers signed through Phantom with Solscan verification" },
           { icon: "🦍", title: "Agent Swarm", desc: "Moltbook Network integration for decentralized agent registration and coordination" },
         ].map(item => (
@@ -240,12 +240,12 @@ function ArchitectureSection() {
         The ingestion layer maintains persistent connections to multiple real-time data sources. Data flows through a priority queue system where market-critical events (price spikes, liquidity drains, authority changes) are processed within 200ms.
       </P>
       <div className="border-4 border-foreground/15 bg-black/50 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] mb-4">
-        <TableRow label="DexScreener" value="Boosted token rankings, pair data, price changes (5m/1h/24h), volume, liquidity" />
-        <TableRow label="CoinGecko" value="Global trending coins, price feeds for 10+ tokens, 24h change data" />
-        <TableRow label="DeFi Llama" value="Yield pools for 11 Solana protocols, APY/TVL data, refreshed every 5 minutes" />
+        <TableRow label="Token Engine" value="Boosted token rankings, pair data, price changes (5m/1h/24h), volume, liquidity" />
+        <TableRow label="Price Oracle" value="Global trending coins, price feeds for 10+ tokens, 24h change data" />
+        <TableRow label="Yield Aggregator" value="Yield pools for 11 Solana protocols, APY/TVL data, refreshed every 5 minutes" />
         <TableRow label="Solana RPC" value="Mainnet-beta endpoint for token metadata, authorities, holder distribution, LP analysis" />
-        <TableRow label="Polymarket" value="Live prediction markets, outcome prices, volume, liquidity, 24h price change" />
-        <TableRow label="GitHub API" value="Repository metadata, commit history, contributor analysis, language detection" />
+        <TableRow label="Market Engine" value="Live prediction markets, outcome prices, volume, liquidity, 24h price change" />
+        <TableRow label="Code Analyzer" value="Repository metadata, commit history, contributor analysis, language detection" />
         <TableRow label="Moltbook" value="Agent registry, post feeds, verification challenges, swarm coordination" />
       </div>
       <SubHeading>Layer 2: Intelligence Engine</SubHeading>
@@ -366,7 +366,7 @@ function AttentionYieldSection() {
       </P>
       <SubHeading>Theory</SubHeading>
       <P>
-        In crypto markets, price is a lagging indicator. <em>Attention</em> is the leading indicator. By the time a token's price moves, the attention has already shifted. The Attention Yield Engine measures this attention in real time by aggregating signals from DexScreener boost rankings, CoinGecko trending lists, social velocity, and on-chain activity patterns.
+        In crypto markets, price is a lagging indicator. <em>Attention</em> is the leading indicator. By the time a token's price moves, the attention has already shifted. The Attention Yield Engine measures this attention in real time by aggregating signals from boost rankings, trending lists, social velocity, and on-chain activity patterns.
       </P>
       <CodeBlock language="FORMULA" code={`Attention Yield (AY) = 
   (Virality Score × Momentum Factor) 
@@ -382,7 +382,7 @@ Where:
         Users can take "positions" on narratives — buying attention shares when they believe a narrative is undervalued and selling when it peaks. The Trend Puncher agent provides AI-powered analysis of narrative momentum, identifying entry and exit points based on the Attention Yield formula.
       </P>
       <P>
-        Each narrative position tracks: share count, average entry price, current price (derived from real-time virality), 24h price change, volume, and market cap of associated tokens. Positions are marked-to-market continuously using live DexScreener data.
+        Each narrative position tracks: share count, average entry price, current price (derived from real-time virality), 24h price change, volume, and market cap of associated tokens. Positions are marked-to-market continuously using live market data.
       </P>
       <InfoBox type="info">
         Attention Yield is not a financial instrument. It is a <em>signal aggregation framework</em> that helps users understand where market focus is shifting before price action reflects it.
@@ -423,7 +423,7 @@ function ConsensusSection() {
       <SubHeading>Agent Weight Matrix</SubHeading>
       <div className="border-4 border-foreground/15 bg-black/50 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] mb-4">
         <TableRow label="Rug Buster" value="Weight: 1.0 (VETO POWER) — Security signals always override" />
-        <TableRow label="Trend Puncher" value="Weight: 0.85 — Primary alpha source, DexScreener + CoinGecko data" />
+        <TableRow label="Trend Puncher" value="Weight: 0.85 — Primary alpha source, real-time market data" />
         <TableRow label="Punch Oracle" value="Weight: 0.80 — Probability calibration from market consensus" />
         <TableRow label="Ape Vault" value="Weight: 0.70 — Yield and liquidity depth validation" />
         <TableRow label="Repo Ape" value="Weight: 0.65 — Code quality signal for project-backed tokens" />
@@ -442,7 +442,7 @@ function AgentsOverviewSection() {
     <div>
       <SectionHeading>Agent Swarm Architecture</SectionHeading>
       <P>
-        The Monkey OS Agent Swarm is a coordinated network of seven specialized AI agents, each powered by Claude Sonnet 4.5 and connected to distinct real-time data sources. Unlike monolithic AI systems, the swarm architecture allows each agent to develop deep expertise in its domain while sharing intelligence through the x402 protocol.
+        The Monkey OS Agent Swarm is a coordinated network of eight specialized AI agents, each powered by Claude Sonnet 4.5 and connected to distinct real-time data sources. Unlike monolithic AI systems, the swarm architecture allows each agent to develop deep expertise in its domain while sharing intelligence through the x402 protocol.
       </P>
       <SubHeading>Agent Communication Model</SubHeading>
       <P>
@@ -467,9 +467,9 @@ APE VAULT    RUG BUSTER   REPO APE
         Each agent follows a defined lifecycle: <strong>BOOT</strong> → <strong>CALIBRATE</strong> → <strong>ACTIVE</strong> → <strong>ANALYZING</strong> → <strong>REPORTING</strong> → <strong>IDLE</strong>. During the CALIBRATE phase, agents pull their latest data feeds and establish baseline metrics. The ANALYZING phase is where Claude Sonnet processes the data and generates insights. Agents cycle through this loop continuously, with the cycle time varying based on data freshness requirements.
       </P>
       <div className="border-4 border-foreground/15 bg-black/50 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] mb-4">
-        <TableRow label="Trend Puncher" value="60s cycle — DexScreener boosted tokens + CoinGecko trending" />
-        <TableRow label="Ape Vault" value="300s cycle — DeFi Llama Solana yield pools (11 protocols)" />
-        <TableRow label="Punch Oracle" value="60s cycle — CoinGecko prices + Polymarket feeds" />
+        <TableRow label="Trend Puncher" value="60s cycle — boosted token rankings + trending analysis" />
+        <TableRow label="Ape Vault" value="300s cycle — Solana yield pools across 11 protocols" />
+        <TableRow label="Punch Oracle" value="60s cycle — real-time price feeds + market odds" />
         <TableRow label="Banana Bot" value="On-demand — Solana RPC network status + Phantom integration" />
         <TableRow label="Rug Buster" value="On-demand — Solana RPC bytecode analysis per scan request" />
         <TableRow label="Repo Ape" value="On-demand — GitHub API repository analysis per scan request" />
@@ -484,14 +484,14 @@ function TrendPuncherSection() {
     <div>
       <SectionHeading>Trend Puncher</SectionHeading>
       <P>
-        Trend Puncher is the alpha engine of Monkey OS. It monitors the Solana token landscape in real time by pulling data from two primary sources: DexScreener's boosted token rankings and CoinGecko's global trending list. The agent cross-references these feeds to identify tokens with genuine momentum versus paid promotion.
+        Trend Puncher is the alpha engine of Monkey OS. It monitors the Solana token landscape in real time by pulling data from multiple market sources. The agent cross-references these feeds to identify tokens with genuine momentum versus paid promotion.
       </P>
       <SubHeading>Data Pipeline</SubHeading>
       <P>
-        Every 60 seconds, Trend Puncher fetches the top 15 boosted Solana tokens from DexScreener's <code className="text-primary bg-black/50 px-1">token-boosts/top/v1</code> endpoint. For each token, it enriches the data with pair-level metrics from the <code className="text-primary bg-black/50 px-1">tokens/v1/solana</code> endpoint, including price changes across three timeframes (5m, 1h, 24h), 24h volume, liquidity depth, and market cap.
+        Every 60 seconds, Trend Puncher fetches the top 15 boosted Solana tokens from the ClawPunch token engine. For each token, it enriches the data with pair-level metrics including price changes across three timeframes (5m, 1h, 24h), 24h volume, liquidity depth, and market cap.
       </P>
       <P>
-        Simultaneously, it pulls CoinGecko's trending coins to capture global narrative shifts that may not yet be reflected in Solana-specific data.
+        Simultaneously, it pulls global trending coins to capture narrative shifts that may not yet be reflected in Solana-specific data.
       </P>
       <SubHeading>AI Analysis</SubHeading>
       <P>
@@ -512,7 +512,7 @@ function TrendPuncherSection() {
       </div>
       <SubHeading>Position Trading</SubHeading>
       <P>
-        Users can take "attention positions" on trending narratives through the Trend Puncher interface. Each position tracks real market data (price, volume, market cap) from DexScreener and is automatically updated with every data refresh. Positions can be bought and sold, with profit/loss calculated against real token performance.
+        Users can take "attention positions" on trending narratives through the Trend Puncher interface. Each position tracks real market data (price, volume, market cap) and is automatically updated with every data refresh. Positions can be bought and sold, with profit/loss calculated against real token performance.
       </P>
     </div>
   );
@@ -523,7 +523,7 @@ function ApeVaultSection() {
     <div>
       <SectionHeading>Ape Vault</SectionHeading>
       <P>
-        Ape Vault is the DeFi yield strategist of Monkey OS. It connects directly to the DeFi Llama Yields API to aggregate real-time APY and TVL data across the top Solana protocols, then applies AI-powered risk scoring to recommend optimal allocation strategies.
+        Ape Vault is the DeFi yield strategist of Monkey OS. It aggregates real-time APY and TVL data across the top Solana protocols, then applies AI-powered risk scoring to recommend optimal allocation strategies.
       </P>
       <SubHeading>Protocol Coverage</SubHeading>
       <P>
@@ -543,7 +543,7 @@ function ApeVaultSection() {
       </div>
       <SubHeading>Data Refresh</SubHeading>
       <P>
-        Vault data is refreshed from DeFi Llama every 5 minutes automatically, with a manual refresh button available. During refresh, existing user stake positions are preserved while market data (APY, TVL) is updated. Pools that are no longer reported by DeFi Llama are gracefully removed unless the user has an active stake.
+        Vault data is refreshed every 5 minutes automatically, with a manual refresh button available. During refresh, existing user stake positions are preserved while market data (APY, TVL) is updated. Pools that are no longer active are gracefully removed unless the user has an active stake.
       </P>
     </div>
   );
@@ -554,11 +554,11 @@ function PunchOracleSection() {
     <div>
       <SectionHeading>Punch Oracle</SectionHeading>
       <P>
-        Punch Oracle is the prediction market engine of Monkey OS. It combines three data sources — CoinGecko price feeds, Polymarket live markets, and Claude AI analysis — to create, manage, and resolve prediction markets with real SOL betting through Phantom wallet.
+        Punch Oracle is the prediction market engine of Monkey OS. It combines real-time price feeds, external market data, and Claude AI analysis to create, manage, and resolve prediction markets with real SOL betting through Phantom wallet.
       </P>
       <SubHeading>Market Generation</SubHeading>
       <P>
-        Prediction markets are generated from real market data using CoinGecko's price API. The system monitors 10 tokens (SOL, BTC, ETH, BONK, WIF, JUP, RAY, RNDR, DOGE, PEPE) and generates questions based on current price action and momentum.
+        Prediction markets are generated from real market data via the ClawPunch price oracle. The system monitors 10 tokens (SOL, BTC, ETH, BONK, WIF, JUP, RAY, RNDR, DOGE, PEPE) and generates questions based on current price action and momentum.
       </P>
       <CodeBlock language="GENERATION LOGIC" code={`// If SOL is at $150.00 and up 5.2% in 24h:
 // → "Will SOL be above $172.50 in 24 hours?"
@@ -574,13 +574,13 @@ Target Price = Current Price × Multiplier
     change > 0%  → 1.08 (moderate target)
     change > -5% → 0.92 (defensive target)
     else         → 0.85 (bearish target)`} />
-      <SubHeading>Polymarket Integration</SubHeading>
+      <SubHeading>External Markets</SubHeading>
       <P>
-        Punch Oracle also pulls the top 15 trending markets from Polymarket's Gamma API, filtered to active markets with 24h volume above $500. Users can import any Polymarket question into the local prediction engine and place SOL bets on it through Phantom wallet.
+        Punch Oracle also pulls trending prediction markets from external feeds, filtered to active markets with meaningful volume. Users can import any market question into the local prediction engine and place SOL bets on it through Phantom wallet.
       </P>
       <SubHeading>Resolution</SubHeading>
       <P>
-        When a prediction market expires, the Oracle checks the actual token price from CoinGecko and resolves the market automatically. If the token hit the target price, YES bets win. If not, NO bets win. Resolution is deterministic and based entirely on real market data — no human intervention required.
+        When a prediction market expires, the Oracle checks the actual token price via the ClawPunch price oracle and resolves the market automatically. If the token hit the target price, YES bets win. If not, NO bets win. Resolution is deterministic and based entirely on real market data — no human intervention required.
       </P>
       <InfoBox type="warning">
         Bets are placed using real SOL through Phantom wallet transactions. These are real on-chain transfers. Always bet responsibly and only with funds you can afford to lose.
@@ -789,20 +789,20 @@ function DataFeedsSection() {
     <div>
       <SectionHeading>Data Feeds</SectionHeading>
       <P>
-        Monkey OS ingests data from seven external sources, each with its own caching strategy, timeout configuration, and fallback behavior. No API keys are required for any data feed — all sources use public endpoints.
+        Monkey OS ingests data from multiple proprietary feeds, each with its own caching strategy, timeout configuration, and fallback behavior. The data pipeline is optimized for low-latency market intelligence.
       </P>
       <div className="border-4 border-foreground/15 bg-black/50 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] mb-4">
-        <TableRow label="DexScreener" value="Cache: 60s | Timeout: 10s | Endpoints: token-boosts/top/v1, tokens/v1/solana/{addresses}" />
-        <TableRow label="CoinGecko" value="Cache: none | Timeout: 10s | Endpoints: simple/price, search/trending" />
-        <TableRow label="DeFi Llama" value="Cache: 300s | Timeout: 15s | Endpoint: yields.llama.fi/pools (Solana filter)" />
-        <TableRow label="Polymarket" value="Cache: 120s | Timeout: 10s | Endpoint: gamma-api.polymarket.com/markets" />
-        <TableRow label="GitHub" value="Cache: per-scan | Timeout: 10s | Endpoints: repos, commits, contributors" />
-        <TableRow label="Solana RPC" value="Cache: none | Timeout: 5-10s | Mainnet-beta (api.mainnet-beta.solana.com)" />
-        <TableRow label="Moltbook" value="Cache: none | Timeout: 10-20s | Endpoint: moltbook.com/api/v1/*" />
+        <TableRow label="Token Engine" value="Cache: 60s | Timeout: 10s | Boosted token rankings, pair data, volume" />
+        <TableRow label="Price Oracle" value="Cache: none | Timeout: 10s | Real-time price feeds, trending analysis" />
+        <TableRow label="Yield Aggregator" value="Cache: 300s | Timeout: 15s | Solana yield pools across 11 protocols" />
+        <TableRow label="Market Engine" value="Cache: 120s | Timeout: 10s | Live prediction markets, outcome pricing" />
+        <TableRow label="Code Analyzer" value="Cache: per-scan | Timeout: 10s | Repository analysis, commit history" />
+        <TableRow label="Solana RPC" value="Cache: none | Timeout: 5-10s | Mainnet-beta on-chain data" />
+        <TableRow label="Moltbook" value="Cache: none | Timeout: 10-20s | Agent registry and swarm coordination" />
       </div>
       <SubHeading>Fallback Strategy</SubHeading>
       <P>
-        Every data feed has a graceful degradation path. If DexScreener is down, Trend Puncher serves the last cached result. If DeFi Llama is unavailable, Ape Vault retains its existing pool data. If an RPC call times out, Rug Buster reports the timeout explicitly rather than generating a false safety score.
+        Every data feed has a graceful degradation path. If a feed is down, the agent serves the last cached result. If a data source is unavailable, the agent retains its existing data. If an RPC call times out, Rug Buster reports the timeout explicitly rather than generating a false safety score.
       </P>
       <InfoBox type="tip">
         Data feeds are designed to be transparent. Every agent scan shows its data source in the response header. The system never fabricates data — if a source is unavailable, it tells you.
@@ -822,7 +822,7 @@ function SecurityModelSection() {
       <div className="border-4 border-foreground/15 bg-black/50 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] mb-4">
         <TableRow label="Private Key Exposure" value="MITIGATED — Keys never leave Phantom wallet. Server constructs unsigned transactions only." />
         <TableRow label="Transaction Tampering" value="MITIGATED — Phantom displays full transaction details before signing. User verifies recipient and amount." />
-        <TableRow label="Data Feed Poisoning" value="MITIGATED — Multi-source cross-validation. DexScreener data verified against CoinGecko. Anomalies flagged." />
+        <TableRow label="Data Feed Poisoning" value="MITIGATED — Multi-source cross-validation. Market data verified across multiple feeds. Anomalies flagged." />
         <TableRow label="AI Hallucination" value="MITIGATED — All AI analysis is grounded in real data passed as context. No agent generates data it didn't receive." />
         <TableRow label="RPC Manipulation" value="MONITORED — Solana public RPC results are verifiable against block explorers. Critical data cross-checked." />
       </div>
@@ -888,7 +888,7 @@ function RoadmapSection() {
             color: "text-green-400 border-green-500/50",
             items: [
               "Core 7-agent swarm deployment",
-              "Real data feeds (DexScreener, CoinGecko, DeFi Llama, Solana RPC, GitHub, Polymarket, Moltbook)",
+              "Real data feeds (proprietary market engine, Solana RPC, code analyzer, Moltbook)",
               "Phantom wallet integration for on-chain SOL transfers",
               "Prediction markets with real-price auto-resolution",
               "x402 micropayment framework",
@@ -901,7 +901,7 @@ function RoadmapSection() {
             status: "IN PROGRESS",
             color: "text-yellow-400 border-yellow-500/50",
             items: [
-              "Banana Cannon — AI-powered token launcher via Pump Portal API",
+              "Banana Cannon — AI-powered token launcher for Solana",
               "Multi-wallet support (Solflare, Backpack)",
               "SPL token transfers (USDC, BONK, etc.) via Banana Bot",
               "Advanced position tracking with P&L visualization",

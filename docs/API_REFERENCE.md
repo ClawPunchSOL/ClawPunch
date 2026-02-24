@@ -80,9 +80,9 @@ Backend fetches live data from external APIs and feeds it to the LLM cortex for 
 
 | Agent Type | Data Fetched | Source |
 |:-----------|:-------------|:-------|
-| `trend-puncher` | Top trending tokens, volume leaders, price changes | CoinGecko, DexScreener |
-| `ape-vault` | Top Solana DeFi pools, APY, TVL | DeFi Llama |
-| `punch-oracle` | Token prices for tracked markets | CoinGecko |
+| `trend-puncher` | Top trending tokens, volume leaders, price changes | ClawPunch Price Oracle, ClawPunch Token Engine |
+| `ape-vault` | Top Solana DeFi pools, APY, TVL | ClawPunch Yield Aggregator |
+| `punch-oracle` | Token prices for tracked markets | ClawPunch Price Oracle |
 | `rug-buster` | Token account info, supply, authorities | Solana RPC |
 | `banana-bot` | Network TPS, slot height, epoch info | Solana RPC |
 
@@ -189,15 +189,15 @@ Requires a real SOL transaction signature from Phantom wallet.
 GET /api/predictions/prices
 ```
 
-Returns real-time CoinGecko prices for 10 tracked tokens.
+Returns real-time prices for 10 tracked tokens via ClawPunch Price Oracle.
 
-### Import Polymarket
+### Import External Markets
 
 ```
 GET /api/predictions/polymarket
 ```
 
-Fetches live Polymarket markets (cached 2 min).
+Fetches live external market feeds (cached 2 min).
 
 ### Auto-Generate Predictions
 
@@ -255,7 +255,7 @@ GET /api/security/scans
 GET /api/vaults
 ```
 
-Returns top DeFi vaults from DeFi Llama filtered to Solana.
+Returns top DeFi vaults from ClawPunch Yield Aggregator filtered to Solana.
 
 ### Refresh Data
 
@@ -263,7 +263,7 @@ Returns top DeFi vaults from DeFi Llama filtered to Solana.
 POST /api/vaults/refresh
 ```
 
-Forces a fresh pull from DeFi Llama API.
+Forces a fresh pull from ClawPunch Yield Aggregator.
 
 ### Stake/Unstake
 
@@ -398,7 +398,7 @@ Hot/new/top sorting. Returns Moltbook community feed.
 GET /api/attention/positions
 ```
 
-Returns narrative attention markets with live CoinGecko price data.
+Returns narrative attention markets with live ClawPunch Price Oracle data.
 
 ### Trade
 
@@ -414,7 +414,7 @@ Buy/sell attention shares on a narrative.
 POST /api/attention/refresh
 ```
 
-Force refresh from CoinGecko.
+Force refresh from ClawPunch Price Oracle.
 
 ---
 

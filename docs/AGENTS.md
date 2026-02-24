@@ -13,13 +13,13 @@ The foundational financial primitive of ClawPunch. Banana Bot serves as a hyper-
 | Property | Value |
 |:---------|:------|
 | Agent ID | `banana-bot` |
-| Data Source | Solana RPC, Jupiter Aggregator API |
+| Data Source | Solana RPC, ClawPunch routing engine |
 | Protocol | x402 state channels |
 
 **Capabilities:**
 
 - **Natural Language Processing** — Instead of navigating complex DEX UIs, users instruct via plain English: *"Swap 2 SOL for exactly 300 USDC, use max 1% slippage and route through Orca."*
-- **Jupiter API Integration** — Parses queries using Named Entity Recognition (NER), queries the Jupiter Aggregator (`quote` and `swap` endpoints), and evaluates dozens of liquidity pools for optimal routing with lowest price impact
+- **Optimal Routing** — Parses queries using Named Entity Recognition (NER), queries the ClawPunch routing engine (`quote` and `swap` endpoints), and evaluates dozens of liquidity pools for optimal routing with lowest price impact
 - **x402 Integration** — For USDC micropayments, routes through x402 protocol, abstracting gas fees with near-instant settlement
 - **Non-Custodial Signing** — Returns base64-encoded, serialized transaction buffers ready for Phantom wallet signature
 
@@ -55,14 +55,14 @@ A high-frequency sentiment analysis engine designed to identify micro-trends bef
 | Property | Value |
 |:---------|:------|
 | Agent ID | `trend-puncher` |
-| Data Source | CoinGecko, DexScreener |
+| Data Source | ClawPunch Price Oracle, ClawPunch Token Engine |
 | Endpoint | `GET /api/attention/positions` |
 
 **Capabilities:**
 
 - **Social Ingestion Firehose** — Ingests unstructured data from Twitter APIs, Telegram alpha groups, and Discord whale channels
 - **NLP Pipeline** — Real-time sentiment analysis using VADER and custom BERT-based models fine-tuned on crypto slang, ticker mentions, and cashtag velocity
-- **Volume Delta Correlation** — Correlates social sentiment spikes with on-chain volume anomalies using DexScreener websockets. Identifies divergences — high social velocity preceding high volume
+- **Volume Delta Correlation** — Correlates social sentiment spikes with on-chain volume anomalies using ClawPunch Token Engine websockets. Identifies divergences — high social velocity preceding high volume
 - **Actionable Alerts** — *"Macaque meta is trending. +400% mention volume in 5m. Associated ticker: $MONK. Queue swap?"*
 
 ---
@@ -101,13 +101,13 @@ Connects the Monkey OS environment to real-world data and decentralized predicti
 | Property | Value |
 |:---------|:------|
 | Agent ID | `punch-oracle` |
-| Data Source | CoinGecko, Pyth Network, Switchboard |
+| Data Source | ClawPunch Price Oracle, decentralized oracle networks |
 | Endpoints | `GET/POST /api/predictions` |
 
 **Capabilities:**
 
 - **Event Staking** — Stake USDC on binary or scalar outcomes: *"Will Solana TPS drop below 1000 today?"*, *"Will $ClawPunch break $0.05 by Friday?"*
-- **Oracle Aggregation** — Aggregates data feeds from Pyth Network and Switchboard using a mathematical medianizer function for tamper-proof truth determination
+- **Oracle Aggregation** — Aggregates data feeds from decentralized oracle networks using a mathematical medianizer function for tamper-proof truth determination
 - **Atomic Settlement** — Escrow Program automatically distributes the staked USDC pool to winning addresses upon oracle consensus
 - **Protocol Fee** — 1% fee routed directly to The Sanctuary conservation fund
 
@@ -122,7 +122,7 @@ Replaces emotional, discretionary trading with cold, algorithmic, condition-base
 | Property | Value |
 |:---------|:------|
 | Agent ID | `vault-swinger` |
-| Data Source | DeFi Llama API |
+| Data Source | ClawPunch Yield Aggregator |
 | Endpoint | `GET /api/vaults` |
 
 **Capabilities:**
@@ -159,18 +159,18 @@ Intelligence agent that monitors GitHub repositories and developer activity to d
 
 **Token Launcher**
 
-Handles token creation and deployment on pump.fun via the Pump Portal API.
+Handles token creation and deployment on Solana via the ClawPunch deployment pipeline.
 
 | Property | Value |
 |:---------|:------|
 | Agent ID | `banana-cannon` |
-| Data Source | Pump Portal API |
+| Data Source | ClawPunch deployment pipeline |
 | Endpoints | `POST /api/token-launches`, `POST /api/token-launches/generate` |
 
 **Capabilities:**
 
-- **Token Creation** — Deploy new tokens on pump.fun with custom name, symbol, and description
+- **Token Creation** — Deploy new tokens on Solana with custom name, symbol, and description
 - **AI Concept Generation** — Generate creative token concepts, branding, and tokenomics configurations
 - **Dev Buy Allocation** — Configure initial dev buy amounts for launch liquidity
-- **Launch Tracking** — Full history of launched tokens with mint addresses, tx signatures, and pump.fun URLs
+- **Launch Tracking** — Full history of launched tokens with mint addresses, tx signatures, and deployment URLs
 - **Risk Disclosure** — Automated warnings about token launch responsibilities and regulatory considerations

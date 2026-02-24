@@ -616,7 +616,7 @@ export async function registerRoutes(
       const tokenIds = Object.keys(PREDICTION_TOKENS);
       const prices = await fetchPredictionPrices(tokenIds);
       if (Object.keys(prices).length === 0) {
-        return res.status(503).json({ error: "Could not fetch market data from CoinGecko" });
+        return res.status(503).json({ error: "Could not fetch market data" });
       }
 
       const existing = await storage.getAllPredictions();
@@ -713,7 +713,7 @@ export async function registerRoutes(
       );
       clearTimeout(timer);
 
-      if (!pmRes.ok) return res.status(502).json({ error: "Polymarket API unavailable" });
+      if (!pmRes.ok) return res.status(502).json({ error: "Market feed unavailable" });
       const raw: any[] = await pmRes.json();
 
       const markets = raw
@@ -743,7 +743,7 @@ export async function registerRoutes(
       res.json(markets);
     } catch (error: any) {
       if (polymarketCache.data.length > 0) return res.json(polymarketCache.data);
-      res.status(500).json({ error: "Failed to fetch Polymarket data" });
+      res.status(500).json({ error: "Failed to fetch market data" });
     }
   });
 
@@ -1239,7 +1239,7 @@ export async function registerRoutes(
     }
   });
 
-  // === TREND PUNCHER — Real DexScreener Trending + CoinGecko Trending ===
+  // === TREND PUNCHER — Real Trending Data ===
 
   interface TrendingToken {
     address: string;
@@ -1344,7 +1344,7 @@ export async function registerRoutes(
         signal: controller.signal, headers: { 'Accept': 'application/json' }
       });
       clearTimeout(timer);
-      if (!cgRes.ok) return res.status(502).json({ error: "CoinGecko unavailable" });
+      if (!cgRes.ok) return res.status(502).json({ error: "Trending feed unavailable" });
       const data = await cgRes.json();
       const coins = (data.coins || []).slice(0, 10).map((c: any) => ({
         id: c.item.id,
@@ -1423,7 +1423,7 @@ export async function registerRoutes(
     }
   });
 
-  // === VAULT POSITIONS (Ape Vault) — Real DeFi Llama Data ===
+  // === VAULT POSITIONS (Ape Vault) — Real Yield Data ===
   const DEFI_LLAMA_POOLS_URL = "https://yields.llama.fi/pools";
   const VAULT_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
   let lastVaultRefresh = 0;
@@ -1549,7 +1549,7 @@ export async function registerRoutes(
     try {
       await ensureVaultsLoaded();
       const vaults = await storage.getAllVaultPositions();
-      res.json({ vaults, lastRefresh: lastVaultRefresh, source: "defillama" });
+      res.json({ vaults, lastRefresh: lastVaultRefresh, source: "clawpunch" });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vaults" });
     }
@@ -1560,7 +1560,7 @@ export async function registerRoutes(
       lastVaultRefresh = 0;
       await refreshVaultsFromDefiLlama();
       const vaults = await storage.getAllVaultPositions();
-      res.json({ vaults, lastRefresh: lastVaultRefresh, source: "defillama" });
+      res.json({ vaults, lastRefresh: lastVaultRefresh, source: "clawpunch" });
     } catch (error: any) {
       res.status(500).json({ error: `Failed to refresh: ${error?.message}` });
     }
@@ -1625,7 +1625,7 @@ export async function registerRoutes(
             })),
             globalTrending: globalTrends,
           },
-          source: "DexScreener + CoinGecko",
+          source: "ClawPunch Market Engine",
         };
       }
       case "ape-vault": {
@@ -1635,7 +1635,7 @@ export async function registerRoutes(
             name: p.vaultName, protocol: p.protocol, token: p.token,
             apy: p.apy, tvl: p.tvl,
           })),
-          source: "DeFi Llama Yields API",
+          source: "ClawPunch Yield Aggregator",
         };
       }
       case "punch-oracle": {
@@ -1658,7 +1658,7 @@ export async function registerRoutes(
               token: PREDICTION_TOKENS[id] || id, price: d.usd, change24h: d.usd_24h_change,
             })),
           },
-          source: "CoinGecko + Local Markets",
+          source: "ClawPunch Price Oracle",
         };
       }
       case "rug-buster": {
@@ -1731,7 +1731,7 @@ export async function registerRoutes(
       res.write(`data: ${JSON.stringify({ source, status: "analyzing" })}\n\n`);
 
       const prompts: Record<string, string> = {
-        "trend-puncher": `You are TREND PUNCHER — an elite Solana alpha scanner inside MonkeyOS. I just pulled LIVE data from DexScreener and CoinGecko for you. Analyze it and give me your intel report.
+        "trend-puncher": `You are TREND PUNCHER — an elite Solana alpha scanner inside MonkeyOS. I just pulled LIVE market data for you. Analyze it and give me your intel report.
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 🔥 TOP PICKS (tokens worth watching):
@@ -1747,10 +1747,10 @@ FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 💡 ALPHA CALL:
 - Your single best actionable take right now. Be specific. Name the ticker.
 
-LIVE DATA FROM DEXSCREENER + COINGECKO:
+LIVE MARKET DATA:
 ${JSON.stringify(data, null, 2)}`,
 
-        "ape-vault": `You are APE VAULT — a DeFi yield strategist inside MonkeyOS. I just pulled LIVE yield data from DeFi Llama's Solana pools. Analyze it and give me your strategy.
+        "ape-vault": `You are APE VAULT — a DeFi yield strategist inside MonkeyOS. I just pulled LIVE yield data from Solana DeFi pools. Analyze it and give me your strategy.
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 💰 BEST YIELDS RIGHT NOW:
@@ -1766,7 +1766,7 @@ FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 📋 RECOMMENDED ALLOCATION (for 10 SOL):
 - Specific split across 2-4 protocols with amounts and reasoning
 
-LIVE DATA FROM DEFI LLAMA:
+LIVE YIELD DATA:
 ${JSON.stringify(data, null, 2)}`,
 
         "punch-oracle": `You are PUNCH ORACLE — a prediction market analyst inside MonkeyOS. I just pulled live market data and active predictions. Analyze them and find edge.
@@ -1860,7 +1860,7 @@ ${JSON.stringify(data, null, 2)}`,
     }
   });
 
-  // === BANANA CANNON — Token Launcher via Pump Portal ===
+  // === BANANA CANNON — Token Launcher ===
 
   app.get("/api/token-launches", async (_req, res) => {
     try {

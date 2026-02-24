@@ -55,8 +55,8 @@ The protocol employs **Strict Client-Side Execution (SCE)** to eliminate central
 │                         │                                             │
 │  ┌──────────────────────┴────────────────────────────┐               │
 │  │             Multi-Source Data Layer                 │               │
-│  │   DeFi Llama · CoinGecko · DexScreener ·          │               │
-│  │   Solana RPC · GitHub Events API · Pump Portal    │               │
+│  │   ClawPunch Yield Aggregator · Price Oracle ·      │               │
+│  │   Token Engine · Solana RPC · GitHub Events API   │               │
 │  └───────────────────────────────────────────────────┘               │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -117,14 +117,14 @@ ClawPunch ships with 8 native utility agents, each running as an isolated proces
 
 | Agent | Role | Data Source | Key Capabilities |
 |:------|:-----|:------------|:-----------------|
-| **Banana Bot** | Cross-Chain Payments & Wallet Core | Solana RPC, Jupiter API | NLP-driven transfers, x402 micropayments, optimal routing via Jupiter Aggregator |
+| **Banana Bot** | Cross-Chain Payments & Wallet Core | Solana RPC, ClawPunch routing engine | NLP-driven transfers, x402 micropayments, optimal routing |
 | **Swarm Monkey** | Moltbook Orchestration Interface | Moltbook Network | Agent provisioning, swarm analytics, Attention Score dashboards, relayer health |
-| **Trend Puncher** | Momentum & Narrative Sniper | CoinGecko, DexScreener | Social ingestion firehose, VADER/BERT sentiment, volume delta correlation |
+| **Trend Puncher** | Momentum & Narrative Sniper | ClawPunch Price Oracle, ClawPunch Token Engine | Social ingestion firehose, VADER/BERT sentiment, volume delta correlation |
 | **Rug Buster** | Solana-Native Rug-Pull Detection | Solana RPC | Dynamic bytecode analysis, x402 micropayment triggers, Safety Score (0-100) |
-| **Punch Oracle** | Decentralized Prediction Markets | CoinGecko, Pyth Network | Event staking (USDC), oracle aggregation (Pyth + Switchboard), atomic settlement |
-| **Ape Vault** | Automated DCA & Portfolio Rebalancing | DeFi Llama | Conditional logic execution, Moltbook relayer cron, auto-staking (JitoSOL/mSOL) |
+| **Punch Oracle** | Decentralized Prediction Markets | ClawPunch Price Oracle, decentralized oracle networks | Event staking (USDC), oracle aggregation, atomic settlement |
+| **Ape Vault** | Automated DCA & Portfolio Rebalancing | ClawPunch Yield Aggregator | Conditional logic execution, Moltbook relayer cron, auto-staking (JitoSOL/mSOL) |
 | **Repo Ape** | GitHub Alpha Scanner | GitHub Events API | Commit firehose ingestion, heuristic code analysis, developer graph mapping |
-| **Banana Cannon** | Token Launcher | Pump Portal API | Token creation on pump.fun, tokenomics config, dev buy allocation |
+| **Banana Cannon** | Token Launcher | ClawPunch deployment pipeline | Token creation on Solana, tokenomics config, dev buy allocation |
 
 ### Rug Buster Verification Matrix
 
@@ -174,7 +174,6 @@ npm run dev               # start on :5000
 ```bash
 DATABASE_URL=postgresql://...        # PostgreSQL connection
 ANTHROPIC_API_KEY=sk-ant-...         # LLM Cortex
-COINGECKO_API_KEY=CG-...             # Market data (optional, rate-limited without)
 GITHUB_TOKEN=ghp_...                 # Repo Ape agent (optional)
 SOLANA_RPC_URL=https://...           # Custom RPC endpoint (optional)
 ```
@@ -277,7 +276,7 @@ ClawPunch/
 | **Frontend** | React 18, Vite 5, TailwindCSS, Framer Motion |
 | **Backend** | Express.js, Drizzle ORM, PostgreSQL |
 | **Blockchain** | @solana/web3.js, Phantom Provider API |
-| **Data** | DeFi Llama, CoinGecko, DexScreener, GitHub Events, Pump Portal |
+| **Data** | ClawPunch Yield Aggregator, Price Oracle, Token Engine, GitHub Events, Solana RPC |
 | **Protocol** | x402 State Channels, Moltbook Swarm, zk-SNARK Rollups |
 
 ## The Sanctuary

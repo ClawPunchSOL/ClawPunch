@@ -112,7 +112,7 @@ export default function ApeVaultPanel({ onSendChat }: { onSendChat: (msg: string
           <span className="text-lg">🦍</span>
           <Cpu className="w-4 h-4 text-orange-400" />
           <span className="font-display text-[11px] text-orange-400 drop-shadow-[2px_2px_0px_#000]">SOLANA DEFI VAULTS</span>
-          <span className="text-[8px] text-muted-foreground/60 font-mono border border-foreground/10 px-1">DeFi Llama</span>
+          <span className="text-[8px] text-muted-foreground/60 font-mono border border-foreground/10 px-1">LIVE</span>
         </div>
         <div className="flex items-center gap-2">
           <button

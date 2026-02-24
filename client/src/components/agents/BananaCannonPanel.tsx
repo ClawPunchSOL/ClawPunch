@@ -112,7 +112,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
       }
 
       setLaunches(prev => [launch, ...prev]);
-      onSendChat(`Token launched: ${tokenSymbol} — ${tokenName}. ${launch.mintAddress ? `Mint: ${launch.mintAddress}` : 'Check Pump Portal to complete.'}`);
+      onSendChat(`Token launched: ${tokenSymbol} — ${tokenName}. ${launch.mintAddress ? `Mint: ${launch.mintAddress}` : 'Finalizing deployment...'}`);
       setTokenName("");
       setTokenSymbol("");
       setDescription("");
