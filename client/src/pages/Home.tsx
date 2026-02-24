@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
-import { ArrowRight, CircleDollarSign, Terminal, Zap, Users, Shield, Cpu, ShieldAlert, FileCode } from "lucide-react";
+import { ArrowRight, CircleDollarSign, Terminal, Zap, Users, Shield, Cpu, ShieldAlert, FileCode, Rocket } from "lucide-react";
 
 // Asset imports
 import bgJungle from "@/assets/images/bg-jungle.png";
@@ -309,7 +309,8 @@ export default function Home() {
                   { icon: <Zap />, name: 'Trend Puncher', desc: 'Attention market trading assistant. Punch the trend and earn.' },
                   { icon: <Cpu />, name: 'Vault Swinger', desc: 'Yield farming + agent treasury manager. Swing vines to farm APY boosts.' },
                   { icon: <ShieldAlert />, name: 'Rug Buster', desc: 'Solana-native rug-pull detection. Risk assessment via on-chain contract analysis.' },
-                  { icon: <FileCode />, name: 'Repo Ape', desc: 'GitHub scanner for AI/LARP scoring. Evaluation through code and commit proofs.' }
+                  { icon: <FileCode />, name: 'Repo Ape', desc: 'GitHub scanner for AI/LARP scoring. Evaluation through code and commit proofs.' },
+                  { icon: <Rocket />, name: 'Banana Cannon', desc: 'AI-powered token launcher via Pump Portal. Generate concepts and deploy tokens on Solana.' }
                 ].map((agent, i) => (
                   <div key={i} className="retro-container p-6 bg-black/60 backdrop-blur-sm hover:-translate-y-2 transition-transform">
                     <div className="text-primary mb-4 w-10 h-10">{agent.icon}</div>
