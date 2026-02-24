@@ -20,7 +20,7 @@ vite.config.ts.*
 Thumbs.db
 Desktop.ini
 
-# Replit
+# Config
 .replit
 replit.md
 .local/
