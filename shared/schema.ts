@@ -31,6 +31,7 @@ export const sanctuaryPixels = pgTable("sanctuary_pixels", {
   color: text("color").notNull().default("#FFD700"),
   message: text("message"),
   imageUrl: text("image_url"),
+  groupId: text("group_id"),
   walletAddress: text("wallet_address"),
   txSignature: text("tx_signature"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),

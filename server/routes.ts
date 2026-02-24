@@ -299,6 +299,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid transaction signature" });
       }
 
+      const groupId = imageUrl && availableIndices.length > 1
+        ? `g_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        : null;
+
       const claimed: any[] = [];
       for (const plotIndex of availableIndices) {
         const pixel = await storage.claimSanctuaryPixel({
@@ -306,6 +310,7 @@ export async function registerRoutes(
           ownerName: ownerName.trim(),
           color: color || "#FFD700",
           imageUrl: imageUrl || null,
+          groupId,
           walletAddress,
           txSignature,
         });

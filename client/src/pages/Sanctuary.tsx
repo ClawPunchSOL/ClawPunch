@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, ZoomIn, ZoomOut, Move, Info, X, Map, Upload, Wallet, ImageIcon } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -33,10 +33,34 @@ export default function Sanctuary() {
     },
   });
 
-  const purchasedPlots: Record<number, { color: string; name: string; imageUrl?: string | null }> = {};
+  const purchasedPlots: Record<number, { color: string; name: string; imageUrl?: string | null; groupId?: string | null }> = {};
   for (const pixel of pixels) {
-    purchasedPlots[pixel.plotIndex] = { color: pixel.color, name: pixel.ownerName, imageUrl: pixel.imageUrl };
+    purchasedPlots[pixel.plotIndex] = { color: pixel.color, name: pixel.ownerName, imageUrl: pixel.imageUrl, groupId: pixel.groupId };
   }
+
+  const imageGroups = useMemo(() => {
+    const groups: Record<string, { imageUrl: string; indices: number[] }> = {};
+    for (const pixel of pixels) {
+      if (!pixel.imageUrl) continue;
+      const key = pixel.groupId || `solo_${pixel.plotIndex}`;
+      if (!groups[key]) groups[key] = { imageUrl: pixel.imageUrl, indices: [] };
+      groups[key].indices.push(pixel.plotIndex);
+    }
+    return Object.values(groups).map(g => {
+      const rows = g.indices.map(toRow);
+      const cols = g.indices.map(toCol);
+      const minRow = Math.min(...rows), maxRow = Math.max(...rows);
+      const minCol = Math.min(...cols), maxCol = Math.max(...cols);
+      const cellPct = 100 / GRID_SIZE;
+      return {
+        imageUrl: g.imageUrl,
+        top: `${minRow * cellPct}%`,
+        left: `${minCol * cellPct}%`,
+        width: `${(maxCol - minCol + 1) * cellPct}%`,
+        height: `${(maxRow - minRow + 1) * cellPct}%`,
+      };
+    });
+  }, [pixels]);
 
   const totalDonated = pixels.length;
 
@@ -465,6 +489,16 @@ export default function Sanctuary() {
                   }}
                   onMouseLeave={() => { if (isDragging) handleMouseUp(); }}
                 >
+                  {imageGroups.map((g, idx) => (
+                    <img
+                      key={`group-${idx}`}
+                      src={g.imageUrl}
+                      alt=""
+                      className="absolute object-cover pixel-art-rendering pointer-events-none"
+                      style={{ top: g.top, left: g.left, width: g.width, height: g.height, zIndex: 5 }}
+                      draggable={false}
+                    />
+                  ))}
                   {Array.from({ length: TOTAL_PLOTS }).map((_, i) => {
                     const isPurchased = purchasedPlots[i];
                     const isInSelection = activeSelection.has(i);
@@ -489,14 +523,6 @@ export default function Sanctuary() {
                           borderColor: isPurchased && !isInSelection ? isPurchased.color : undefined,
                         }}
                       >
-                        {isPurchased?.imageUrl && (
-                          <img 
-                            src={isPurchased.imageUrl} 
-                            alt="" 
-                            className="absolute inset-0 w-full h-full object-cover pixel-art-rendering" 
-                            draggable={false}
-                          />
-                        )}
                       </div>
                     );
                   })}
