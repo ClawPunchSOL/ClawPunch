@@ -484,15 +484,18 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col md:flex-row gap-4 w-full justify-center mt-4">
-                <a href="#" className="retro-button bg-[#1DA1F2] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#1DA1F2] flex-1">
-                  TWITTER
+                <a href="https://x.com/ClawPunchSOL" target="_blank" rel="noopener noreferrer" data-testid="link-twitter" className="retro-button bg-[#1DA1F2] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#1DA1F2] flex-1">
+                  X / TWITTER
                 </a>
-                <a href="#" className="retro-button bg-[#0088cc] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#0088cc] flex-1">
+                <a href="https://t.me/ClawPunchPortal" target="_blank" rel="noopener noreferrer" data-testid="link-telegram" className="retro-button bg-[#0088cc] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#0088cc] flex-1">
                   TELEGRAM
                 </a>
-                <button onClick={() => setLocation('/docs')} className="retro-button bg-card text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-black flex-1 border-2 border-border">
+                <a href="https://github.com/ClawPunchSOL" target="_blank" rel="noopener noreferrer" data-testid="link-github" className="retro-button bg-[#333] text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-[#333] flex-1">
+                  GITHUB
+                </a>
+                <a href="https://clawpunch.gitbook.io/docs/" target="_blank" rel="noopener noreferrer" data-testid="link-gitbook" className="retro-button bg-card text-white py-4 px-6 flex justify-center text-lg hover:bg-white hover:text-black flex-1 border-2 border-border">
                   GITBOOK
-                </button>
+                </a>
               </div>
 
               <div className="mt-8 text-center text-muted-foreground/50 font-sans text-sm">
