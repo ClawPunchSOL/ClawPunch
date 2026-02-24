@@ -21,9 +21,7 @@ Thumbs.db
 Desktop.ini
 
 # Config
-.replit
-replit.md
+.config/
 .local/
 .cache/
-.config/
 *.nix
