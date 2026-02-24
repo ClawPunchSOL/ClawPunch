@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useWalletState } from "@/components/WalletButton";
-import { sendSolTransfer } from "@/lib/solanaWallet";
+import { signAndSendSerializedTransaction } from "@/lib/solanaWallet";
 import { CircleDollarSign, Send, Loader2, ArrowUpRight, Wallet, ExternalLink, AlertTriangle } from "lucide-react";
 
 interface Transaction {
@@ -33,7 +33,6 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
   }, []);
 
   const totalSent = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-  const isRealTx = wallet.connected && wallet.publicKey && isValidSolanaAddress(recipient.trim()) && token === "SOL";
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,35 +47,52 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
         return;
       }
 
-      if (isRealTx) {
-        const signature = await sendSolTransfer(recipient.trim(), parsedAmount);
+      if (!wallet.connected || !wallet.publicKey) {
+        setError("Connect your Phantom wallet to send real transactions");
+        return;
+      }
+      if (!isValidSolanaAddress(recipient.trim())) {
+        setError("Enter a valid Solana wallet address");
+        return;
+      }
 
-        const res = await fetch("/api/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipient: recipient.trim(),
-            amount: parsedAmount,
-            token: "SOL",
-            txHash: signature,
-            fromWallet: wallet.publicKey,
-          }),
-        });
-        if (res.ok) {
-          const tx = await res.json();
-          setTransactions(prev => [tx, ...prev]);
-          onSendChat(`Sent ${parsedAmount} SOL to ${recipient.trim()} on-chain. Tx: ${signature}`);
-          setRecipient("");
-          setAmount("");
-        }
-      } else {
-        setError(
-          !wallet.connected
-            ? "Connect your Phantom wallet to send real transactions"
-            : !isValidSolanaAddress(recipient.trim())
-            ? "Enter a valid Solana wallet address"
-            : "Only SOL transfers supported for on-chain transactions"
-        );
+      const buildRes = await fetch("/api/transactions/build", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: recipient.trim(),
+          amount: parsedAmount,
+          token,
+          fromWallet: wallet.publicKey,
+        }),
+      });
+
+      if (!buildRes.ok) {
+        const errData = await buildRes.json();
+        setError(errData.error || "Failed to build transaction");
+        return;
+      }
+
+      const { serializedTransaction } = await buildRes.json();
+      const signature = await signAndSendSerializedTransaction(serializedTransaction);
+
+      const storeRes = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: recipient.trim(),
+          amount: parsedAmount,
+          token,
+          txHash: signature,
+          fromWallet: wallet.publicKey,
+        }),
+      });
+      if (storeRes.ok) {
+        const tx = await storeRes.json();
+        setTransactions(prev => [tx, ...prev]);
+        onSendChat(`Sent ${parsedAmount} ${token} to ${recipient.trim()} on-chain. Tx: ${signature}`);
+        setRecipient("");
+        setAmount("");
       }
     } catch (err: any) {
       const msg = err?.message || "Transaction failed";
@@ -99,7 +115,7 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
         <div className="flex items-center gap-2">
           <span className="text-lg">🍌</span>
           <CircleDollarSign className="w-4 h-4 text-green-400" />
-          <span className="font-display text-[11px] text-green-400 drop-shadow-[2px_2px_0px_#000]">SOL TRANSFER</span>
+          <span className="font-display text-[11px] text-green-400 drop-shadow-[2px_2px_0px_#000]">SOLANA TRANSFER</span>
           <span className="text-[10px] text-green-400 font-display border-2 border-green-500/30 px-1.5 bg-green-500/10">{transactions.length} TXS</span>
         </div>
         {totalSent > 0 && (
@@ -129,7 +145,7 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
       <form onSubmit={handleSend} className="p-3 border-4 border-green-500/30 bg-black/60 backdrop-blur-sm space-y-2 shadow-[4px_4px_0px_rgba(0,0,0,0.6)]">
         <div className="flex items-center gap-1 mb-1">
           <span className="text-xs">🍌</span>
-          <span className="font-display text-[9px] text-green-400 drop-shadow-[1px_1px_0px_#000]">SEND BANANAS (SOL)</span>
+          <span className="font-display text-[9px] text-green-400 drop-shadow-[1px_1px_0px_#000]">SEND {token} ON-CHAIN</span>
         </div>
         <input
           value={recipient}
@@ -142,16 +158,22 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
           <input
             value={amount}
             onChange={e => { setAmount(e.target.value); setError(null); }}
-            placeholder="Amount in SOL"
+            placeholder={`Amount in ${token}`}
             type="number"
             step="0.0001"
             min="0"
             data-testid="input-amount"
             className="flex-1 bg-black/60 border-4 border-foreground/20 text-white px-3 py-2 text-sm focus:outline-none focus:border-green-500 placeholder:text-muted-foreground/50 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]"
           />
-          <div className="bg-black/60 border-4 border-green-500/50 text-green-400 px-3 py-2 text-sm font-display flex items-center shadow-[2px_2px_0px_rgba(0,0,0,0.4)]">
-            SOL
-          </div>
+          <select
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            data-testid="select-token"
+            className="bg-black/60 border-4 border-green-500/50 text-green-400 px-3 py-2 text-sm font-display shadow-[2px_2px_0px_rgba(0,0,0,0.4)] cursor-pointer focus:outline-none"
+          >
+            <option value="SOL">SOL</option>
+            <option value="USDC">USDC</option>
+          </select>
         </div>
         {recipient.trim() && !isValidSolanaAddress(recipient.trim()) && (
           <div className="text-[9px] text-yellow-400 font-display flex items-center gap-1 border-2 border-yellow-500/30 px-2 py-1 bg-yellow-500/10">
@@ -172,7 +194,7 @@ export default function BananaBotPanel({ onSendChat }: { onSendChat: (msg: strin
           {sending ? (
             <><Loader2 className="w-3 h-3 animate-spin" /> SIGNING WITH PHANTOM...</>
           ) : (
-            <><Send className="w-3 h-3" /> SEND SOL ON-CHAIN 🍌</>
+            <><Send className="w-3 h-3" /> SEND {token} ON-CHAIN 🍌</>
           )}
         </button>
       </form>

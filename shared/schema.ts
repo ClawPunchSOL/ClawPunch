@@ -118,10 +118,11 @@ export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   recipient: text("recipient").notNull(),
   amount: real("amount").notNull(),
-  token: text("token").notNull().default("USDC"),
+  token: text("token").notNull().default("SOL"),
   status: text("status").notNull().default("confirmed"),
   txHash: text("tx_hash").notNull(),
-  protocol: text("protocol").notNull().default("x402"),
+  protocol: text("protocol").notNull().default("solana"),
+  fromWallet: text("from_wallet"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

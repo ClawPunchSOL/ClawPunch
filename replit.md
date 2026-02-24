@@ -24,7 +24,7 @@ A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents
 - Balance refreshes every 30 seconds
 - Wallet address used in prediction bets, transaction tracking, vault staking
 
-## 7 AI Utility Agents
+## 8 AI Utility Agents
 All agents are powered by Claude with AI-first scanning architecture. Each agent has:
 - **AgentScanner component** that auto-triggers on panel open, fetches live data from APIs, feeds it to Claude for analysis, and streams back curated intel reports
 - **Backend `/api/agent-scan/:agentType`** endpoint that pulls live data from external APIs AND feeds it to Claude in one shot
@@ -37,6 +37,7 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 5. **Ape Vault** - AI-first yield strategist: Claude analyzes live DeFi Llama Solana pools and recommends BEST YIELDS, SAFE PLAYS, DEGEN PLAYS, ALLOCATION STRATEGY. Raw vault data below.
 6. **Rug Buster** - AI-first security scanner: Claude analyzes real on-chain Solana RPC data and presents SECURITY SCAN, RED FLAGS, POSITIVE SIGNALS, FINAL VERDICT + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat
+8. **Banana Cannon** - Token launcher via Pump Portal API + AI concept generation + launch history
 
 ## API Routes
 ### Chat
@@ -71,7 +72,12 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - `POST /api/security/scan` - AI-powered contract security scan (SSE)
 - `GET /api/repos/scans` - List repo scan history
 - `POST /api/repos/scan` - AI-powered repo legitimacy scan (SSE)
-- `GET/POST /api/transactions` - List/create x402 transactions (Banana Bot)
+- `GET/POST /api/transactions` - List/create SOL transactions (Banana Bot)
+- `POST /api/transactions/build` - Build serialized Solana tx for Phantom signing
+- `GET /api/token-launches` - List token launches (Banana Cannon)
+- `POST /api/token-launches` - Create token launch
+- `POST /api/token-launches/generate` - AI-generate token concept
+- `PATCH /api/token-launches/:id` - Update launch status
 - `GET /api/predictions/prices` - Live CoinGecko prices for 10 tracked tokens
 - `GET /api/predictions/polymarket` - Live Polymarket markets feed (cached 2min)
 - `POST /api/predictions/generate` - Auto-generate predictions from real market data
@@ -95,7 +101,8 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - `prediction_bets` - Bets on predictions (side, amount, walletAddress, txSignature)
 - `security_scans` - Contract scan results (safetyScore, mintAuth, freezeAuth, etc.)
 - `repo_scans` - Repo analysis results (legitScore, commitCount, findings, etc.)
-- `transactions` - x402 payment transactions (recipient, amount, token, txHash)
+- `transactions` - Solana transactions (recipient, amount, token, txHash, fromWallet)
+- `token_launches` - Token launches via Banana Cannon (tokenName, tokenSymbol, description, devBuyAmount, feeAmount, status, pumpUrl, mintAddress, txSignature)
 - `attention_positions` - Narrative attention markets with live CoinGecko data (narrative, shares, virality, momentum, category, coinIds, priceChange24h, volume24h, marketCap)
 - `vault_positions` - DeFi vault staking positions (vaultName, protocol, apy, tvl, stakedAmount)
 

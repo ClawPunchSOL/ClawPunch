@@ -1158,18 +1158,80 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/transactions/build", async (req, res) => {
+    try {
+      const { recipient, amount, token, fromWallet } = req.body;
+      if (!recipient || !amount || !fromWallet) {
+        return res.status(400).json({ error: "recipient, amount, and fromWallet are required" });
+      }
+
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
+
+      const { Connection, PublicKey, clusterApiUrl, LAMPORTS_PER_SOL, Transaction: SolTransaction, SystemProgram } = await import("@solana/web3.js");
+      const conn = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
+      const fromPubkey = new PublicKey(fromWallet);
+      const toPubkey = new PublicKey(recipient);
+
+      const tx = new SolTransaction();
+      tx.feePayer = fromPubkey;
+      const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+      tx.recentBlockhash = blockhash;
+
+      if (token === "USDC") {
+        const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } = await import("@solana/spl-token");
+        const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+        const USDC_DECIMALS = 6;
+
+        const fromAta = await getAssociatedTokenAddress(USDC_MINT, fromPubkey);
+        const toAta = await getAssociatedTokenAddress(USDC_MINT, toPubkey);
+
+        try {
+          await getAccount(conn, toAta);
+        } catch {
+          tx.add(
+            createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT)
+          );
+        }
+
+        tx.add(
+          createTransferInstruction(fromAta, toAta, fromPubkey, Math.round(parsedAmount * Math.pow(10, USDC_DECIMALS)))
+        );
+      } else {
+        tx.add(
+          SystemProgram.transfer({
+            fromPubkey,
+            toPubkey,
+            lamports: Math.round(parsedAmount * LAMPORTS_PER_SOL),
+          })
+        );
+      }
+
+      const serialized = tx.serialize({ requireAllSignatures: false }).toString("base64");
+      res.json({ serializedTransaction: serialized, blockhash, lastValidBlockHeight });
+    } catch (error: any) {
+      console.error("Error building transaction:", error);
+      res.status(500).json({ error: `Failed to build transaction: ${error?.message}` });
+    }
+  });
+
   app.post("/api/transactions", async (req, res) => {
     try {
       const { recipient, amount, token, txHash, fromWallet } = req.body;
-      if (!recipient || !amount) return res.status(400).json({ error: "Recipient and amount are required" });
-      const signature = txHash || `local-${Date.now().toString(36)}`;
+      if (!recipient || !amount || !txHash) {
+        return res.status(400).json({ error: "recipient, amount, and txHash are required" });
+      }
+
       const tx = await storage.createTransaction({
         recipient,
         amount: parseFloat(amount),
         token: token || "SOL",
-        status: txHash ? "confirmed" : "pending",
-        txHash: signature,
-        protocol: txHash ? "solana" : "local",
+        status: "confirmed",
+        txHash,
+        protocol: "solana",
+        fromWallet: fromWallet || null,
       });
       res.status(201).json(tx);
     } catch (error) {
@@ -1795,6 +1857,97 @@ ${JSON.stringify(data, null, 2)}`,
         res.write(`data: ${JSON.stringify({ error: "Scan interrupted" })}\n\n`);
         res.end();
       }
+    }
+  });
+
+  // === BANANA CANNON — Token Launcher via Pump Portal ===
+
+  app.get("/api/token-launches", async (_req, res) => {
+    try {
+      const launches = await storage.getAllTokenLaunches();
+      res.json(launches);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch launches" });
+    }
+  });
+
+  app.post("/api/token-launches", async (req, res) => {
+    try {
+      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress } = req.body;
+      if (!tokenName || !tokenSymbol || !description) {
+        return res.status(400).json({ error: "Token name, symbol, and description are required" });
+      }
+
+      const devBuy = parseFloat(devBuyAmount || "0");
+      const fee = 0.02;
+
+      const pumpPortalUrl = `https://pump.fun/create?name=${encodeURIComponent(tokenName)}&symbol=${encodeURIComponent(tokenSymbol)}&description=${encodeURIComponent(description)}`;
+
+      const launch = await storage.createTokenLaunch({
+        tokenName,
+        tokenSymbol: tokenSymbol.toUpperCase(),
+        description,
+        personality: "",
+        devBuyAmount: devBuy,
+        feeAmount: fee,
+        status: "launched",
+        pumpUrl: pumpPortalUrl,
+        aiPromptUsed: null,
+        imageUrl: null,
+        metadataUri: null,
+        mintAddress: null,
+        txSignature: null,
+      });
+
+      res.status(201).json({ ...launch, pumpPortalUrl });
+    } catch (error) {
+      console.error("Token launch error:", error);
+      res.status(500).json({ error: "Failed to create token launch" });
+    }
+  });
+
+  app.post("/api/token-launches/generate", async (_req, res) => {
+    try {
+      const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-5",
+        max_tokens: 256,
+        temperature: 1,
+        system: `You generate creative Solana meme token concepts. Return ONLY valid JSON with these fields:
+{
+  "tokenName": "string (creative name, 2-4 words max)",
+  "tokenSymbol": "string (3-6 chars, uppercase)",
+  "description": "string (1-2 sentences, fun and catchy, describes the token's vibe)"
+}
+Make it fun, memeable, and Solana-themed. Think like a degen who also has good taste.`,
+        messages: [{ role: "user", content: "Generate a unique Solana meme token concept. Make it creative and original." }],
+      });
+
+      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return res.status(500).json({ error: "Failed to parse AI response" });
+      }
+      const data = JSON.parse(jsonMatch[0]);
+      res.json(data);
+    } catch (error) {
+      console.error("Token generate error:", error);
+      res.status(500).json({ error: "Failed to generate token concept" });
+    }
+  });
+
+  app.patch("/api/token-launches/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { mintAddress, txSignature, status } = req.body;
+      const updated = await storage.updateTokenLaunch(id, {
+        ...(mintAddress && { mintAddress }),
+        ...(txSignature && { txSignature }),
+        ...(status && { status }),
+      });
+      if (!updated) return res.status(404).json({ error: "Launch not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update launch" });
     }
   });
 

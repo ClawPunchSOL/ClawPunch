@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Terminal, Send, LogOut, Zap, Users, CircleDollarSign, Cpu,
-  ShieldAlert, FileCode, Loader2, ArrowLeft, Wrench, Radar, X
+  ShieldAlert, FileCode, Loader2, ArrowLeft, Wrench, Radar, X, Rocket
 } from "lucide-react";
 
 import bananaBot from "@/assets/images/banana-bot.png";
@@ -26,8 +26,9 @@ import RepoApePanel from "@/components/agents/RepoApePanel";
 import BananaBotPanel from "@/components/agents/BananaBotPanel";
 import TrendPuncherPanel from "@/components/agents/TrendPuncherPanel";
 import ApeVaultPanel from "@/components/agents/ApeVaultPanel";
+import BananaCannonPanel from "@/components/agents/BananaCannonPanel";
 
-type AgentId = 'banana-bot' | 'swarm-monkey' | 'punch-oracle' | 'trend-puncher' | 'vault-swinger' | 'rug-buster' | 'repo-ape';
+type AgentId = 'banana-bot' | 'swarm-monkey' | 'punch-oracle' | 'trend-puncher' | 'vault-swinger' | 'rug-buster' | 'repo-ape' | 'banana-cannon';
 
 interface Agent {
   id: AgentId;
@@ -110,6 +111,15 @@ const AGENTS: Record<AgentId, Agent> = {
     placeholder: "Ask about Moltbook or agent swarms...",
     scannerColor: 'cyan', scannerType: 'banana-bot', scannerLabel: 'SWARM AI',
     category: 'MANAGEMENT'
+  },
+  'banana-cannon': {
+    id: 'banana-cannon', name: 'BANANA CANNON', avatar: bananaBot,
+    status: 'LOADED', statusColor: 'text-pink-400', glowColor: 'rgba(236,72,153,0.3)', borderGlow: 'border-pink-500/60',
+    icon: <Rocket className="w-5 h-5 text-pink-400" />,
+    description: 'Token Launcher', longDescription: 'Launch tokens on pump.fun via Pump Portal. AI-generated concepts, one-click deploy to Solana.',
+    placeholder: "Ask about launching tokens...",
+    scannerColor: 'pink', scannerType: 'banana-cannon', scannerLabel: 'CANNON AI',
+    category: 'DEFI'
   },
 };
 
@@ -263,6 +273,7 @@ export default function MonkeyOS() {
       case 'banana-bot': return <BananaBotPanel onSendChat={sendMessage} />;
       case 'trend-puncher': return <TrendPuncherPanel onSendChat={sendMessage} />;
       case 'vault-swinger': return <ApeVaultPanel onSendChat={sendMessage} />;
+      case 'banana-cannon': return <BananaCannonPanel />;
       default: return null;
     }
   };

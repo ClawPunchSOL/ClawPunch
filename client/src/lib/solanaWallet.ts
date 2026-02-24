@@ -140,6 +140,20 @@ export async function sendSolTransfer(recipientAddress: string, amountSol: numbe
   return signature;
 }
 
+export async function signAndSendSerializedTransaction(serializedBase64: string): Promise<string> {
+  const phantom = getPhantom();
+  if (!phantom || !walletState.connected || !walletState.publicKey) {
+    throw new Error("Wallet not connected");
+  }
+
+  const buffer = Buffer.from(serializedBase64, "base64");
+  const transaction = Transaction.from(buffer);
+
+  const { signature } = await phantom.signAndSendTransaction(transaction);
+  setTimeout(fetchBalance, 3000);
+  return signature;
+}
+
 if (typeof window !== "undefined") {
   const phantom = getPhantom();
   if (phantom?.isConnected && phantom?.publicKey) {

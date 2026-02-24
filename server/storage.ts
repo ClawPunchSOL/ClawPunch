@@ -3,7 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import {
   users, conversations, messages, sanctuaryPixels,
   moltbookAgents, agentTaskLogs, predictions, predictionBets, securityScans, repoScans,
-  transactions, attentionPositions, vaultPositions,
+  transactions, attentionPositions, vaultPositions, tokenLaunches,
   type User, type InsertUser,
   type Conversation, type InsertConversation,
   type Message, type InsertMessage,
@@ -17,6 +17,7 @@ import {
   type Transaction, type InsertTransaction,
   type AttentionPosition, type InsertAttentionPosition,
   type VaultPosition, type InsertVaultPosition,
+  type TokenLaunch, type InsertTokenLaunch,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -78,6 +79,10 @@ export interface IStorage {
   updateVaultStake(id: number, stakedAmount: number): Promise<VaultPosition | undefined>;
   updateVaultMarketData(id: number, data: Partial<VaultPosition>): Promise<VaultPosition | undefined>;
   deleteVaultPosition(id: number): Promise<void>;
+
+  getAllTokenLaunches(): Promise<TokenLaunch[]>;
+  createTokenLaunch(data: InsertTokenLaunch): Promise<TokenLaunch>;
+  updateTokenLaunch(id: number, data: Partial<TokenLaunch>): Promise<TokenLaunch | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -270,6 +275,19 @@ export class DatabaseStorage implements IStorage {
   }
   async deleteVaultPosition(id: number) {
     await db.delete(vaultPositions).where(eq(vaultPositions.id, id));
+  }
+
+  async getAllTokenLaunches() {
+    return db.select().from(tokenLaunches).orderBy(desc(tokenLaunches.createdAt));
+  }
+  async createTokenLaunch(data: InsertTokenLaunch) {
+    const [launch] = await db.insert(tokenLaunches).values(data).returning();
+    return launch;
+  }
+  async updateTokenLaunch(id: number, data: Partial<TokenLaunch>) {
+    const { id: _id, createdAt: _ca, ...updateData } = data as any;
+    const [launch] = await db.update(tokenLaunches).set(updateData).where(eq(tokenLaunches.id, id)).returning();
+    return launch;
   }
 }
 
