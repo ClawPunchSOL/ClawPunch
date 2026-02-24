@@ -482,7 +482,7 @@ export async function registerRoutes(
           "Authorization": `Bearer ${agent.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ submolt: submolt || "general", title, content }),
+        body: JSON.stringify({ submolt_name: submolt || "general", title, content }),
       });
 
       const postData = await postRes.json();
