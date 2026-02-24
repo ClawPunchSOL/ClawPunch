@@ -774,7 +774,7 @@ export async function registerRoutes(
     }
   });
 
-  const POOL_WALLET = "11111111111111111111111111111112";
+  const POOL_WALLET = "CzKwqN9CvnkKaNyhP2hLaXS1MdZWob3ejQv5HFPhx7iS";
 
   app.get("/api/predictions/pool-address", (_req, res) => {
     res.json({ address: POOL_WALLET });
