@@ -120,6 +120,7 @@ export async function registerRoutes(
 
   app.get("/api/sanctuary/pixels", async (req, res) => {
     try {
+      res.set("Cache-Control", "no-store");
       const pixels = await storage.getAllSanctuaryPixels();
       res.json(pixels);
     } catch (error) {
