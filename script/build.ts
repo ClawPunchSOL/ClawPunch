@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, copyFile } from "fs/promises";
 import { execSync } from "child_process";
 
 // server deps to bundle to reduce openat(2) syscalls
@@ -67,6 +67,13 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  console.log("copying seed data...");
+  try {
+    await copyFile("server/seed-pixels.json", "dist/seed-pixels.json");
+  } catch {
+    console.warn("no seed-pixels.json to copy");
+  }
 }
 
 buildAll().catch((err) => {
