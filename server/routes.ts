@@ -205,45 +205,65 @@ export async function registerRoutes(
   });
 
   async function verifySolanaTransaction(txSignature: string, expectedSender: string, expectedAmountUsdc: number): Promise<{ valid: boolean; error?: string }> {
-    try {
-      const rpcData = await solanaRpcCall({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "getTransaction",
-        params: [txSignature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }],
-      });
-      if (!rpcData.result) return { valid: false, error: "Transaction not found on-chain. It may still be confirming — please wait and try again." };
-      const tx = rpcData.result;
-      if (tx.meta?.err) return { valid: false, error: "Transaction failed on-chain" };
-      const instructions = tx.transaction?.message?.instructions || [];
-      const innerInstructions = tx.meta?.innerInstructions?.flatMap((inner: any) => inner.instructions) || [];
-      const allInstructions = [...instructions, ...innerInstructions];
-      const transferIx = allInstructions.find((ix: any) => {
-        const parsed = ix.parsed;
-        if (!parsed) return false;
-        const type = parsed.type;
-        if (type !== "transfer" && type !== "transferChecked") return false;
-        const info = parsed.info;
-        if (!info) return false;
-        if (type === "transferChecked") {
-          return info.mint === USDC_MINT;
+    const MAX_RETRIES = 8;
+    const RETRY_DELAY = 3000;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const rpcData = await solanaRpcCall({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getTransaction",
+          params: [txSignature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }],
+        });
+
+        if (!rpcData.result) {
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(r => setTimeout(r, RETRY_DELAY));
+            continue;
+          }
+          return { valid: false, error: "Transaction not confirmed after waiting. It may still be processing — your pixels will be claimable once it lands." };
         }
-        return true;
-      });
-      if (!transferIx) return { valid: false, error: "No USDC transfer found in transaction" };
-      const info = transferIx.parsed.info;
-      const amount = transferIx.parsed.type === "transferChecked"
-        ? parseFloat(info.tokenAmount?.uiAmountString || "0")
-        : parseInt(info.amount || "0") / Math.pow(10, USDC_DECIMALS);
-      if (amount < expectedAmountUsdc) return { valid: false, error: `Insufficient payment: ${amount} USDC sent, ${expectedAmountUsdc} USDC required` };
-      const signers = tx.transaction?.message?.accountKeys
-        ?.filter((k: any) => k.signer)
-        ?.map((k: any) => k.pubkey) || [];
-      if (!signers.includes(expectedSender)) return { valid: false, error: "Transaction signer does not match connected wallet" };
-      return { valid: true };
-    } catch (err: any) {
-      return { valid: false, error: "Failed to verify transaction: " + (err.message || "RPC error") };
+
+        const tx = rpcData.result;
+        if (tx.meta?.err) return { valid: false, error: "Transaction failed on-chain" };
+
+        const instructions = tx.transaction?.message?.instructions || [];
+        const innerInstructions = tx.meta?.innerInstructions?.flatMap((inner: any) => inner.instructions) || [];
+        const allInstructions = [...instructions, ...innerInstructions];
+        const transferIx = allInstructions.find((ix: any) => {
+          const parsed = ix.parsed;
+          if (!parsed) return false;
+          const type = parsed.type;
+          if (type !== "transfer" && type !== "transferChecked") return false;
+          const info = parsed.info;
+          if (!info) return false;
+          if (type === "transferChecked") return info.mint === USDC_MINT;
+          return true;
+        });
+        if (!transferIx) return { valid: false, error: "No USDC transfer found in transaction" };
+
+        const info = transferIx.parsed.info;
+        const amount = transferIx.parsed.type === "transferChecked"
+          ? parseFloat(info.tokenAmount?.uiAmountString || "0")
+          : parseInt(info.amount || "0") / Math.pow(10, USDC_DECIMALS);
+        if (amount < expectedAmountUsdc) return { valid: false, error: `Insufficient payment: ${amount} USDC sent, ${expectedAmountUsdc} USDC required` };
+
+        const signers = tx.transaction?.message?.accountKeys
+          ?.filter((k: any) => k.signer)
+          ?.map((k: any) => k.pubkey) || [];
+        if (!signers.includes(expectedSender)) return { valid: false, error: "Transaction signer does not match connected wallet" };
+
+        return { valid: true };
+      } catch (err: any) {
+        if (attempt < MAX_RETRIES - 1) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY));
+          continue;
+        }
+        return { valid: false, error: "Failed to verify transaction: " + (err.message || "RPC error") };
+      }
     }
+    return { valid: false, error: "Verification timed out" };
   }
 
   app.post("/api/sanctuary/pixels/batch", async (req, res) => {
