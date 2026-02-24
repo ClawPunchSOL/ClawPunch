@@ -391,7 +391,7 @@ export default function MonkeyOS() {
                 transition={{ duration: 0.5 }}
               >
                 <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 mb-8 border-2 border-primary font-display text-xs animate-pulse">
-                  <div className="w-2 h-2 bg-primary rounded-full" /> 7 AI AGENTS ONLINE
+                  <div className="w-2 h-2 bg-primary rounded-full" /> 8 AI AGENTS ONLINE
                 </div>
                 <h1 className="font-display text-4xl md:text-6xl text-white mb-6 drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]" data-testid="text-hub-title">
                   CHOOSE YOUR <span className="text-primary">AGENT</span>
@@ -422,20 +422,30 @@ export default function MonkeyOS() {
                       {agents.map((agent, i) => (
                         <motion.button
                           key={agent.id}
-                          onClick={() => handleAgentSelect(agent.id)}
-                          whileHover={{ y: -6, scale: 1.01 }}
-                          whileTap={{ scale: 0.98 }}
+                          onClick={() => agent.id === 'swarm-monkey' ? handleAgentSelect(agent.id) : undefined}
+                          whileHover={agent.id === 'swarm-monkey' ? { y: -6, scale: 1.01 } : {}}
+                          whileTap={agent.id === 'swarm-monkey' ? { scale: 0.98 } : {}}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.2 + catIdx * 0.1 + i * 0.05 }}
                           data-testid={`card-agent-${agent.id}`}
-                          className="group retro-container w-full text-left bg-black/60 backdrop-blur-sm hover:-translate-y-2 transition-all duration-200 relative overflow-hidden"
+                          className={`group retro-container w-full text-left bg-black/60 backdrop-blur-sm transition-all duration-200 relative overflow-hidden ${agent.id === 'swarm-monkey' ? 'hover:-translate-y-2 cursor-pointer' : 'cursor-not-allowed'}`}
                         >
+                          {agent.id !== 'swarm-monkey' && (
+                            <div className="absolute inset-0 z-20 bg-black/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3">
+                              <div className="font-display text-xl md:text-2xl text-primary drop-shadow-[4px_4px_0px_#000] tracking-wider animate-pulse">
+                                COMING SOON
+                              </div>
+                              <div className="font-display text-[10px] text-muted-foreground/60 border-2 border-foreground/20 px-3 py-1 bg-black/60">
+                                PHASE 2 RELEASE
+                              </div>
+                            </div>
+                          )}
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{
-                            background: `radial-gradient(circle at 20% 50%, ${agent.glowColor}, transparent 60%)`,
+                            background: agent.id === 'swarm-monkey' ? `radial-gradient(circle at 20% 50%, ${agent.glowColor}, transparent 60%)` : 'none',
                           }} />
                           <div className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{
-                            background: `linear-gradient(90deg, transparent, ${agent.glowColor}, transparent)`,
+                            background: agent.id === 'swarm-monkey' ? `linear-gradient(90deg, transparent, ${agent.glowColor}, transparent)` : 'none',
                           }} />
 
                           <div className="relative p-6 md:p-8 flex items-start gap-5">
@@ -443,10 +453,10 @@ export default function MonkeyOS() {
                               <img
                                 src={agent.avatar}
                                 alt={agent.name}
-                                className="w-20 h-20 md:w-24 md:h-24 pixel-art-rendering border-4 border-foreground bg-black"
+                                className={`w-20 h-20 md:w-24 md:h-24 pixel-art-rendering border-4 border-foreground bg-black ${agent.id !== 'swarm-monkey' ? 'grayscale opacity-50' : ''}`}
                                 style={{ boxShadow: '6px 6px 0px rgba(0,0,0,0.6)' }}
                               />
-                              <div className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 ${agent.statusColor.replace('text-', 'bg-')} border-2 border-black animate-pulse`} />
+                              <div className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 ${agent.id === 'swarm-monkey' ? agent.statusColor.replace('text-', 'bg-') : 'bg-gray-600'} border-2 border-black ${agent.id === 'swarm-monkey' ? 'animate-pulse' : ''}`} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-3">
@@ -461,11 +471,11 @@ export default function MonkeyOS() {
                                 {agent.longDescription}
                               </p>
                               <div className="flex items-center gap-4">
-                                <span className={`font-display text-[10px] ${agent.statusColor} tracking-wider flex items-center gap-2 bg-black/50 border border-border px-2 py-1`}>
-                                  <div className={`w-2 h-2 ${agent.statusColor.replace('text-', 'bg-')} animate-pulse`} />
-                                  {agent.status}
+                                <span className={`font-display text-[10px] ${agent.id === 'swarm-monkey' ? agent.statusColor : 'text-gray-500'} tracking-wider flex items-center gap-2 bg-black/50 border border-border px-2 py-1`}>
+                                  <div className={`w-2 h-2 ${agent.id === 'swarm-monkey' ? agent.statusColor.replace('text-', 'bg-') + ' animate-pulse' : 'bg-gray-600'}`} />
+                                  {agent.id === 'swarm-monkey' ? agent.status : 'LOCKED'}
                                 </span>
-                                {hubStats[agent.id] && (
+                                {agent.id === 'swarm-monkey' && hubStats[agent.id] && (
                                   <span className="font-display text-[10px] text-muted-foreground/60 bg-black/30 border border-border/50 px-2 py-1">{hubStats[agent.id]}</span>
                                 )}
                               </div>
