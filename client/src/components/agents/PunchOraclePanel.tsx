@@ -76,7 +76,7 @@ export default function PunchOraclePanel({ onSendChat }: { onSendChat?: (msg: st
 
   const fetchLiveMarkets = useCallback(async () => {
     try {
-      const res = await fetch("/api/predictions/polymarket");
+      const res = await fetch("/api/predictions/markets");
       if (res.ok) setLiveMarkets(await res.json());
     } catch {}
   }, []);

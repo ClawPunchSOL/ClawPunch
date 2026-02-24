@@ -802,14 +802,14 @@ export async function registerRoutes(
     }
   });
 
-  let polymarketCache: { data: any[]; fetchedAt: number } = { data: [], fetchedAt: 0 };
-  const POLYMARKET_CACHE_MS = 2 * 60 * 1000;
+  let externalMarketsCache: { data: any[]; fetchedAt: number } = { data: [], fetchedAt: 0 };
+  const MARKETS_CACHE_MS = 2 * 60 * 1000;
 
-  app.get("/api/predictions/polymarket", async (_req, res) => {
+  app.get("/api/predictions/markets", async (_req, res) => {
     try {
       const now = Date.now();
-      if (polymarketCache.data.length > 0 && now - polymarketCache.fetchedAt < POLYMARKET_CACHE_MS) {
-        return res.json(polymarketCache.data);
+      if (externalMarketsCache.data.length > 0 && now - externalMarketsCache.fetchedAt < MARKETS_CACHE_MS) {
+        return res.json(externalMarketsCache.data);
       }
 
       const controller = new AbortController();
@@ -846,10 +846,10 @@ export async function registerRoutes(
           };
         });
 
-      polymarketCache = { data: markets, fetchedAt: now };
+      externalMarketsCache = { data: markets, fetchedAt: now };
       res.json(markets);
     } catch (error: any) {
-      if (polymarketCache.data.length > 0) return res.json(polymarketCache.data);
+      if (externalMarketsCache.data.length > 0) return res.json(externalMarketsCache.data);
       res.status(500).json({ error: "Failed to fetch market data" });
     }
   });
@@ -1368,7 +1368,7 @@ export async function registerRoutes(
   let trendingCache: { data: TrendingToken[]; fetchedAt: number } = { data: [], fetchedAt: 0 };
   const TRENDING_CACHE_MS = 60_000;
 
-  const fetchDexScreenerTrending = async (): Promise<TrendingToken[]> => {
+  const fetchTrendingTokens = async (): Promise<TrendingToken[]> => {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 10000);
@@ -1421,7 +1421,7 @@ export async function registerRoutes(
         };
       }).filter((t: TrendingToken) => t.symbol !== "???");
     } catch (e) {
-      console.error("[TrendPuncher] DexScreener fetch error:", e);
+      console.error("[TrendPuncher] Market fetch error:", e);
       return [];
     }
   };
@@ -1432,7 +1432,7 @@ export async function registerRoutes(
       if (trendingCache.data.length > 0 && now - trendingCache.fetchedAt < TRENDING_CACHE_MS) {
         return res.json(trendingCache.data);
       }
-      const tokens = await fetchDexScreenerTrending();
+      const tokens = await fetchTrendingTokens();
       if (tokens.length > 0) {
         trendingCache = { data: tokens, fetchedAt: now };
       }
@@ -1482,7 +1482,7 @@ export async function registerRoutes(
   app.post("/api/attention/refresh", async (_req, res) => {
     try {
       trendingCache = { data: [], fetchedAt: 0 };
-      const tokens = await fetchDexScreenerTrending();
+      const tokens = await fetchTrendingTokens();
       if (tokens.length > 0) {
         trendingCache = { data: tokens, fetchedAt: Date.now() };
       }
@@ -1531,7 +1531,7 @@ export async function registerRoutes(
   });
 
   // === VAULT POSITIONS (Ape Vault) — Real Yield Data ===
-  const DEFI_LLAMA_POOLS_URL = "https://yields.llama.fi/pools";
+  const YIELD_POOLS_URL = "https://yields.llama.fi/pools";
   const VAULT_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
   let lastVaultRefresh = 0;
 
@@ -1541,13 +1541,13 @@ export async function registerRoutes(
     "drift-staked-sol", "save", "loopscale", "sanctum-infinity"
   ];
 
-  const fetchDefiLlamaPools = async (): Promise<Array<{ vaultName: string; protocol: string; token: string; apy: number; tvl: number }>> => {
+  const fetchYieldPools = async (): Promise<Array<{ vaultName: string; protocol: string; token: string; apy: number; tvl: number }>> => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      const res = await fetch(DEFI_LLAMA_POOLS_URL, { signal: controller.signal });
+      const res = await fetch(YIELD_POOLS_URL, { signal: controller.signal });
       clearTimeout(timer);
-      if (!res.ok) throw new Error(`DeFi Llama returned ${res.status}`);
+      if (!res.ok) throw new Error(`Yield data returned ${res.status}`);
       const json = await res.json();
       const pools: any[] = json.data || [];
 
@@ -1593,8 +1593,8 @@ export async function registerRoutes(
     }
   };
 
-  const refreshVaultsFromDefiLlama = async (): Promise<void> => {
-    const pools = await fetchDefiLlamaPools();
+  const refreshVaultData = async (): Promise<void> => {
+    const pools = await fetchYieldPools();
     if (pools.length === 0) return;
 
     const existingVaults = await storage.getAllVaultPositions();
@@ -1641,12 +1641,12 @@ export async function registerRoutes(
     const now = Date.now();
     if (now - lastVaultRefresh > VAULT_REFRESH_INTERVAL_MS) {
       try {
-        await refreshVaultsFromDefiLlama();
+        await refreshVaultData();
       } catch (e: any) {
-        console.error("[DeFi Llama refresh error]", e?.message);
+        console.error("[Yield data refresh error]", e?.message);
         const existing = await storage.getAllVaultPositions();
         if (existing.length === 0) {
-          console.log("[Vaults] DeFi Llama unavailable and no cached data");
+          console.log("[Vaults] Yield data unavailable and no cached data");
         }
       }
     }
@@ -1665,7 +1665,7 @@ export async function registerRoutes(
   app.post("/api/vaults/refresh", async (_req, res) => {
     try {
       lastVaultRefresh = 0;
-      await refreshVaultsFromDefiLlama();
+      await refreshVaultData();
       const vaults = await storage.getAllVaultPositions();
       res.json({ vaults, lastRefresh: lastVaultRefresh, source: "clawpunch" });
     } catch (error: any) {
@@ -1707,7 +1707,7 @@ export async function registerRoutes(
   const fetchLiveDataForAgent = async (agentType: string, context: any = {}): Promise<{ data: any; source: string }> => {
     switch (agentType) {
       case "trend-puncher": {
-        const tokens = await fetchDexScreenerTrending();
+        const tokens = await fetchTrendingTokens();
         let globalTrends: any[] = [];
         try {
           const ctrl = new AbortController();
@@ -1736,7 +1736,7 @@ export async function registerRoutes(
         };
       }
       case "ape-vault": {
-        const pools = await fetchDefiLlamaPools();
+        const pools = await fetchYieldPools();
         return {
           data: pools.slice(0, 15).map(p => ({
             name: p.vaultName, protocol: p.protocol, token: p.token,
@@ -2061,7 +2061,7 @@ ${JSON.stringify(data, null, 2)}`,
       const devBuy = parseFloat(devBuyAmount || "0");
       const fee = 0.02;
 
-      const pumpPortalUrl = `https://pump.fun/create?name=${encodeURIComponent(tokenName)}&symbol=${encodeURIComponent(tokenSymbol)}&description=${encodeURIComponent(description)}`;
+      const launchUrl = `https://pump.fun/create?name=${encodeURIComponent(tokenName)}&symbol=${encodeURIComponent(tokenSymbol)}&description=${encodeURIComponent(description)}`;
 
       const launch = await storage.createTokenLaunch({
         tokenName,
@@ -2071,7 +2071,7 @@ ${JSON.stringify(data, null, 2)}`,
         devBuyAmount: devBuy,
         feeAmount: fee,
         status: "launched",
-        pumpUrl: pumpPortalUrl,
+        pumpUrl: launchUrl,
         aiPromptUsed: null,
         imageUrl: null,
         metadataUri: null,
@@ -2079,7 +2079,7 @@ ${JSON.stringify(data, null, 2)}`,
         txSignature: null,
       });
 
-      res.status(201).json({ ...launch, pumpPortalUrl });
+      res.status(201).json({ ...launch, launchUrl });
     } catch (error) {
       console.error("Token launch error:", error);
       res.status(500).json({ error: "Failed to create token launch" });

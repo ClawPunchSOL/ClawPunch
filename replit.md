@@ -32,12 +32,12 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 
 1. **Banana Bot** - Real Solana SOL transfers via Phantom wallet signing + AI network analysis (Solana RPC TPS) + Solscan tx links + chat
 2. **Swarm Monkey** - Moltbook agent registration form + live roster + chat
-3. **Punch Oracle** - Live prediction markets with real SOL betting via Phantom wallet + AI market analysis (CoinGecko prices) + auto-resolution + chat
-4. **Trend Puncher** - AI-first alpha scanner: Claude analyzes live DexScreener + CoinGecko data and presents TOP PICKS, RED FLAGS, MARKET PULSE, ALPHA CALLS. Raw token data collapsible below.
-5. **Ape Vault** - AI-first yield strategist: Claude analyzes live DeFi Llama Solana pools and recommends BEST YIELDS, SAFE PLAYS, DEGEN PLAYS, ALLOCATION STRATEGY. Raw vault data below.
+3. **Punch Oracle** - Live prediction markets with real SOL betting via Phantom wallet + AI market analysis (live prices) + auto-resolution + chat
+4. **Trend Puncher** - AI-first alpha scanner: Claude analyzes live market data and presents TOP PICKS, RED FLAGS, MARKET PULSE, ALPHA CALLS. Raw token data collapsible below.
+5. **Ape Vault** - AI-first yield strategist: Claude analyzes live Solana yield pools and recommends BEST YIELDS, SAFE PLAYS, DEGEN PLAYS, ALLOCATION STRATEGY. Raw vault data below.
 6. **Rug Buster** - AI-first security scanner: Claude analyzes real on-chain Solana RPC data and presents SECURITY SCAN, RED FLAGS, POSITIVE SIGNALS, FINAL VERDICT + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat
-8. **Banana Cannon** - Token launcher via Pump Portal API + AI concept generation + launch history
+8. **Banana Cannon** - Token launcher via launch API + AI concept generation + launch history
 
 ## API Routes
 ### Chat
@@ -79,18 +79,18 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - `POST /api/token-launches` - Create token launch
 - `POST /api/token-launches/generate` - AI-generate token concept
 - `PATCH /api/token-launches/:id` - Update launch status
-- `GET /api/predictions/prices` - Live CoinGecko prices for 10 tracked tokens
-- `GET /api/predictions/polymarket` - Live Polymarket markets feed (cached 2min)
+- `GET /api/predictions/prices` - Live prices for 10 tracked tokens
+- `GET /api/predictions/markets` - Live external markets feed (cached 2min)
 - `POST /api/predictions/generate` - Auto-generate predictions from real market data
 - `POST /api/predictions/resolve` - Auto-resolve expired predictions against real prices
-- `GET /api/attention/positions` - List attention market narratives with live CoinGecko data (Trend Puncher)
-- `POST /api/attention/refresh` - Force refresh market data from CoinGecko
+- `GET /api/attention/positions` - List attention market narratives with live price data (Trend Puncher)
+- `POST /api/attention/refresh` - Force refresh market data
 - `POST /api/attention/trade` - Buy/sell attention shares
-- `GET /api/vaults` - List DeFi vaults from DeFi Llama (Solana pools)
-- `POST /api/vaults/refresh` - Force refresh vault data from DeFi Llama
+- `GET /api/vaults` - List DeFi vaults (Solana pools)
+- `POST /api/vaults/refresh` - Force refresh vault data
 - `POST /api/vaults/:id/stake` - Stake/unstake in vault
 ### AI Agent Scanner
-- `POST /api/agent-scan/:agentType` - AI-first scanner: backend fetches live data from APIs (DexScreener, DeFi Llama, CoinGecko, Solana RPC) AND feeds it to Claude for analysis. Streams back structured intel report via SSE. Supports: trend-puncher, ape-vault, punch-oracle, rug-buster, banana-bot
+- `POST /api/agent-scan/:agentType` - AI-first scanner: backend fetches live data from market APIs and Solana RPC, then feeds it to Claude for analysis. Streams back structured intel report via SSE. Supports: trend-puncher, ape-vault, punch-oracle, rug-buster, banana-bot
 
 ## Database Schema
 - `users` - Basic user table
@@ -104,7 +104,7 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - `repo_scans` - Repo analysis results (legitScore, commitCount, findings, etc.)
 - `transactions` - Solana transactions (recipient, amount, token, txHash, fromWallet)
 - `token_launches` - Token launches via Banana Cannon (tokenName, tokenSymbol, description, devBuyAmount, feeAmount, status, pumpUrl, mintAddress, txSignature)
-- `attention_positions` - Narrative attention markets with live CoinGecko data (narrative, shares, virality, momentum, category, coinIds, priceChange24h, volume24h, marketCap)
+- `attention_positions` - Narrative attention markets with live price data (narrative, shares, virality, momentum, category, coinIds, priceChange24h, volume24h, marketCap)
 - `vault_positions` - DeFi vault staking positions (vaultName, protocol, apy, tvl, stakedAmount)
 
 ## Key Files

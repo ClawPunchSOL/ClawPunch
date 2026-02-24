@@ -107,8 +107,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
 
       const launch = await res.json();
 
-      if (launch.pumpPortalUrl) {
-        window.open(launch.pumpPortalUrl, '_blank');
+      if (launch.launchUrl) {
+        window.open(launch.launchUrl, '_blank');
       }
 
       setLaunches(prev => [launch, ...prev]);
@@ -161,7 +161,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
           <span className="text-lg">🔫</span>
           <Rocket className="w-4 h-4 text-pink-400" />
           <span className="font-display text-[11px] text-pink-400 drop-shadow-[2px_2px_0px_#000]">TOKEN LAUNCHER</span>
-          <span className="text-[8px] text-muted-foreground/60 font-mono border border-foreground/10 px-1">Pump Portal</span>
+          <span className="text-[8px] text-muted-foreground/60 font-mono border border-foreground/10 px-1">ClawPunch Deployer</span>
         </div>
         <span className="text-[10px] text-pink-400 font-display border-2 border-pink-500/30 px-1.5 bg-pink-500/10">{launches.length} LAUNCHED</span>
       </div>
@@ -246,7 +246,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
         <div className="flex items-center justify-between p-2 border-4 border-foreground/10 bg-black/40 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-              <span>Pump Portal Fee:</span>
+              <span>Deployment Fee:</span>
               <span className="text-white font-display">{PUMP_PORTAL_FEE} SOL</span>
             </div>
             {parseFloat(devBuyAmount || "0") > 0 && (
@@ -276,14 +276,14 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
           className="w-full py-3 text-[11px] font-display disabled:opacity-50 flex items-center justify-center gap-2 border-4 border-pink-500/60 bg-pink-500/20 text-pink-400 hover:bg-pink-500/30 transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.6)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
         >
           {launching ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> LAUNCHING ON PUMP PORTAL...</>
+            <><Loader2 className="w-4 h-4 animate-spin" /> LAUNCHING TOKEN...</>
           ) : (
             <><Flame className="w-4 h-4" /> FIRE BANANA CANNON 🍌🔫</>
           )}
         </button>
 
         <div className="text-center text-[8px] text-muted-foreground/60 border-2 border-foreground/10 py-1 bg-black/30">
-          Launches via pump.fun. Token is 100% yours — no custody, no cuts.
+          Launches via ClawPunch deployment pipeline. Token is 100% yours — no custody, no cuts.
         </div>
       </div>
 
@@ -333,7 +333,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
                   className="flex items-center gap-1 text-[9px] text-blue-400 hover:text-blue-300"
                   data-testid={`link-pump-${launch.id}`}
                 >
-                  View on Pump Portal <ExternalLink className="w-2.5 h-2.5" />
+                  View Token <ExternalLink className="w-2.5 h-2.5" />
                 </a>
               )}
 

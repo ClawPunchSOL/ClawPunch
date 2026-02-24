@@ -77,7 +77,7 @@ Use clear, descriptive commit messages:
 ```
 Add market momentum analysis to Trend Puncher agent
 Fix Rug Buster safety score calculation for LP lock check
-Update DeFi Llama vault data refresh interval
+Update vault data refresh interval
 ```
 
 ## Reporting Issues

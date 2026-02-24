@@ -194,7 +194,7 @@ Returns real-time prices for 10 tracked tokens via ClawPunch Price Oracle.
 ### Import External Markets
 
 ```
-GET /api/predictions/polymarket
+GET /api/predictions/markets
 ```
 
 Fetches live external market feeds (cached 2 min).

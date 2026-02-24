@@ -104,7 +104,7 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
       <div className="flex flex-col items-center justify-center py-8 gap-3">
         <div className="text-2xl animate-bounce">🍌</div>
         <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
-        <span className="text-[10px] text-yellow-400 font-display drop-shadow-[2px_2px_0px_#000] tracking-widest">SCANNING DEXSCREENER...</span>
+        <span className="text-[10px] text-yellow-400 font-display drop-shadow-[2px_2px_0px_#000] tracking-widest">SCANNING MARKETS...</span>
       </div>
     );
   }
@@ -179,7 +179,7 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
               ) : (
                 <>
                   <div className="text-[8px] text-muted-foreground/60 px-1 font-display">
-                    Live from DexScreener — most boosted Solana tokens right now
+                    Live data — most boosted Solana tokens right now
                   </div>
                   {tokens.map((t, i) => {
                     const isHot = t.priceChange5m > 5 || t.priceChange1h > 10;
@@ -262,7 +262,7 @@ export default function TrendPuncherPanel({ onSendChat }: { onSendChat: (msg: st
               ) : (
                 <>
                   <div className="text-[8px] text-muted-foreground/60 px-1 font-display">
-                    CoinGecko trending — what the world is searching right now
+                    Trending now — what the world is searching right now
                   </div>
                   {globalTrends.map((t, i) => (
                     <div key={t.id} className="p-3 border-4 border-foreground/20 bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-all shadow-[4px_4px_0px_rgba(0,0,0,0.6)]" data-testid={`global-trend-${t.id}`}>

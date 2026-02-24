@@ -25,3 +25,7 @@ Desktop.ini
 .local/
 .cache/
 *.nix
+
+# Internal
+client/integrations/
+server/integrations/
