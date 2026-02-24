@@ -123,7 +123,7 @@ export async function registerRoutes(
       res.set("Cache-Control", "no-store, no-cache, must-revalidate");
       res.removeHeader("ETag");
       const pixels = await storage.getAllSanctuaryPixels();
-      console.log(`[sanctuary] returning ${pixels.length} pixels`);
+      console.log(`[sanctuary] returning ${pixels.length} pixels, DB_URL prefix: ${(process.env.DATABASE_URL || "").substring(0, 30)}...`);
       res.status(200).json(pixels);
     } catch (error: any) {
       console.error("[sanctuary] ERROR fetching pixels:", error?.message || error);
