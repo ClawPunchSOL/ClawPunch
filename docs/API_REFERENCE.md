@@ -2,223 +2,458 @@
 
 Base URL: `http://localhost:5000`
 
-All endpoints accept and return JSON. No authentication is required for local development.
+All endpoints accept and return JSON. SSE (Server-Sent Events) is used for streaming responses from the LLM cortex.
 
 ---
 
-## Agent Chat
+## Agent Chat (SSE Streaming)
 
-### `POST /api/agents/:agentId/chat`
+### Create Conversation
 
-Send a message to any of the 8 AI agents.
+```
+POST /api/agents/:agentId/conversations
+```
 
-**Path Parameters:**
+Creates a new conversation session for an agent.
 
-| Parameter | Type | Description |
-|:----------|:-----|:------------|
-| `agentId` | string | One of: `banana-bot`, `swarm-monkey`, `punch-oracle`, `trend-puncher`, `vault-swinger`, `rug-buster`, `repo-ape`, `banana-cannon` |
+| Parameter | Type | Required | Description |
+|:----------|:-----|:---------|:------------|
+| `agentId` | path | yes | One of: `banana-bot`, `swarm-monkey`, `punch-oracle`, `trend-puncher`, `vault-swinger`, `rug-buster`, `repo-ape`, `banana-cannon` |
 
-**Request Body:**
-
+**Response:**
 ```json
 {
-  "message": "string",
-  "conversationHistory": [
-    { "role": "user", "content": "string" },
-    { "role": "assistant", "content": "string" }
-  ]
+  "id": 1,
+  "agentId": "banana-bot",
+  "title": "New Conversation",
+  "createdAt": "2026-02-24T00:00:00.000Z"
+}
+```
+
+### Send Message (SSE)
+
+```
+POST /api/conversations/:id/messages
+```
+
+Sends a message and receives a streamed LLM response via Server-Sent Events.
+
+**Request:**
+```json
+{
+  "content": "Send 0.5 SOL to GkXn6PULSrvFM1t4HZHMnj7oSTdx5GN3NDXF8uQiR7TN",
+  "role": "user"
+}
+```
+
+**Response:** SSE stream with `data:` chunks containing the assistant response, terminated by `[DONE]`.
+
+### List Conversations
+
+```
+GET /api/agents/:agentId/conversations
+```
+
+### Get Messages
+
+```
+GET /api/conversations/:id/messages
+```
+
+### Delete Conversation
+
+```
+DELETE /api/conversations/:id
+```
+
+---
+
+## Agent Scanner (SSE)
+
+### Run AI Scan
+
+```
+POST /api/agent-scan/:agentType
+```
+
+Backend fetches live data from external APIs and feeds it to the LLM cortex for analysis. Returns structured intel report via SSE.
+
+| Agent Type | Data Fetched | Source |
+|:-----------|:-------------|:-------|
+| `trend-puncher` | Top trending tokens, volume leaders, price changes | CoinGecko, DexScreener |
+| `ape-vault` | Top Solana DeFi pools, APY, TVL | DeFi Llama |
+| `punch-oracle` | Token prices for tracked markets | CoinGecko |
+| `rug-buster` | Token account info, supply, authorities | Solana RPC |
+| `banana-bot` | Network TPS, slot height, epoch info | Solana RPC |
+
+**Response:** SSE stream with structured analysis sections (TOP PICKS, RED FLAGS, MARKET PULSE, etc.)
+
+---
+
+## Transactions (Banana Bot)
+
+### Build Transaction
+
+```
+POST /api/transactions/build
+```
+
+Constructs an unsigned Solana `SystemProgram.transfer()` transaction.
+
+**Request:**
+```json
+{
+  "recipientAddress": "GkXn6PULSrvFM1t4HZHMnj7oSTdx5GN3NDXF8uQiR7TN",
+  "amount": 0.5,
+  "senderAddress": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 }
 ```
 
 **Response:**
-
 ```json
 {
-  "response": "string",
-  "agentId": "string"
+  "serializedTransaction": "base64_encoded_unsigned_transaction...",
+  "recipientAddress": "GkXn6...",
+  "amount": 0.5,
+  "estimatedFee": 0.000005
 }
 ```
 
----
+The client then passes this to `window.solana.signTransaction()` for Phantom approval.
 
-## DeFi Vaults (Ape Vault)
+### List Transactions
 
-### `GET /api/vaults`
-
-Fetch top DeFi vaults from DeFi Llama with real-time APY and TVL data.
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|:----------|:-----|:------------|
-| `protocol` | string (optional) | Filter by protocol name |
-| `chain` | string (optional) | Filter by chain (default: Solana) |
-
-**Response:**
-
-```json
-[
-  {
-    "pool": "string",
-    "project": "string",
-    "chain": "Solana",
-    "tvlUsd": 1234567.89,
-    "apy": 12.34,
-    "apyBase": 8.5,
-    "apyReward": 3.84
-  }
-]
 ```
+GET /api/transactions
+```
+
+### Record Transaction
+
+```
+POST /api/transactions
+```
+
+Records a completed transaction after wallet signing.
 
 ---
 
-## Predictions (Punch Oracle)
+## Prediction Markets (Punch Oracle)
 
-### `GET /api/predictions`
+### List Predictions
 
-Fetch all prediction markets.
-
-**Response:**
-
-```json
-[
-  {
-    "id": 1,
-    "title": "string",
-    "description": "string",
-    "outcome": "string",
-    "probability": 0.75,
-    "stake": 100,
-    "status": "active",
-    "createdAt": "2026-02-24T00:00:00.000Z"
-  }
-]
+```
+GET /api/predictions
 ```
 
-### `POST /api/predictions`
+Returns all prediction markets with current odds and pool sizes.
 
-Create a new prediction market.
+### Create Prediction
 
-**Request Body:**
+```
+POST /api/predictions
+```
 
+**Request:**
 ```json
 {
-  "title": "Will SOL reach $200 by March?",
-  "description": "Prediction on SOL price movement",
-  "outcome": "YES",
-  "probability": 0.65,
-  "stake": 50
+  "title": "SOL above $200 by March 1",
+  "description": "Will SOL price exceed $200 USD by March 1, 2026?",
+  "category": "price",
+  "endDate": "2026-03-01T00:00:00.000Z",
+  "oddsYes": 65,
+  "oddsNo": 35
 }
 ```
 
+### Place Bet
+
+```
+POST /api/predictions/:id/bet
+```
+
+**Request:**
+```json
+{
+  "side": "yes",
+  "amount": 1.5,
+  "walletAddress": "EPjFWdd5...",
+  "txSignature": "5KtP7..."
+}
+```
+
+Requires a real SOL transaction signature from Phantom wallet.
+
+### Get Live Prices
+
+```
+GET /api/predictions/prices
+```
+
+Returns real-time CoinGecko prices for 10 tracked tokens.
+
+### Import Polymarket
+
+```
+GET /api/predictions/polymarket
+```
+
+Fetches live Polymarket markets (cached 2 min).
+
+### Auto-Generate Predictions
+
+```
+POST /api/predictions/generate
+```
+
+Generates prediction markets from real market data.
+
+### Auto-Resolve
+
+```
+POST /api/predictions/resolve
+```
+
+Resolves expired predictions against real price data.
+
 ---
 
-## Security Scan (Rug Buster)
+## Security Scans (Rug Buster)
 
-### `POST /api/security/scan`
+### Run Scan (SSE)
 
-Scan a Solana token address for rug-pull indicators.
+```
+POST /api/security/scan
+```
 
-**Request Body:**
-
+**Request:**
 ```json
 {
   "address": "So11111111111111111111111111111111111111112"
 }
 ```
 
-**Response:**
+**Response:** SSE stream with:
+- Safety Score (0-100)
+- Mint authority status
+- Freeze authority status
+- LP lock verification
+- Holder distribution analysis
 
-```json
-{
-  "address": "string",
-  "safetyScore": 85,
-  "mintAuthority": "REVOKED",
-  "freezeAuthority": "REVOKED",
-  "supply": "string",
-  "decimals": 9,
-  "scanTimestamp": "2026-02-24T00:00:00.000Z"
-}
+### List Scans
+
+```
+GET /api/security/scans
 ```
 
 ---
 
-## Token Launch (Banana Cannon)
+## DeFi Vaults (Ape Vault)
 
-### `POST /api/token-launch/concept`
+### List Vaults
 
-Generate an AI-powered token concept.
+```
+GET /api/vaults
+```
 
-**Request Body:**
+Returns top DeFi vaults from DeFi Llama filtered to Solana.
 
+### Refresh Data
+
+```
+POST /api/vaults/refresh
+```
+
+Forces a fresh pull from DeFi Llama API.
+
+### Stake/Unstake
+
+```
+POST /api/vaults/:id/stake
+```
+
+---
+
+## Repository Scans (Repo Ape)
+
+### Run Scan (SSE)
+
+```
+POST /api/repos/scan
+```
+
+**Request:**
 ```json
 {
-  "theme": "AI-powered DeFi optimizer"
+  "repoUrl": "https://github.com/solana-labs/solana"
 }
 ```
 
-**Response:**
+**Response:** SSE stream with:
+- Legit Score (0-100%)
+- Commit frequency analysis
+- Contributor authenticity
+- Code quality assessment
+- AI LARP detection results
 
+### List Scans
+
+```
+GET /api/repos/scans
+```
+
+---
+
+## Token Launches (Banana Cannon)
+
+### Generate Concept
+
+```
+POST /api/token-launches/generate
+```
+
+AI-generates a token concept based on a theme.
+
+**Request:**
 ```json
 {
-  "name": "string",
-  "symbol": "string",
-  "description": "string",
+  "theme": "Solana-native conservation protocol"
+}
+```
+
+### Create Launch
+
+```
+POST /api/token-launches
+```
+
+**Request:**
+```json
+{
+  "tokenName": "PunchCoin",
+  "tokenSymbol": "PUNCH",
+  "description": "Conservation-backed utility token",
   "devBuyAmount": 0.5
 }
 ```
 
-### `POST /api/token-launch/launch`
+### List Launches
 
-Launch a token on pump.fun via Pump Portal API.
+```
+GET /api/token-launches
+```
 
-**Request Body:**
+### Update Status
 
+```
+PATCH /api/token-launches/:id
+```
+
+---
+
+## Moltbook Integration
+
+### Register Agent
+
+```
+POST /api/moltbook/agents/register
+```
+
+SSE response — attempts registration with real Moltbook API.
+
+### List Agents
+
+```
+GET /api/moltbook/agents
+```
+
+### Agent Status
+
+```
+GET /api/moltbook/agents/:id/status
+```
+
+### Post to Moltbook
+
+```
+POST /api/moltbook/agents/:id/post
+```
+
+Auto-solves verification challenges.
+
+### Feed
+
+```
+GET /api/moltbook/feed
+```
+
+Hot/new/top sorting. Returns Moltbook community feed.
+
+---
+
+## Attention Markets (Trend Puncher)
+
+### List Positions
+
+```
+GET /api/attention/positions
+```
+
+Returns narrative attention markets with live CoinGecko price data.
+
+### Trade
+
+```
+POST /api/attention/trade
+```
+
+Buy/sell attention shares on a narrative.
+
+### Refresh
+
+```
+POST /api/attention/refresh
+```
+
+Force refresh from CoinGecko.
+
+---
+
+## Sanctuary
+
+### Get Pixels
+
+```
+GET /api/sanctuary/pixels
+```
+
+### Claim Pixel
+
+```
+POST /api/sanctuary/pixels
+```
+
+**Request:**
 ```json
 {
-  "name": "string",
-  "symbol": "string",
-  "description": "string",
-  "devBuyAmount": 0.5
+  "plotIndex": 42,
+  "ownerName": "anon",
+  "color": "#DC2626"
 }
 ```
 
 ---
 
-## Conversations
-
-### `GET /api/conversations/:agentId`
-
-Retrieve conversation history for a specific agent.
-
-**Response:**
-
-```json
-[
-  {
-    "id": 1,
-    "agentId": "banana-bot",
-    "role": "user",
-    "content": "string",
-    "createdAt": "2026-02-24T00:00:00.000Z"
-  }
-]
-```
-
----
-
-## Error Responses
-
-All endpoints return errors in the following format:
+## Error Format
 
 ```json
 {
-  "error": "Error description string"
+  "error": "Description of error"
 }
 ```
 
-| Status Code | Description |
-|:------------|:------------|
-| 400 | Bad Request — Invalid input or missing required fields |
-| 404 | Not Found — Agent or resource not found |
-| 500 | Internal Server Error — Server-side failure |
+| Code | Description |
+|:-----|:------------|
+| 400 | Invalid input or missing required fields |
+| 404 | Resource not found |
+| 429 | Rate limit exceeded |
+| 500 | Server error |

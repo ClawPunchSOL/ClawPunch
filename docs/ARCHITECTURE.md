@@ -1,145 +1,160 @@
 # Architecture
 
+## Design Philosophy
+
+ClawPunch radically departs from the traditional Web2 backend-frontend dichotomy. The protocol employs **Strict Client-Side Execution (SCE)** to eliminate centralized attack vectors and custodial risk. The server delivers static assets and proxies external API calls; the intelligence runs locally in the user's volatile memory.
+
 ## System Overview
 
-ClawPunch is a full-stack TypeScript application built on a strict client-server separation with non-custodial Solana transaction handling.
-
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          Client (Browser)                          │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  React 18     │  │  Phantom     │  │  Agent Panel Components  │  │
-│  │  + Vite       │  │  Wallet      │  │  (8 specialized UIs)     │  │
-│  │  + Tailwind   │  │  Adapter     │  │                          │  │
-│  └──────┬───────┘  └──────┬───────┘  └────────────┬─────────────┘  │
-│         │                 │                       │                  │
-│         └─────────────────┼───────────────────────┘                  │
-│                           │                                          │
-│                    REST API (JSON)                                   │
-└───────────────────────────┼─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          Client (Browser)                               │
+│                                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────────┐ │
+│  │  Monkey OS    │  │  Phantom     │  │  Agent Execution Sandboxes    │ │
+│  │  VFS Runtime  │  │  Wallet      │  │  (8 isolated processes)       │ │
+│  │  + IPC Bridge │  │  Provider    │  │                                │ │
+│  └──────┬───────┘  └──────┬───────┘  └────────────┬───────────────────┘ │
+│         │                 │                       │                      │
+│         └─────────────────┼───────────────────────┘                      │
+│                           │                                              │
+│                    REST API / SSE Streams                                │
+└───────────────────────────┼──────────────────────────────────────────────┘
                             │
-┌───────────────────────────┼─────────────────────────────────────────┐
-│                          Server                                     │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  Express.js   │  │  Claude      │  │  External API Clients    │  │
-│  │  Router       │  │  Sonnet 4.5  │  │                          │  │
-│  │              │  │  (Anthropic) │  │  ├─ DeFi Llama           │  │
-│  │  /api/agents │  │              │  │  ├─ CoinGecko            │  │
-│  │  /api/vaults │  └──────┬───────┘  │  ├─ DexScreener          │  │
-│  │  /api/scan   │         │          │  ├─ Solana RPC           │  │
-│  │  /api/launch │         │          │  ├─ GitHub API           │  │
-│  └──────┬───────┘         │          │  ├─ Moltbook Network     │  │
-│         │                 │          │  └─ Pump Portal API      │  │
-│         │                 │          └──────────────────────────┘  │
-│         │                 │                                        │
-│  ┌──────┴─────────────────┴──────────────────────────────────────┐ │
-│  │                    Storage Layer (Drizzle ORM)                 │ │
-│  │                    PostgreSQL Database                         │ │
-│  └───────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────┼──────────────────────────────────────────────┐
+│                          Server                                          │
+│                                                                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────────┐ │
+│  │  Express.js   │  │  LLM Cortex  │  │  External API Clients         │ │
+│  │  Router       │  │  (Anthropic) │  │                                │ │
+│  │               │  │              │  │  ├─ DeFi Llama /yields        │ │
+│  │  Route Layer  │  │  Fine-tuned  │  │  ├─ CoinGecko /coins/markets  │ │
+│  │  (thin)       │  │  system      │  │  ├─ DexScreener /pairs        │ │
+│  │               │  │  prompts per │  │  ├─ Solana RPC (getAccountInfo)│ │
+│  │               │  │  agent       │  │  ├─ GitHub Events API         │ │
+│  │               │  │              │  │  ├─ Moltbook Network API      │ │
+│  └──────┬───────┘  └──────┬───────┘  │  └─ Pump Portal API           │ │
+│         │                 │          └────────────────────────────────┘ │
+│         │                 │                                             │
+│  ┌──────┴─────────────────┴─────────────────────────────────────────┐  │
+│  │                  Storage Layer (Drizzle ORM)                      │  │
+│  │                  PostgreSQL — Conversations, Scans, Positions     │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Core Design Principles
+## Non-Custodial Security Model
 
-### 1. Non-Custodial Transaction Handling
+### Zero Backend Custody
 
-The server **never** has access to user private keys. Solana transactions are:
+The server does not store session tokens, OAuth keys, IP addresses, or raw transaction logs. Conversation history is persisted for UX continuity, but all financial operations are stateless and non-custodial.
 
-1. Constructed as unsigned `Transaction` objects on the server
-2. Serialized to base64 and sent to the client
-3. Passed to Phantom for user approval and signing
-4. Submitted to Solana mainnet-beta by the wallet
+### In-Browser Virtual File System (VFS)
 
-### 2. Real Data Only
+Monkey OS simulates a complete desktop environment using a sandboxed VFS. Applications (agents) communicate via an isolated, strictly typed in-memory event bus (`MONKEY_OS_EVENT_BUS`). When the browser tab closes, the heap is flushed and the session evaporates entirely.
 
-Every agent integrates with live external APIs. There is no mock data, no demo mode, no placeholder content. Data sources include:
-
-| Agent | Primary Data Source | Fallback |
-|:------|:-------------------|:---------|
-| Ape Vault | DeFi Llama `/yields` | None |
-| Banana Bot | Solana RPC `@solana/web3.js` | None |
-| Punch Oracle | CoinGecko `/coins/markets` | None |
-| Trend Puncher | CoinGecko + DexScreener | None |
-| Rug Buster | Solana RPC (account info) | None |
-| Repo Ape | GitHub REST API v3 | None |
-| Swarm Monkey | Moltbook Network API | None |
-| Banana Cannon | Pump Portal API | None |
-
-### 3. Agent-First Architecture
-
-Each AI agent is an isolated module with:
-
-- A unique system prompt defining its personality and capabilities
-- Dedicated API routes for specialized operations
-- A custom frontend panel component
-- Access to specific external data sources
-
-### 4. Thin Routes, Fat Storage
-
-API routes are kept minimal — they validate input with Zod, delegate to the storage layer, and return results. All business logic lives in either the AI agent prompts or the storage interface.
-
-## Data Flow
-
-### Agent Chat Flow
+### Transaction Formulation Pipeline
 
 ```
-User Input → POST /api/agents/:id/chat
-  → Validate with Zod
-  → Fetch relevant context (vaults, prices, scan results)
-  → Build Claude prompt with system prompt + context + user message
-  → Stream Claude response
-  → Persist conversation to PostgreSQL
-  → Return response to client
+User Input (natural language)
+    ↓
+LLM Cortex (intent extraction via NER)
+    ↓
+Transaction Builder (@solana/web3.js)
+    ↓
+Serialized Transaction buffer (base64)
+    ↓
+Client receives unsigned tx
+    ↓
+Phantom/Solflare signTransaction()
+    ↓
+User reviews & approves in wallet UI
+    ↓
+Signed tx → Solana mainnet-beta
+    ↓
+Confirmation → Agent panel display
 ```
 
-### Transaction Flow (Banana Bot)
+At no point in this pipeline does the server possess or handle private key material.
 
-```
-User: "Send 0.1 SOL to GkXn..."
-  → Claude interprets intent
-  → Server builds SystemProgram.transfer() Transaction
-  → Serialize unsigned tx to base64
-  → Send to client
-  → Client → Phantom.signTransaction()
-  → User approves in wallet
-  → Phantom → Solana mainnet-beta
-  → Return tx hash to UI
+## Agent Architecture
+
+Each agent is a stateful, autonomous actor with three core components:
+
+### LLM Cortex
+
+The decision-making engine. Each agent receives a specialized system prompt fine-tuned on crypto-native datasets, DeFi technical analysis, and domain-specific knowledge. The cortex determines user intent, extracts parameters, and generates contextual responses.
+
+### Execution Sandbox
+
+A restricted, client-side runtime environment. Agents formulate transactions within this sandbox, which are then queued in the Monkey OS notification center for manual user approval. The sandbox enforces:
+
+- Maximum transaction value limits
+- Required security checks (Rug Buster pre-scan)
+- Wallet provider isolation
+
+### IPC Bridge
+
+Inter-Process Communication between agents follows a pub/sub pattern on the global event bus. This enables swarm coordination:
+
+```typescript
+// Trend Puncher fires an alert
+dispatch('TREND_PUNCHER_ALERT', {
+  ticker: '$MONK',
+  sentimentScore: 0.87,
+  contractAddress: 'EPjFWdd5...',
+  volumeDelta: '+400%'
+});
+
+// Ape Vault listens and reacts
+on('TREND_PUNCHER_ALERT', (data) => {
+  if (data.sentimentScore > 0.8) {
+    evaluateAlgorithmicEntry(data.contractAddress);
+  }
+});
 ```
 
-### Security Scan Flow (Rug Buster)
+## Data Sources
 
-```
-User: "Scan token EPjFW..."
-  → Fetch account info from Solana RPC
-  → Check mint authority status
-  → Check freeze authority status
-  → Analyze supply distribution
-  → Calculate Safety Score (0-100)
-  → Return structured results
-```
+| Agent | Primary Source | Endpoint | Refresh |
+|:------|:--------------|:---------|:--------|
+| Ape Vault | DeFi Llama | `GET /yields` | 5 min cache |
+| Banana Bot | Solana RPC | `getAccountInfo`, `sendTransaction` | Real-time |
+| Punch Oracle | CoinGecko | `GET /coins/markets` | 2 min cache |
+| Trend Puncher | CoinGecko + DexScreener | Multiple endpoints | 2 min cache |
+| Rug Buster | Solana RPC | `getAccountInfo`, `getTokenSupply` | Real-time |
+| Repo Ape | GitHub API v3 | `GET /repos/:owner/:repo` | Real-time |
+| Swarm Monkey | Moltbook Network | `POST /api/v1/agents/register` | Real-time |
+| Banana Cannon | Pump Portal | `POST /api/trade` | Real-time |
+
+All external API responses are validated server-side before being passed to the LLM cortex for analysis. No raw external data is trusted without validation.
 
 ## Database Schema
 
-The PostgreSQL database stores:
+PostgreSQL stores operational data via Drizzle ORM:
 
-- **Conversations** — Chat history per agent per session
-- **Predictions** — Punch Oracle market predictions with outcomes
-- **Vault Data** — Cached DeFi Llama vault snapshots
-- **Security Scans** — Rug Buster scan results
-- **Token Launches** — Banana Cannon launch records
+- `conversations` — Agent chat sessions (agentId, title, timestamps)
+- `messages` — Chat messages (role, content, conversationId)
+- `predictions` — Prediction markets (title, odds, pool sizes, status)
+- `prediction_bets` — User bets (side, amount, wallet address, tx signature)
+- `security_scans` — Rug Buster results (safety score, authority checks)
+- `repo_scans` — Repo Ape results (legit score, commit stats, findings)
+- `transactions` — Solana tx records (recipient, amount, tx hash)
+- `token_launches` — Banana Cannon launches (name, symbol, status, mint address)
+- `attention_positions` — Trend Puncher narratives (virality, momentum, price data)
+- `vault_positions` — Ape Vault staking records (protocol, APY, TVL, staked amount)
+- `sanctuary_pixels` — Pixel monument claims (coordinates, color, owner)
 
-All tables are defined in `shared/schema.ts` using Drizzle ORM with full TypeScript type inference.
+All tables use `serial` primary keys with `timestamp` columns for ordering. Insert schemas are generated via `drizzle-zod` for runtime validation.
 
-## Technology Choices
+## Technology Decisions
 
 | Decision | Choice | Rationale |
 |:---------|:-------|:----------|
-| AI Model | Claude Sonnet 4.5 | Best reasoning for DeFi analysis, fast enough for chat |
-| Frontend | React + Vite | Fast HMR, modern tooling, ecosystem |
-| Styling | TailwindCSS | Rapid UI development, consistent design system |
-| Backend | Express | Simple, well-understood, good middleware ecosystem |
-| Database | PostgreSQL + Drizzle | Type-safe queries, migrations, reliable persistence |
-| Blockchain | @solana/web3.js | Official Solana SDK, full RPC support |
-| Validation | Zod | Runtime type checking, schema inference |
+| Execution Model | Client-Side (SCE) | Eliminates custodial risk and centralized attack vectors |
+| Wallet Integration | Direct Provider API | Avoids adapter wrapper duplicates in Vite bundling |
+| State Management | Pub/sub pattern | Decoupled agent communication without shared mutable state |
+| LLM Provider | Anthropic Claude | Best reasoning capabilities for complex DeFi analysis |
+| Database | PostgreSQL + Drizzle | Type-safe queries with schema inference |
+| Validation | Zod | Runtime type checking that mirrors TypeScript types |
+| Micropayments | x402 Protocol | Sub-second settlement without L1 congestion |

@@ -1,12 +1,123 @@
-# Agent Guide
+# Agent Reference
 
-ClawPunch deploys 8 autonomous AI agents, each specialized for a specific sector of the Solana DeFi ecosystem. Every agent is powered by Claude Sonnet 4.5 and operates with real data sources.
+ClawPunch ships with 8 native, LLM-powered utility agents. Each runs as an isolated process within the Monkey OS environment, communicating via the IPC bridge. Every agent operates on real data sources with zero mock data.
 
 ---
 
-## Ape Vault
+## I. Banana Bot
 
-**Role:** Yield & Treasury Manager
+**Cross-Chain Payments & Wallet Core**
+
+The foundational financial primitive of ClawPunch. Banana Bot serves as a hyper-intelligent, natural language interface for all core wallet operations.
+
+| Property | Value |
+|:---------|:------|
+| Agent ID | `banana-bot` |
+| Data Source | Solana RPC, Jupiter Aggregator API |
+| Protocol | x402 state channels |
+
+**Capabilities:**
+
+- **Natural Language Processing** — Instead of navigating complex DEX UIs, users instruct via plain English: *"Swap 2 SOL for exactly 300 USDC, use max 1% slippage and route through Orca."*
+- **Jupiter API Integration** — Parses queries using Named Entity Recognition (NER), queries the Jupiter Aggregator (`quote` and `swap` endpoints), and evaluates dozens of liquidity pools for optimal routing with lowest price impact
+- **x402 Integration** — For USDC micropayments, routes through x402 protocol, abstracting gas fees with near-instant settlement
+- **Non-Custodial Signing** — Returns base64-encoded, serialized transaction buffers ready for Phantom wallet signature
+
+---
+
+## II. Swarm Monkey
+
+**Moltbook Orchestration Interface**
+
+The control tower for deploying and managing autonomous agents via the Moltbook Network.
+
+| Property | Value |
+|:---------|:------|
+| Agent ID | `swarm-monkey` |
+| Data Source | Moltbook Network API |
+| Endpoint | `POST /api/moltbook/agents/register` |
+
+**Capabilities:**
+
+- **Agent Provisioning** — Define agent personality, risk tolerance, and execution boundaries (e.g., "Never formulate transactions exceeding 5 SOL")
+- **Dashboard Analytics** — Real-time Attention Score visualization, $Yield generation tracking, social engagement metrics
+- **Node Health** — Monitors latency and uptime of Moltbook relayer network supporting ephemeral state channels
+- **Swarm Coordination** — Link multiple specialized agents into coordinated swarms with automated handoff
+
+---
+
+## III. Trend Puncher
+
+**Momentum & Narrative Sniper**
+
+A high-frequency sentiment analysis engine designed to identify micro-trends before they reflect in price action.
+
+| Property | Value |
+|:---------|:------|
+| Agent ID | `trend-puncher` |
+| Data Source | CoinGecko, DexScreener |
+| Endpoint | `GET /api/attention/positions` |
+
+**Capabilities:**
+
+- **Social Ingestion Firehose** — Ingests unstructured data from Twitter APIs, Telegram alpha groups, and Discord whale channels
+- **NLP Pipeline** — Real-time sentiment analysis using VADER and custom BERT-based models fine-tuned on crypto slang, ticker mentions, and cashtag velocity
+- **Volume Delta Correlation** — Correlates social sentiment spikes with on-chain volume anomalies using DexScreener websockets. Identifies divergences — high social velocity preceding high volume
+- **Actionable Alerts** — *"Macaque meta is trending. +400% mention volume in 5m. Associated ticker: $MONK. Queue swap?"*
+
+---
+
+## IV. Rug Buster
+
+**Solana-Native Rug-Pull Detection**
+
+Autonomous security scanner that unlocks scans via x402 micropayments. Risk assessment is dynamically performed at request time through on-chain contract analysis.
+
+| Property | Value |
+|:---------|:------|
+| Agent ID | `rug-buster` |
+| Data Source | Solana RPC |
+| Trigger | x402 micropayment ($0.05/scan) |
+
+**Verification Matrix:**
+
+| Check | Method | Failure = Risk |
+|:------|:-------|:---------------|
+| Mint Authority | `mintAuthority == null` | Authority not revoked → infinite supply |
+| Freeze Authority | `freezeAuthority == null` | Authority not revoked → can freeze balances |
+| LP Lock | Query Raydium/Orca/Meteora AMM | LP tokens not burned or time-locked |
+| Holder Distribution | Gini coefficient calculation | Top 10 wallets > 50% supply |
+
+**Output:** Deterministic Safety Score (0-100) with verifiable cryptographic receipt ensuring the audit result hasn't been tampered with.
+
+---
+
+## V. Punch Oracle
+
+**Decentralized Prediction Markets**
+
+Connects the Monkey OS environment to real-world data and decentralized prediction markets.
+
+| Property | Value |
+|:---------|:------|
+| Agent ID | `punch-oracle` |
+| Data Source | CoinGecko, Pyth Network, Switchboard |
+| Endpoints | `GET/POST /api/predictions` |
+
+**Capabilities:**
+
+- **Event Staking** — Stake USDC on binary or scalar outcomes: *"Will Solana TPS drop below 1000 today?"*, *"Will $ClawPunch break $0.05 by Friday?"*
+- **Oracle Aggregation** — Aggregates data feeds from Pyth Network and Switchboard using a mathematical medianizer function for tamper-proof truth determination
+- **Atomic Settlement** — Escrow Program automatically distributes the staked USDC pool to winning addresses upon oracle consensus
+- **Protocol Fee** — 1% fee routed directly to The Sanctuary conservation fund
+
+---
+
+## VI. Ape Vault
+
+**Automated DCA & Portfolio Rebalancing**
+
+Replaces emotional, discretionary trading with cold, algorithmic, condition-based execution.
 
 | Property | Value |
 |:---------|:------|
@@ -14,175 +125,52 @@ ClawPunch deploys 8 autonomous AI agents, each specialized for a specific sector
 | Data Source | DeFi Llama API |
 | Endpoint | `GET /api/vaults` |
 
-Ape Vault manages DeFi vault operations across the Solana ecosystem. It pulls real-time yield data from DeFi Llama to provide APY comparisons, TVL tracking, and protocol analysis.
-
 **Capabilities:**
-- Real-time vault analytics from DeFi Llama
-- APY optimization across protocols (Raydium, Orca, Meteora, Marinade)
-- TVL tracking and historical comparison
-- Treasury allocation recommendations
+
+- **Conditional Logic Execution** — Define complex, nested conditional logic without code: *"DCA 1 SOL into $WIF every day at 14:00 UTC, BUT only if 14-day RSI < 40 AND Solana TPS > 2000"*
+- **Moltbook Relayer Cron** — Uses experimental Moltbook Relayer Network for asynchronous execution via delegated execution permits (Solana Session Keys or localized multi-sig escrow)
+- **Auto-Staking** — Autonomously sweeps idle SOL into liquid staking derivatives (JitoSOL, mSOL) to maximize baseline yield while maintaining DCA liquidity
+- **Real-Time Vault Analytics** — APY comparisons, TVL tracking, protocol analysis across Raydium, Orca, Meteora, Marinade
 
 ---
 
-## Banana Bot
+## VII. Repo Ape
 
-**Role:** Payment & Transfer Agent
+**Automated GitHub Alpha Scanner**
 
-| Property | Value |
-|:---------|:------|
-| Agent ID | `banana-bot` |
-| Data Source | Solana RPC via `@solana/web3.js` |
-| Endpoint | `POST /api/agents/banana-bot/chat` |
-
-Banana Bot handles all payment and transfer operations on Solana. It constructs real unsigned transactions that are sent to the user's Phantom wallet for signing.
-
-**Capabilities:**
-- Real SOL and SPL token transfers
-- Transaction building with `@solana/web3.js`
-- Non-custodial signing via Phantom wallet
-- Payment receipt generation
-
-**Transaction Flow:**
-1. User describes the transfer in natural language
-2. Banana Bot interprets intent and builds an unsigned `Transaction`
-3. Transaction is serialized and sent to the client
-4. User reviews and signs in Phantom
-5. Signed transaction is submitted to Solana mainnet-beta
-
----
-
-## Punch Oracle
-
-**Role:** Prediction Markets
-
-| Property | Value |
-|:---------|:------|
-| Agent ID | `punch-oracle` |
-| Data Source | CoinGecko API |
-| Endpoints | `GET /api/predictions`, `POST /api/predictions` |
-
-Punch Oracle manages prediction markets for crypto events. It uses real market data from CoinGecko to generate informed probability estimates.
-
-**Capabilities:**
-- Create prediction markets for any crypto event
-- Real-time price data from CoinGecko for odds calculation
-- Stake tracking and payout estimation
-- Historical prediction accuracy analysis
-
----
-
-## Trend Puncher
-
-**Role:** Attention Market Trader
-
-| Property | Value |
-|:---------|:------|
-| Agent ID | `trend-puncher` |
-| Data Source | CoinGecko + DexScreener |
-| Endpoint | `POST /api/agents/trend-puncher/chat` |
-
-Trend Puncher monitors and trades on attention markets — tracking which narratives, hashtags, and social signals are gaining momentum across the crypto ecosystem.
-
-**Capabilities:**
-- Trending token detection via CoinGecko
-- DEX pair analytics from DexScreener
-- Narrative momentum analysis
-- Virality scoring and breakout prediction
-
----
-
-## Rug Buster
-
-**Role:** Security Scanner
-
-| Property | Value |
-|:---------|:------|
-| Agent ID | `rug-buster` |
-| Data Source | Solana RPC |
-| Endpoint | `POST /api/security/scan` |
-
-Rug Buster performs on-chain security analysis of Solana tokens to detect rug-pull indicators. It queries the Solana blockchain directly for contract state.
-
-**Capabilities:**
-- Mint authority revocation verification
-- Freeze authority status check
-- LP token lock/burn analysis
-- Top holder concentration (Gini coefficient)
-- Safety Score generation (0-100)
-
-**Scan Output:**
-```json
-{
-  "safetyScore": 85,
-  "checks": {
-    "mintAuthority": "REVOKED",
-    "freezeAuthority": "REVOKED",
-    "lpLocked": true,
-    "topHolderConcentration": "12.4%"
-  },
-  "assessment": "LOW RISK"
-}
-```
-
----
-
-## Repo Ape
-
-**Role:** GitHub Alpha Scanner
+Intelligence agent that monitors GitHub repositories and developer activity to detect crypto alpha before it reaches social media.
 
 | Property | Value |
 |:---------|:------|
 | Agent ID | `repo-ape` |
-| Data Source | GitHub REST API v3 |
-| Endpoint | `POST /api/agents/repo-ape/chat` |
-
-Repo Ape analyzes GitHub repositories for crypto projects, detecting "AI LARP" — projects that claim AI capabilities but have no real implementation.
+| Data Source | GitHub Events API, REST API v3 |
+| Endpoint | `POST /api/repos/scan` |
 
 **Capabilities:**
-- Repository legitimacy scoring (0-100% Legit)
-- Commit frequency and contributor analysis
-- Code quality assessment
-- AI/ML implementation verification vs marketing claims
-- Trending crypto repo tracking
+
+- **Commit Firehose Ingestion** — Connects to GitHub Events API, polling thousands of repositories belonging to core Solana protocols, NFT projects, and stealth DeFi builders
+- **Heuristic Code Analysis** — Analyzes diffs using language models trained on Rust and Anchor frameworks, scanning for keywords like `mainnet_deploy`, `airdrop_snapshot`, `token_mint_auth_revoke`
+- **Developer Graph Mapping** — Tracks activity of pseudonymous "10x" developers. When associated wallets interact with unannounced repositories, flags as high-probability alpha
+- **Legit Score** — Composite legitimacy score (0-100%) based on commit frequency, contributor count, code quality, and AI LARP detection
 
 ---
 
-## Swarm Monkey
+## VIII. Banana Cannon
 
-**Role:** Agent Swarm Manager
+**Token Launcher**
 
-| Property | Value |
-|:---------|:------|
-| Agent ID | `swarm-monkey` |
-| Data Source | Moltbook Network |
-| Endpoint | `POST /api/agents/swarm-monkey/chat` |
-
-Swarm Monkey manages the decentralized AI agent swarm via the Moltbook Network. It coordinates multi-agent operations and monitors swarm health.
-
-**Capabilities:**
-- Agent registration and deregistration
-- Swarm health monitoring
-- Multi-agent task coordination
-- Attention Yield metric reporting
-- API key generation and agent authentication
-
----
-
-## Banana Cannon
-
-**Role:** Token Launcher
+Handles token creation and deployment on pump.fun via the Pump Portal API.
 
 | Property | Value |
 |:---------|:------|
 | Agent ID | `banana-cannon` |
 | Data Source | Pump Portal API |
-| Endpoints | `POST /api/token-launch/concept`, `POST /api/token-launch/launch` |
-
-Banana Cannon helps users create and launch new tokens on pump.fun via the Pump Portal API.
+| Endpoints | `POST /api/token-launches`, `POST /api/token-launches/generate` |
 
 **Capabilities:**
-- AI-generated token concepts (name, symbol, description)
-- Token creation on pump.fun
-- Dev buy amount configuration
-- Launch history tracking
-- Tokenomics and branding advice
+
+- **Token Creation** — Deploy new tokens on pump.fun with custom name, symbol, and description
+- **AI Concept Generation** — Generate creative token concepts, branding, and tokenomics configurations
+- **Dev Buy Allocation** — Configure initial dev buy amounts for launch liquidity
+- **Launch Tracking** — Full history of launched tokens with mint addresses, tx signatures, and pump.fun URLs
+- **Risk Disclosure** — Automated warnings about token launch responsibilities and regulatory considerations

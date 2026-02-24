@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="docs/assets/clawpunch-banner.svg" alt="ClawPunch" width="800"/>
+  <img src="docs/assets/clawpunch-banner.svg" alt="ClawPunch Protocol" width="800"/>
 </p>
 
 <h1 align="center">ClawPunch</h1>
 
 <p align="center">
-  <strong>Solana-Native AI Agent Swarm for Autonomous DeFi Operations</strong>
+  <strong>Decentralized Client-Side Financial Orchestration Layer on Solana</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/ClawPunchSOL/ClawPunch/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ClawPunchSOL/ClawPunch?style=flat-square" alt="License"/></a>
-  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/solana-mainnet--beta-blue?style=flat-square&logo=solana" alt="Solana"/></a>
-  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/agents-8_active-crimson?style=flat-square" alt="Agents"/></a>
-  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/AI-Claude_Sonnet_4.5-orange?style=flat-square&logo=anthropic" alt="AI Model"/></a>
-  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/data-100%25_real-green?style=flat-square" alt="Real Data"/></a>
+  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/solana-mainnet--beta-9945FF?style=flat-square&logo=solana&logoColor=white" alt="Solana"/></a>
+  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/agents-8_active-DC2626?style=flat-square" alt="Agents"/></a>
+  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/x402-v1.0-F59E0B?style=flat-square" alt="x402 Protocol"/></a>
+  <a href="https://github.com/ClawPunchSOL/ClawPunch"><img src="https://img.shields.io/badge/build-passing-22C55E?style=flat-square" alt="Build"/></a>
 </p>
 
 <p align="center">
@@ -21,6 +21,7 @@
   <a href="docs/ARCHITECTURE.md">Architecture</a> &middot;
   <a href="docs/API_REFERENCE.md">API Reference</a> &middot;
   <a href="docs/AGENTS.md">Agent Guide</a> &middot;
+  <a href="docs/PROTOCOL.md">x402 Protocol</a> &middot;
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -28,146 +29,211 @@
 
 ## Overview
 
-ClawPunch is a Solana-native crypto utility platform powered by **8 autonomous AI agents**, each built on Claude Sonnet 4.5. Every agent is purpose-built for a specific sector of the Solana DeFi ecosystem — from yield optimization and rug-pull detection to prediction markets and token launching.
+ClawPunch is the command-and-control layer for autonomous DeFi operations on Solana. Behind a retro 16-bit operating system interface lives a suite of **8 purpose-built utility agents**, each targeting a specific sector of the Solana DeFi ecosystem — from x402 micropayment routing and yield optimization to on-chain security scanning and decentralized prediction markets.
 
-Zero demo data. Zero placeholders. Every agent pulls from **real on-chain data sources** and executes **real Solana transactions** via Phantom wallet signing.
+The protocol employs **Strict Client-Side Execution (SCE)** to eliminate centralized attack vectors: agents formulate raw, serialized Solana transactions locally, which are then passed to the user's injected wallet provider for signing. Your keys, your signature, your execution. ClawPunch never signs a transaction without explicit user approval via the wallet extension.
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        ClawPunch Protocol                        │
-│                                                                  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │  AI Cortex   │  │  Agent      │  │  Solana      │             │
-│  │  Claude 4.5  │  │  Swarm (8)  │  │  RPC Layer   │             │
-│  │  Sonnet      │  │             │  │              │             │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │
-│         │                │                │                      │
-│  ┌──────┴────────────────┴────────────────┴──────┐              │
-│  │            Monkey OS Runtime Engine            │              │
-│  │     Routing · Validation · Execution           │              │
-│  └──────────────────────┬────────────────────────┘              │
-│                         │                                        │
-│  ┌──────────────────────┴────────────────────────┐              │
-│  │             Data Integration Layer             │              │
-│  │   DeFi Llama · CoinGecko · DexScreener ·      │              │
-│  │   Solana RPC · GitHub API · Pump Portal        │              │
-│  └───────────────────────────────────────────────┘              │
-└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                         ClawPunch Protocol                           │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
+│  │  LLM Cortex   │  │  x402        │  │  Solana       │              │
+│  │  (NLP Engine) │  │  Routing     │  │  RPC Layer    │              │
+│  │               │  │  Engine      │  │               │              │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘               │
+│         │                 │                 │                         │
+│  ┌──────┴─────────────────┴─────────────────┴───────┐               │
+│  │            Monkey OS Runtime Engine                │               │
+│  │   Agent Orchestration · IPC Bridge · VFS Layer    │               │
+│  └──────────────────────┬────────────────────────────┘               │
+│                         │                                             │
+│  ┌──────────────────────┴────────────────────────────┐               │
+│  │             Moltbook Swarm Network                 │               │
+│  │   Agent Registry · Attention Yield · BFT Relay    │               │
+│  └──────────────────────┬────────────────────────────┘               │
+│                         │                                             │
+│  ┌──────────────────────┴────────────────────────────┐               │
+│  │             Multi-Source Data Layer                 │               │
+│  │   DeFi Llama · CoinGecko · DexScreener ·          │               │
+│  │   Solana RPC · GitHub Events API · Pump Portal    │               │
+│  └───────────────────────────────────────────────────┘               │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+## The x402 Protocol
+
+The **x402 Protocol** is the proprietary routing algorithm powering high-frequency micropayments within ClawPunch. It is an **asynchronous state-channel multiplexer** designed to facilitate sub-second settlement of fractional USDC transfers with deterministic finality, bypassing standard RPC congestion.
+
+When a user or autonomous agent initiates a fractional transfer, the x402 routing engine evaluates current mempool density, compute unit pricing matrices, and RPC node latency across the global Solana cluster using the **Multi-Tier Routing Heuristic (MTRH)**:
+
+```
+ΔP = Σ(Gᵢ × λᵢ) + O(zk)
+```
+
+Where `Gᵢ` represents the dynamic gas oracle reading for node `i`, `λᵢ` is the latency coefficient (ms) of the target node cluster, and `O(zk)` is the constant overhead of off-chain payload formulation and localized zero-knowledge proof generation.
+
+**Ephemeral State Channels:**
+
+Instead of waiting for global consensus for every micro-transaction, x402 opens an ephemeral state channel between the client-side execution environment and the Moltbook relayer network:
+
+1. **Pre-commitment** — User's wallet signs a pre-commitment hash
+2. **Execution** — x402 engine processes micropayments off-chain at 100,000+ TPS
+3. **Rollup** — Localized zk-SNARK bundles thousands of fractional states into a single verifiable proof
+4. **Finality** — Proof submitted to Solana mainnet for deterministic finality
+
+## Core Architecture
+
+### Non-Custodial Security Model (SCE)
+
+1. **Zero Backend Custody** — No session tokens, OAuth keys, IP addresses, or raw transaction logs stored server-side. The server delivers static assets; intelligence runs locally in volatile memory.
+2. **In-Browser VFS** — Agents communicate via an isolated, strictly typed in-memory event bus. When the browser tab closes, the heap is flushed and the session evaporates entirely.
+3. **Transaction Formulation** — Agents formulate raw, serialized `Transaction` or `VersionedTransaction` buffers locally. The LLM cortex determines intent; deterministic payload generation happens within the client-side sandbox.
+4. **Delegated Signing** — Serialized buffers are passed to the user's injected wallet provider (Phantom, Solflare, Backpack) via the standard `window.solana` interface.
+
+### Moltbook Swarm Network
+
+Agents are not simple chatbots — they are stateful, autonomous actors with read/write access to specific on-chain programs and social APIs. Each agent consists of three core components:
+
+| Component | Function |
+|:----------|:---------|
+| **LLM Cortex** | Decision-making engine with crypto-native fine-tuning for DeFi TA and sentiment analysis |
+| **Execution Sandbox** | Restricted client-side runtime that formulates transactions and queues them for manual approval |
+| **Attention Harvester** | Social module that monitors trending topics and farms engagement metrics across platforms |
+
+**Swarm Orchestration** enables multi-agent coordination:
+
+```
+Agent Alpha (Scout)    → Monitors social firehoses for emerging narratives
+         ↓
+Agent Beta (Analyst)   → Decompiles token contracts via Rug Buster, calculates risk/reward
+         ↓
+Agent Gamma (Executor) → Formulates optimal entry strategy, queues transaction for one-click execution
 ```
 
 ## Agent Swarm
 
-ClawPunch deploys **8 specialized AI agents**, each with distinct capabilities and real data sources:
+ClawPunch ships with 8 native utility agents, each running as an isolated process within the OS environment and communicating via the IPC bridge:
 
-| Agent | Role | Data Source | Capabilities |
-|:------|:-----|:------------|:-------------|
-| **Ape Vault** | Yield & Treasury Manager | DeFi Llama API | Vault analytics, APY optimization, TVL tracking across protocols |
-| **Banana Bot** | Payment & Transfer Agent | Solana RPC + Phantom | Real transaction signing, SOL/SPL transfers, payment channels |
-| **Punch Oracle** | Prediction Markets | CoinGecko API | Market predictions, odds calculation, stake management |
-| **Trend Puncher** | Attention Market Trader | CoinGecko + DexScreener | Narrative trading, virality scoring, trend detection |
-| **Rug Buster** | Security Scanner | Solana RPC | Bytecode analysis, mint/freeze authority checks, Safety Scores |
-| **Repo Ape** | GitHub Alpha Scanner | GitHub API | Repository analysis, AI LARP detection, Legit Scores |
-| **Swarm Monkey** | Agent Swarm Manager | Moltbook Network | Agent registration, swarm coordination, health monitoring |
-| **Banana Cannon** | Token Launcher | Pump Portal API | Token creation on pump.fun, tokenomics config, launch management |
+| Agent | Role | Data Source | Key Capabilities |
+|:------|:-----|:------------|:-----------------|
+| **Banana Bot** | Cross-Chain Payments & Wallet Core | Solana RPC, Jupiter API | NLP-driven transfers, x402 micropayments, optimal routing via Jupiter Aggregator |
+| **Swarm Monkey** | Moltbook Orchestration Interface | Moltbook Network | Agent provisioning, swarm analytics, Attention Score dashboards, relayer health |
+| **Trend Puncher** | Momentum & Narrative Sniper | CoinGecko, DexScreener | Social ingestion firehose, VADER/BERT sentiment, volume delta correlation |
+| **Rug Buster** | Solana-Native Rug-Pull Detection | Solana RPC | Dynamic bytecode analysis, x402 micropayment triggers, Safety Score (0-100) |
+| **Punch Oracle** | Decentralized Prediction Markets | CoinGecko, Pyth Network | Event staking (USDC), oracle aggregation (Pyth + Switchboard), atomic settlement |
+| **Ape Vault** | Automated DCA & Portfolio Rebalancing | DeFi Llama | Conditional logic execution, Moltbook relayer cron, auto-staking (JitoSOL/mSOL) |
+| **Repo Ape** | GitHub Alpha Scanner | GitHub Events API | Commit firehose ingestion, heuristic code analysis, developer graph mapping |
+| **Banana Cannon** | Token Launcher | Pump Portal API | Token creation on pump.fun, tokenomics config, dev buy allocation |
 
-## Why ClawPunch?
+### Rug Buster Verification Matrix
 
-| Feature | Description |
-|:--------|:------------|
-| **Real Data Only** | Zero mock data — every metric comes from live APIs and on-chain state |
-| **Non-Custodial** | Transactions are built server-side but signed client-side via Phantom. Your keys never leave your wallet |
-| **Claude Sonnet 4.5** | Each agent runs on Anthropic's latest model for precise, context-aware DeFi analysis |
-| **Multi-Source Intel** | Agents cross-reference DeFi Llama, CoinGecko, DexScreener, Solana RPC, and GitHub |
-| **Solana Native** | Built from the ground up for Solana — sub-second finality, minimal fees |
-| **Open Architecture** | Modular agent design makes it easy to extend with custom agents and data sources |
+Every scan is triggered via x402 micropayment ($0.05/scan) through ephemeral state channels. The verification matrix checks:
+
+| Check | Description | Failure Condition |
+|:------|:------------|:------------------|
+| **Mint Authority** | Verifies if `mintAuthority == null` | Authority NOT revoked → infinite supply risk |
+| **Freeze Authority** | Verifies if `freezeAuthority == null` | Authority NOT revoked → creator can freeze balances |
+| **LP Lock** | Queries Raydium/Orca/Meteora AMM programs | LP tokens not burned or time-locked |
+| **Holder Distribution** | Calculates Gini coefficient of distribution | Top 10 wallets > 50% supply → extreme rug risk |
+
+Output: Deterministic Safety Score (0-100) with verifiable cryptographic receipt.
+
+### Attention Yield
+
+When agents are deployed to social platforms, the Moltbook protocol tracks engagement metrics cryptographically via decentralized oracles:
+
+```
+Yield = α(E_base) + β(V_unique) × γ(T_decay)
+```
+
+Where `E_base` is baseline engagement, `V_unique` is velocity of unique wallet interactions, and `T_decay` is a time-decay function preventing manipulation of stale content.
 
 ## Quick Start
 
 ### Prerequisites
 
-- **Node.js** 18+
-- **PostgreSQL** database
-- **Phantom Wallet** browser extension
-- **Anthropic API Key** for Claude Sonnet 4.5
+- Node.js 18+
+- PostgreSQL 14+
+- Phantom / Solflare / Backpack wallet extension
+- Anthropic API key
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/ClawPunchSOL/ClawPunch.git
 cd ClawPunch
-
-# Install dependencies
 npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys
-
-# Push database schema
-npm run db:push
-
-# Start development server
-npm run dev
+cp .env.example .env     # configure API keys
+npm run db:push           # initialize schema
+npm run dev               # start on :5000
 ```
 
-### Environment Variables
+### Environment
 
 ```bash
-# Required
-DATABASE_URL=postgresql://...        # PostgreSQL connection string
-ANTHROPIC_API_KEY=sk-ant-...         # Anthropic API key for Claude
-
-# Optional — enables enhanced features
-COINGECKO_API_KEY=CG-...             # CoinGecko Pro API (rate limits without)
-GITHUB_TOKEN=ghp_...                 # GitHub API for Repo Ape agent
+DATABASE_URL=postgresql://...        # PostgreSQL connection
+ANTHROPIC_API_KEY=sk-ant-...         # LLM Cortex
+COINGECKO_API_KEY=CG-...             # Market data (optional, rate-limited without)
+GITHUB_TOKEN=ghp_...                 # Repo Ape agent (optional)
+SOLANA_RPC_URL=https://...           # Custom RPC endpoint (optional)
 ```
 
-## Architecture
+## Developer Integration
 
-ClawPunch follows a strict **client-server separation** with non-custodial transaction handling:
+### Registering a Custom Agent via VFS
 
-```
-Browser (Client)                         Server
-┌────────────────────┐          ┌────────────────────────┐
-│                    │          │                        │
-│  Monkey OS UI      │◄────────►│  Express API           │
-│  React + Vite      │   REST   │  /api/agents/*         │
-│                    │          │  /api/vaults            │
-│  Phantom Wallet    │          │  /api/predictions       │
-│  (tx signing)      │          │  /api/token-launch      │
-│                    │          │                        │
-│  Agent Panels      │          │  Claude Sonnet 4.5     │
-│  (8 interfaces)    │          │  (AI reasoning)        │
-│                    │          │                        │
-└────────────────────┘          │  External APIs:        │
-                                │  ├─ DeFi Llama         │
-                                │  ├─ CoinGecko          │
-                                │  ├─ DexScreener        │
-                                │  ├─ Solana RPC         │
-                                │  ├─ GitHub API         │
-                                │  ├─ Moltbook Network   │
-                                │  └─ Pump Portal        │
-                                │                        │
-                                │  PostgreSQL            │
-                                │  (Drizzle ORM)         │
-                                └────────────────────────┘
+```typescript
+window.dispatchEvent(new CustomEvent('MONKEY_OS_REGISTER_APP', {
+  detail: {
+    appId: 'custom-sniper-01',
+    name: 'Sniper Pro',
+    iconUrl: '/assets/icons/sniper-icon.png',
+    permissions: [
+      'solana:request_signature',
+      'network:rpc_read',
+      'vfs:read_shared'
+    ],
+    entryPoint: './apps/sniper/index.js'
+  }
+}));
 ```
 
-[Full Architecture Documentation &rarr;](docs/ARCHITECTURE.md)
+### Requesting Transaction Signature via OS Security Layer
 
-## Transaction Flow
+Custom applications **must not** call `window.solana` directly. All transaction requests route through the OS security layer, which invokes Rug Buster heuristics automatically before prompting the user:
 
-All Solana transactions follow a **non-custodial signing flow**:
+```typescript
+const requestTx = await fetch('os://vfs/sys/tx_manager', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer <LOCAL_APP_TOKEN>'
+  },
+  body: JSON.stringify({
+    intent: 'swap',
+    params: {
+      inputMint: 'So11111111111111111111111111111111111111112',
+      outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      amount: 1000000000,
+      slippageBps: 50
+    }
+  })
+});
+```
 
-1. User requests an action via the agent chat interface
-2. Server builds a raw `Transaction` or `VersionedTransaction` using `@solana/web3.js`
-3. Unsigned transaction is serialized and sent to the client
-4. Client passes the transaction to Phantom for user approval
-5. Signed transaction is submitted to Solana mainnet-beta
-6. Confirmation is returned and displayed in the agent panel
+### Subscribing to Global Event Bus
 
-**Your private keys never touch the server.**
+```typescript
+window.addEventListener('MONKEY_OS_EVENT_BUS', (event) => {
+  if (event.detail.type === 'TREND_PUNCHER_ALERT') {
+    const { ticker, sentimentScore, contractAddress } = event.detail.data;
+    if (sentimentScore > 0.8) {
+      evaluateAlgorithmicEntry(contractAddress);
+    }
+  }
+});
+```
 
 ## Project Structure
 
@@ -176,125 +242,73 @@ ClawPunch/
 ├── client/
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── Home.tsx              # Landing page
-│   │   │   ├── MonkeyOS.tsx          # Main OS interface (8 agents)
-│   │   │   ├── Sanctuary.tsx         # Pixel monument
-│   │   │   └── Docs.tsx              # Documentation viewer
+│   │   │   ├── Home.tsx              # Parallax jungle landing
+│   │   │   ├── MonkeyOS.tsx          # OS runtime (8 agents)
+│   │   │   └── Sanctuary.tsx         # 1M pixel monument
 │   │   ├── components/
-│   │   │   └── agents/
-│   │   │       ├── ApeVaultPanel.tsx       # DeFi vault analytics
-│   │   │       ├── BananaBotPanel.tsx      # Payment & transfers
-│   │   │       ├── BananaCannonPanel.tsx   # Token launcher
-│   │   │       ├── PunchOraclePanel.tsx    # Prediction markets
-│   │   │       ├── RepoApePanel.tsx        # GitHub scanner
-│   │   │       ├── RugBusterPanel.tsx      # Security scanner
-│   │   │       ├── SwarmMonkeyPanel.tsx    # Swarm manager
-│   │   │       └── TrendPuncherPanel.tsx   # Trend trader
-│   │   └── App.tsx                   # Router & layout
+│   │   │   └── agents/               # Agent panel components (8)
+│   │   └── lib/
+│   │       └── solanaWallet.ts       # Phantom wallet adapter (pub/sub)
 │   └── index.html
 ├── server/
-│   ├── agents.ts                     # Agent configurations & prompts
+│   ├── agents.ts                     # Agent configs & LLM system prompts
 │   ├── routes.ts                     # API route handlers
 │   ├── storage.ts                    # Database operations (Drizzle)
 │   └── index.ts                      # Express server entry
 ├── shared/
 │   └── schema.ts                     # Drizzle ORM schema & types
 ├── docs/
-│   ├── ARCHITECTURE.md               # System architecture deep-dive
+│   ├── ARCHITECTURE.md               # System architecture
 │   ├── API_REFERENCE.md              # REST API documentation
-│   ├── AGENTS.md                     # Agent capabilities guide
-│   └── assets/                       # Documentation assets
-├── .env.example                      # Environment variable template
-├── drizzle.config.ts                 # Database configuration
+│   ├── AGENTS.md                     # Agent capabilities
+│   └── PROTOCOL.md                   # x402 Protocol specification
+├── .env.example
+├── drizzle.config.ts
 ├── package.json
 ├── tsconfig.json
 └── vite.config.ts
 ```
 
-## API Reference
-
-### Agent Chat
-
-```bash
-# Send a message to any agent
-curl -X POST http://localhost:5000/api/agents/banana-bot/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Send 0.1 SOL to GkXn6...", "conversationHistory": []}'
-```
-
-### DeFi Vaults (Ape Vault)
-
-```bash
-# Get top DeFi vaults from DeFi Llama
-curl http://localhost:5000/api/vaults
-
-# Search vaults by protocol
-curl http://localhost:5000/api/vaults?protocol=raydium
-```
-
-### Security Scan (Rug Buster)
-
-```bash
-# Scan a Solana token address
-curl -X POST http://localhost:5000/api/security/scan \
-  -H "Content-Type: application/json" \
-  -d '{"address": "So11111111111111111111111111111111111111112"}'
-```
-
-### Token Launch (Banana Cannon)
-
-```bash
-# Generate token concept
-curl -X POST http://localhost:5000/api/token-launch/concept \
-  -H "Content-Type: application/json" \
-  -d '{"theme": "AI-powered DeFi optimizer"}'
-```
-
-[Full API Reference &rarr;](docs/API_REFERENCE.md)
-
 ## Tech Stack
 
 | Layer | Technology |
 |:------|:-----------|
-| **Frontend** | React 18, Vite, TailwindCSS, Framer Motion |
-| **Backend** | Node.js, Express, TypeScript |
-| **Database** | PostgreSQL, Drizzle ORM |
-| **AI** | Anthropic Claude Sonnet 4.5 |
-| **Blockchain** | Solana Web3.js, Phantom Wallet Adapter |
-| **Data** | DeFi Llama, CoinGecko, DexScreener, GitHub API, Pump Portal |
+| **Runtime** | Node.js 18+, TypeScript 5.0 |
+| **Frontend** | React 18, Vite 5, TailwindCSS, Framer Motion |
+| **Backend** | Express.js, Drizzle ORM, PostgreSQL |
+| **Blockchain** | @solana/web3.js, Phantom Provider API |
+| **Data** | DeFi Llama, CoinGecko, DexScreener, GitHub Events, Pump Portal |
+| **Protocol** | x402 State Channels, Moltbook Swarm, zk-SNARK Rollups |
+
+## The Sanctuary
+
+The economic engine of the ecosystem — an expansive **1,000,000 pixel** (1000×1000) interactive digital monument. Users claim pixel coordinates at $1.00 USDC per pixel, with 100% of proceeds routed autonomously via atomic smart contracts to the Punch Foundation multi-sig. Coordinate states, RGB hex values, and metadata are compressed into a localized Merkle tree anchored to the Solana ledger.
 
 ## Security
 
-Security is core to ClawPunch. See our [Security Policy](SECURITY.md) for details.
+See [SECURITY.md](SECURITY.md) for the full security model.
 
-- **Non-Custodial** &mdash; Private keys never leave the user's Phantom wallet
-- **Client-Side Signing** &mdash; All transactions require explicit wallet approval
-- **No Key Storage** &mdash; Server never has access to private key material
-- **Input Validation** &mdash; All API inputs validated with Zod schemas
-- **Rate Limiting** &mdash; Per-endpoint rate limits prevent abuse
+- **Zero Backend Custody** — No private keys, session tokens, or raw transaction logs
+- **Client-Side Signing** — All transactions require explicit wallet approval
+- **x402 BFT** — Supermajority consensus from Moltbook validator swarm before zk-SNARK generation
+- **Delegated Signing** — Standard `window.solana` provider interface only
+- **Deterministic Audits** — Rug Buster generates verifiable cryptographic scan receipts
 
 ## Contributing
 
-We welcome contributions. Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ```bash
 git clone https://github.com/ClawPunchSOL/ClawPunch.git
-cd ClawPunch
-npm install
-npm run dev
+cd ClawPunch && npm install && npm run dev
 ```
-
-## Community
-
-- [GitHub Issues](https://github.com/ClawPunchSOL/ClawPunch/issues)
-- [GitHub Discussions](https://github.com/ClawPunchSOL/ClawPunch/discussions)
 
 ## License
 
-ClawPunch is released under the [MIT License](LICENSE).
+MIT — see [LICENSE](LICENSE).
 
 ---
 
 <p align="center">
-  Built by <a href="https://github.com/ClawPunchSOL">ClawPunchSOL</a> &mdash; Powered by Punch & Clawd
+  <sub>Built by <a href="https://github.com/ClawPunchSOL">ClawPunchSOL</a> — Powered by Punch & Clawd</sub>
 </p>
