@@ -128,6 +128,72 @@ const AGENTS: Record<AgentId, Agent> = {
   },
 };
 
+function TerminalLine({ label, value, color, delay }: { label: string; value: string; color: string; delay: number }) {
+  const [visible, setVisible] = useState(false);
+  const [typed, setTyped] = useState('');
+
+  useEffect(() => {
+    const showTimer = setTimeout(() => setVisible(true), delay * 1000);
+    return () => clearTimeout(showTimer);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!visible) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setTyped(value.slice(0, i));
+      if (i >= value.length) clearInterval(interval);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [visible, value]);
+
+  if (!visible) return <div className="h-4" />;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-white/30 w-16 shrink-0">{label}</span>
+      <span className="text-white/15">›</span>
+      <span className={color}>{typed}<span className="animate-pulse">_</span></span>
+    </div>
+  );
+}
+
+function ActivityTicker({ items }: { items: { icon: string; text: string; color: string }[] }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIndex(prev => (prev + 1) % items.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [items.length]);
+
+  return (
+    <div className="relative h-24 overflow-hidden">
+      <AnimatePresence mode="wait">
+        {items.map((item, i) => i === activeIndex ? (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+          >
+            <span className="text-2xl">{item.icon}</span>
+            <span className={`font-display text-[9px] ${item.color} tracking-wider`}>{item.text}</span>
+          </motion.div>
+        ) : null)}
+      </AnimatePresence>
+      <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-1">
+        {items.map((_, i) => (
+          <div key={i} className={`w-1 h-1 transition-all ${i === activeIndex ? 'bg-white/50 scale-125' : 'bg-white/15'}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const DESKTOP_LAYOUT: { id: AgentId; row: number; col: number }[] = [
   { id: 'trend-puncher', row: 0, col: 0 },
   { id: 'punch-oracle', row: 0, col: 1 },
@@ -474,6 +540,191 @@ export default function MonkeyOS() {
                       transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
                     />
                   </div>
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-6">
+                  <motion.div
+                    className="relative border border-green-500/20 bg-black/50 backdrop-blur-sm p-4 overflow-hidden group"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                  >
+                    <div className="absolute inset-0 pointer-events-none" style={{
+                      background: 'radial-gradient(circle at 50% 0%, rgba(34,197,94,0.08) 0%, transparent 60%)'
+                    }} />
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/40 to-transparent" />
+                    <div className="relative">
+                      <div className="font-display text-[8px] text-green-400/70 tracking-widest mb-3 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-400 animate-pulse" />
+                        SYSTEM STATUS
+                      </div>
+                      <div className="space-y-1.5 font-mono text-[10px]">
+                        <TerminalLine label="NETWORK" value="SOLANA MAINNET" color="text-green-400" delay={0} />
+                        <TerminalLine label="AGENTS" value="8 / 8 ONLINE" color="text-green-400" delay={0.3} />
+                        <TerminalLine label="AI ENGINE" value="CLAUDE SONNET 4" color="text-cyan-400" delay={0.6} />
+                        <TerminalLine label="PROTOCOL" value="x402 ACTIVE" color="text-purple-400" delay={0.9} />
+                        <TerminalLine label="UPTIME" value="99.7%" color="text-yellow-400" delay={1.2} />
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  <motion.button
+                    onClick={() => setLocation('/sanctuary')}
+                    className="relative border border-purple-500/20 bg-black/50 backdrop-blur-sm p-4 overflow-hidden group cursor-pointer text-left"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 }}
+                    whileHover={{ y: -3 }}
+                    data-testid="button-sanctuary-link"
+                  >
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{
+                      background: 'radial-gradient(circle at 50% 50%, rgba(168,85,247,0.1) 0%, transparent 60%)'
+                    }} />
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+                    <div className="relative flex flex-col items-center text-center gap-3">
+                      <div className="font-display text-[8px] text-purple-400/70 tracking-widest flex items-center gap-2">
+                        <span>🗺️</span> THE SANCTUARY
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-relaxed">
+                        1,000,000 pixel conservation map.
+                        Every pixel funds primate rescue.
+                      </div>
+                      <div className="font-display text-[8px] text-purple-400 border border-purple-500/30 px-3 py-1 bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                        EXPLORE MAP →
+                      </div>
+                    </div>
+                  </motion.button>
+
+                  <motion.div
+                    className="relative border border-yellow-500/20 bg-black/50 backdrop-blur-sm p-4 overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 }}
+                  >
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+                    <div className="relative">
+                      <div className="font-display text-[8px] text-yellow-400/70 tracking-widest mb-3 flex items-center gap-2">
+                        <span>📡</span> LIVE FEED
+                      </div>
+                      <div className="space-y-2 overflow-hidden">
+                        <ActivityTicker items={[
+                          { icon: '🔍', text: `${hubStats['rug-buster'] || '0 scans'} completed`, color: 'text-red-400' },
+                          { icon: '📊', text: `${hubStats['punch-oracle'] || '0 markets'} active`, color: 'text-purple-400' },
+                          { icon: '🐒', text: `${hubStats['swarm-monkey'] || '0 agents'} deployed`, color: 'text-blue-400' },
+                          { icon: '💸', text: `${hubStats['banana-bot'] || '0 txs'} processed`, color: 'text-green-400' },
+                          { icon: '📈', text: `${hubStats['vault-swinger'] || '0 pools'} tracked`, color: 'text-orange-400' },
+                        ]} />
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+
+                <motion.div
+                  className="mt-6 relative overflow-hidden"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.0 }}
+                  style={{ height: '180px' }}
+                >
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] z-10" style={{
+                    background: 'linear-gradient(90deg, transparent 5%, rgba(34,197,94,0.15) 20%, rgba(34,197,94,0.25) 50%, rgba(34,197,94,0.15) 80%, transparent 95%)'
+                  }} />
+                  <div className="absolute bottom-[2px] left-0 right-0 h-8 z-[1]" style={{
+                    background: 'linear-gradient(180deg, transparent, rgba(5,15,5,0.6))'
+                  }} />
+
+                  <motion.div
+                    className="absolute z-[5]"
+                    style={{ bottom: '8px', left: '8%' }}
+                    animate={{ y: [0, -12, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                  >
+                    <img src={monkeyHero} className="w-14 h-14 md:w-18 md:h-18 pixel-art-rendering drop-shadow-[0_6px_12px_rgba(255,200,0,0.3)]" />
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute z-[4]"
+                    style={{ bottom: '4px' }}
+                    animate={{ x: ['10%', '85%'] }}
+                    transition={{ repeat: Infinity, duration: 12, ease: "linear", repeatType: "reverse" }}
+                  >
+                    <motion.div
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ repeat: Infinity, duration: 0.4, ease: "easeInOut" }}
+                    >
+                      <img src={crabRiderAngry} className="w-10 h-10 md:w-12 md:h-12 pixel-art-rendering drop-shadow-[0_4px_8px_rgba(255,0,0,0.3)]" />
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute z-[3]"
+                    style={{ bottom: '6px', right: '12%' }}
+                    animate={{ y: [0, -6, 0], rotate: [-5, 5, -5] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  >
+                    <img src={crabRiderHappy} className="w-12 h-12 md:w-14 md:h-14 pixel-art-rendering drop-shadow-[0_4px_10px_rgba(0,255,100,0.3)]" style={{ transform: 'scaleX(-1)' }} />
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute z-[5]"
+                    style={{ bottom: '10px', left: '45%' }}
+                    animate={{ y: [0, -20, 0], rotate: [0, 360] }}
+                    transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                  >
+                    <span className="text-2xl md:text-3xl drop-shadow-[0_0_10px_rgba(255,255,0,0.4)]">🍌</span>
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute z-[2]"
+                    style={{ bottom: '30px', left: '30%' }}
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                  >
+                    <img src={fighterMonkey} className="w-12 h-12 md:w-16 md:h-16 pixel-art-rendering opacity-40 drop-shadow-[0_4px_8px_rgba(255,100,0,0.2)]" />
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute z-[2]"
+                    style={{ bottom: '40px', right: '25%' }}
+                    animate={{ y: [0, -8, 0], opacity: [0.2, 0.35, 0.2] }}
+                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  >
+                    <img src={vaultMonkey} className="w-10 h-10 md:w-14 md:h-14 pixel-art-rendering drop-shadow-[0_4px_8px_rgba(249,115,22,0.2)]" />
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute z-[2]"
+                    style={{ bottom: '55px', left: '60%' }}
+                    animate={{ y: [0, -6, 0], opacity: [0.15, 0.3, 0.15] }}
+                    transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 1 }}
+                  >
+                    <img src={swarmMonkey} className="w-8 h-8 md:w-12 md:h-12 pixel-art-rendering drop-shadow-[0_4px_8px_rgba(59,130,246,0.2)]" />
+                  </motion.div>
+
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <motion.div
+                      key={`firefly-${i}`}
+                      className="absolute w-1 h-1 rounded-full"
+                      style={{
+                        left: `${15 + i * 14}%`,
+                        bottom: `${20 + Math.random() * 60}%`,
+                        background: i % 2 === 0 ? '#22c55e' : '#eab308',
+                        boxShadow: `0 0 6px ${i % 2 === 0 ? '#22c55e' : '#eab308'}`,
+                      }}
+                      animate={{
+                        y: [0, -(10 + Math.random() * 20), 0],
+                        x: [0, (Math.random() - 0.5) * 20, 0],
+                        opacity: [0, 0.8, 0],
+                        scale: [0.5, 1.5, 0.5],
+                      }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 2 + Math.random() * 3,
+                        ease: "easeInOut",
+                        delay: Math.random() * 3,
+                      }}
+                    />
+                  ))}
                 </motion.div>
               </div>
             </div>
