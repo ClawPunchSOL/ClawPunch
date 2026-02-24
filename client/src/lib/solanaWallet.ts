@@ -142,8 +142,11 @@ export async function sendSolTransfer(recipientAddress: string, amountSol: numbe
 
 export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: number): Promise<string> {
   const phantom = getPhantom();
-  if (!phantom || !walletState.connected || !walletState.publicKey) {
-    throw new Error("Wallet not connected");
+  if (!phantom) {
+    throw new Error("Phantom wallet not found. Please install Phantom browser extension.");
+  }
+  if (!walletState.connected || !walletState.publicKey) {
+    throw new Error("Wallet not connected. Please connect your wallet first.");
   }
 
   const conn = getConnection();
@@ -152,16 +155,39 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
 
   const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
   const USDC_DECIMALS = 6;
+  const amount = Math.round(amountUsdc * Math.pow(10, USDC_DECIMALS));
 
-  const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } = await import("@solana/spl-token");
+  let splToken;
+  try {
+    splToken = await import("@solana/spl-token");
+  } catch {
+    throw new Error("Failed to load SPL token library. Please refresh and try again.");
+  }
+
+  const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount, TOKEN_PROGRAM_ID } = splToken;
 
   const fromAta = await getAssociatedTokenAddress(USDC_MINT, fromPubkey);
   const toAta = await getAssociatedTokenAddress(USDC_MINT, toPubkey);
 
+  let senderHasUsdc = false;
+  try {
+    const fromAccount = await getAccount(conn, fromAta);
+    if (fromAccount.amount < BigInt(amount)) {
+      const has = Number(fromAccount.amount) / Math.pow(10, USDC_DECIMALS);
+      throw new Error(`Insufficient USDC balance. You have ${has.toFixed(2)} USDC but need ${amountUsdc} USDC.`);
+    }
+    senderHasUsdc = true;
+  } catch (e: any) {
+    if (e.message?.includes("Insufficient USDC")) throw e;
+    throw new Error("No USDC token account found for your wallet. You need USDC (SPL) on Solana to make this payment.");
+  }
+
   const transaction = new Transaction();
 
+  let recipientAtaExists = false;
   try {
     await getAccount(conn, toAta);
+    recipientAtaExists = true;
   } catch {
     transaction.add(
       createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT)
@@ -169,21 +195,34 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
   }
 
   transaction.add(
-    createTransferInstruction(
-      fromAta,
-      toAta,
-      fromPubkey,
-      Math.round(amountUsdc * Math.pow(10, USDC_DECIMALS))
-    )
+    createTransferInstruction(fromAta, toAta, fromPubkey, amount)
   );
 
   transaction.feePayer = fromPubkey;
-  const { blockhash } = await conn.getLatestBlockhash();
-  transaction.recentBlockhash = blockhash;
 
-  const { signature } = await phantom.signAndSendTransaction(transaction);
-  setTimeout(fetchBalance, 3000);
-  return signature;
+  let blockhash;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const result = await conn.getLatestBlockhash("confirmed");
+      blockhash = result.blockhash;
+      break;
+    } catch {
+      if (attempt === 2) throw new Error("Solana network is busy. Please wait a moment and try again.");
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  transaction.recentBlockhash = blockhash!;
+
+  try {
+    const { signature } = await phantom.signAndSendTransaction(transaction);
+    setTimeout(fetchBalance, 3000);
+    return signature;
+  } catch (e: any) {
+    if (e.message?.includes("User rejected")) {
+      throw new Error("Transaction cancelled by user.");
+    }
+    throw new Error(e.message || "Transaction failed. Please try again.");
+  }
 }
 
 export async function signAndSendSerializedTransaction(serializedBase64: string): Promise<string> {
