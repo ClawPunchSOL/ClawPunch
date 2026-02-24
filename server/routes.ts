@@ -120,10 +120,13 @@ export async function registerRoutes(
 
   app.get("/api/sanctuary/pixels", async (req, res) => {
     try {
-      res.set("Cache-Control", "no-store");
+      res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.removeHeader("ETag");
       const pixels = await storage.getAllSanctuaryPixels();
-      res.json(pixels);
-    } catch (error) {
+      console.log(`[sanctuary] returning ${pixels.length} pixels`);
+      res.status(200).json(pixels);
+    } catch (error: any) {
+      console.error("[sanctuary] ERROR fetching pixels:", error?.message || error);
       res.status(500).json({ error: "Failed to fetch pixels" });
     }
   });
