@@ -146,20 +146,43 @@ export async function registerRoutes(
   const USDC_DECIMALS = 6;
   const PRICE_PER_PIXEL_USDC = 1;
 
+  const SOLANA_RPC_URLS = [
+    "https://api.mainnet-beta.solana.com",
+    "https://rpc.ankr.com/solana",
+    "https://solana-mainnet.g.alchemy.com/v2/demo",
+  ];
+
+  async function solanaRpcCall(body: object): Promise<any> {
+    let lastErr: any;
+    for (const rpcUrl of SOLANA_RPC_URLS) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(rpcUrl, {
+          method: "POST", signal: ctrl.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        clearTimeout(t);
+        if (!res.ok && res.status === 403) continue;
+        const data = await res.json();
+        if (data.error?.code === 403) continue;
+        return data;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("All Solana RPC endpoints failed");
+  }
+
   async function verifySolanaTransaction(txSignature: string, expectedSender: string, expectedAmountUsdc: number): Promise<{ valid: boolean; error?: string }> {
     try {
-      const rpcUrl = "https://api.mainnet-beta.solana.com";
-      const rpcRes = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "getTransaction",
-          params: [txSignature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }],
-        }),
+      const rpcData = await solanaRpcCall({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "getTransaction",
+        params: [txSignature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }],
       });
-      const rpcData = await rpcRes.json();
       if (!rpcData.result) return { valid: false, error: "Transaction not found on-chain. It may still be confirming — please wait and try again." };
       const tx = rpcData.result;
       if (tx.meta?.err) return { valid: false, error: "Transaction failed on-chain" };
@@ -1286,13 +1309,24 @@ export async function registerRoutes(
       }
 
       const { Connection, PublicKey, clusterApiUrl, LAMPORTS_PER_SOL, Transaction: SolTransaction, SystemProgram } = await import("@solana/web3.js");
-      const conn = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
+      let conn: InstanceType<typeof Connection> | null = null;
+      let blockhash = "";
+      let lastValidBlockHeight = 0;
+      for (const rpcUrl of SOLANA_RPC_URLS) {
+        try {
+          conn = new Connection(rpcUrl, "confirmed");
+          const result = await conn.getLatestBlockhash();
+          blockhash = result.blockhash;
+          lastValidBlockHeight = result.lastValidBlockHeight;
+          break;
+        } catch { conn = null; }
+      }
+      if (!conn) throw new Error("All Solana RPC endpoints unavailable");
       const fromPubkey = new PublicKey(fromWallet);
       const toPubkey = new PublicKey(recipient);
 
       const tx = new SolTransaction();
       tx.feePayer = fromPubkey;
-      const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
       tx.recentBlockhash = blockhash;
 
       if (token === "USDC") {
@@ -1798,16 +1832,8 @@ export async function registerRoutes(
         const txs = await storage.getAllTransactions();
         let networkStatus = "healthy";
         try {
-          const ctrl = new AbortController();
-          const t = setTimeout(() => ctrl.abort(), 5000);
-          const rpcRes = await fetch("https://api.mainnet-beta.solana.com", {
-            method: "POST", signal: ctrl.signal,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getRecentPerformanceSamples", params: [5] }),
-          });
-          clearTimeout(t);
-          if (rpcRes.ok) {
-            const rpcData = await rpcRes.json();
+          const rpcData = await solanaRpcCall({ jsonrpc: "2.0", id: 1, method: "getRecentPerformanceSamples", params: [5] });
+          if (rpcData) {
             const samples = rpcData.result || [];
             if (samples.length > 0) {
               const avgTps = samples.reduce((s: number, x: any) => s + (x.numTransactions / x.samplePeriodSecs), 0) / samples.length;

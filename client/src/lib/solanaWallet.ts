@@ -19,10 +19,24 @@ let listeners: Set<(state: WalletState) => void> = new Set();
 let connection: Connection | null = null;
 let balanceInterval: ReturnType<typeof setInterval> | null = null;
 
+const RPC_ENDPOINTS = [
+  "https://api.mainnet-beta.solana.com",
+  "https://solana-mainnet.g.alchemy.com/v2/demo",
+  "https://rpc.ankr.com/solana",
+];
+
 function getConnection(): Connection {
   if (!connection) {
-    connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
+    connection = new Connection(RPC_ENDPOINTS[0], "confirmed");
   }
+  return connection;
+}
+
+function rotateRpc(): Connection {
+  const current = connection?.rpcEndpoint || RPC_ENDPOINTS[0];
+  const idx = RPC_ENDPOINTS.indexOf(current);
+  const next = RPC_ENDPOINTS[(idx + 1) % RPC_ENDPOINTS.length];
+  connection = new Connection(next, "confirmed");
   return connection;
 }
 
@@ -39,13 +53,15 @@ function getPhantom(): any {
 
 async function fetchBalance() {
   if (!walletState.publicKey) return;
-  try {
-    const conn = getConnection();
-    const pk = new PublicKey(walletState.publicKey);
-    const bal = await conn.getBalance(pk);
-    walletState = { ...walletState, balance: bal / LAMPORTS_PER_SOL };
-    notify();
-  } catch {
+  const pk = new PublicKey(walletState.publicKey);
+  for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
+    try {
+      const c = i === 0 ? getConnection() : rotateRpc();
+      const bal = await c.getBalance(pk);
+      walletState = { ...walletState, balance: bal / LAMPORTS_PER_SOL };
+      notify();
+      return;
+    } catch {}
   }
 }
 
@@ -169,9 +185,22 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
   const fromAta = await getAssociatedTokenAddress(USDC_MINT, fromPubkey);
   const toAta = await getAssociatedTokenAddress(USDC_MINT, toPubkey);
 
+  async function rpcCall<T>(fn: (c: Connection) => Promise<T>): Promise<T> {
+    let lastErr: any;
+    for (let attempt = 0; attempt < RPC_ENDPOINTS.length; attempt++) {
+      try {
+        return await fn(attempt === 0 ? conn : rotateRpc());
+      } catch (e: any) {
+        lastErr = e;
+        if (e.message?.includes("Insufficient USDC") || e.message?.includes("No USDC")) throw e;
+      }
+    }
+    throw lastErr;
+  }
+
   let senderHasUsdc = false;
   try {
-    const fromAccount = await getAccount(conn, fromAta);
+    const fromAccount = await rpcCall(c => getAccount(c, fromAta));
     if (fromAccount.amount < BigInt(amount)) {
       const has = Number(fromAccount.amount) / Math.pow(10, USDC_DECIMALS);
       throw new Error(`Insufficient USDC balance. You have ${has.toFixed(2)} USDC but need ${amountUsdc} USDC.`);
@@ -184,10 +213,8 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
 
   const transaction = new Transaction();
 
-  let recipientAtaExists = false;
   try {
-    await getAccount(conn, toAta);
-    recipientAtaExists = true;
+    await rpcCall(c => getAccount(c, toAta));
   } catch {
     transaction.add(
       createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT)
@@ -200,18 +227,8 @@ export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: num
 
   transaction.feePayer = fromPubkey;
 
-  let blockhash;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const result = await conn.getLatestBlockhash("confirmed");
-      blockhash = result.blockhash;
-      break;
-    } catch {
-      if (attempt === 2) throw new Error("Solana network is busy. Please wait a moment and try again.");
-      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-    }
-  }
-  transaction.recentBlockhash = blockhash!;
+  const { blockhash } = await rpcCall(c => c.getLatestBlockhash("confirmed"));
+  transaction.recentBlockhash = blockhash;
 
   try {
     const { signature } = await phantom.signAndSendTransaction(transaction);
