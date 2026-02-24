@@ -49,7 +49,8 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 
 ### Sanctuary
 - `GET /api/sanctuary/pixels` - Get claimed pixels
-- `POST /api/sanctuary/pixels` - Claim a pixel
+- `POST /api/sanctuary/pixels` - Claim a single pixel
+- `POST /api/sanctuary/pixels/batch` - Batch claim pixels with USDC payment verification (validates on-chain tx)
 
 ### Moltbook Integration (Real API: https://www.moltbook.com/api/v1)
 - `GET /api/moltbook/agents` - List registered agents
@@ -95,7 +96,7 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - `users` - Basic user table
 - `conversations` - Agent chat sessions (agentId, title)
 - `messages` - Chat messages (conversationId, role, content)
-- `sanctuary_pixels` - Claimed pixel plots (plotIndex, ownerName, color)
+- `sanctuary_pixels` - Claimed pixel plots (plotIndex, ownerName, color, imageUrl, walletAddress, txSignature)
 - `moltbook_agents` - Registered AI agents (name, type, status, apiKeyPrefix)
 - `predictions` - Prediction markets (title, oddsYes/No, poolYes/No, status)
 - `prediction_bets` - Bets on predictions (side, amount, walletAddress, txSignature)

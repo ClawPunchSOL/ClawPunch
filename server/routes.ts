@@ -140,6 +140,113 @@ export async function registerRoutes(
     }
   });
 
+  const SANCTUARY_POOL_WALLET = "CzKwqN9CvnkKaNyhP2hLaXS1MdZWob3ejQv5HFPhx7iS";
+  const MAX_BATCH_SIZE = 100;
+  const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+  const USDC_DECIMALS = 6;
+  const PRICE_PER_PIXEL_USDC = 1;
+
+  async function verifySolanaTransaction(txSignature: string, expectedSender: string, expectedAmountUsdc: number): Promise<{ valid: boolean; error?: string }> {
+    try {
+      const rpcUrl = "https://api.mainnet-beta.solana.com";
+      const rpcRes = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getTransaction",
+          params: [txSignature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }],
+        }),
+      });
+      const rpcData = await rpcRes.json();
+      if (!rpcData.result) return { valid: false, error: "Transaction not found on-chain. It may still be confirming — please wait and try again." };
+      const tx = rpcData.result;
+      if (tx.meta?.err) return { valid: false, error: "Transaction failed on-chain" };
+      const instructions = tx.transaction?.message?.instructions || [];
+      const innerInstructions = tx.meta?.innerInstructions?.flatMap((inner: any) => inner.instructions) || [];
+      const allInstructions = [...instructions, ...innerInstructions];
+      const transferIx = allInstructions.find((ix: any) => {
+        const parsed = ix.parsed;
+        if (!parsed) return false;
+        const type = parsed.type;
+        if (type !== "transfer" && type !== "transferChecked") return false;
+        const info = parsed.info;
+        if (!info) return false;
+        if (type === "transferChecked") {
+          return info.mint === USDC_MINT;
+        }
+        return true;
+      });
+      if (!transferIx) return { valid: false, error: "No USDC transfer found in transaction" };
+      const info = transferIx.parsed.info;
+      const amount = transferIx.parsed.type === "transferChecked"
+        ? parseFloat(info.tokenAmount?.uiAmountString || "0")
+        : parseInt(info.amount || "0") / Math.pow(10, USDC_DECIMALS);
+      if (amount < expectedAmountUsdc) return { valid: false, error: `Insufficient payment: ${amount} USDC sent, ${expectedAmountUsdc} USDC required` };
+      const signers = tx.transaction?.message?.accountKeys
+        ?.filter((k: any) => k.signer)
+        ?.map((k: any) => k.pubkey) || [];
+      if (!signers.includes(expectedSender)) return { valid: false, error: "Transaction signer does not match connected wallet" };
+      return { valid: true };
+    } catch (err: any) {
+      return { valid: false, error: "Failed to verify transaction: " + (err.message || "RPC error") };
+    }
+  }
+
+  app.post("/api/sanctuary/pixels/batch", async (req, res) => {
+    try {
+      const { plotIndices, ownerName, color, imageUrl, walletAddress, txSignature } = req.body;
+      if (!Array.isArray(plotIndices) || !ownerName || !walletAddress || !txSignature) {
+        return res.status(400).json({ error: "Missing required fields: plotIndices, ownerName, walletAddress, txSignature" });
+      }
+      if (typeof ownerName !== "string" || ownerName.trim().length === 0 || ownerName.length > 50) {
+        return res.status(400).json({ error: "Owner name must be 1-50 characters" });
+      }
+      if (plotIndices.length > MAX_BATCH_SIZE) {
+        return res.status(400).json({ error: `Maximum ${MAX_BATCH_SIZE} pixels per transaction` });
+      }
+      const validIndices = plotIndices.filter((i: any) => typeof i === "number" && i >= 0 && i < 10000);
+      if (validIndices.length === 0) {
+        return res.status(400).json({ error: "No valid plot indices provided" });
+      }
+      if (imageUrl && typeof imageUrl === "string" && imageUrl.length > 700000) {
+        return res.status(400).json({ error: "Image data too large (max ~500KB)" });
+      }
+
+      const availableIndices: number[] = [];
+      for (const plotIndex of validIndices) {
+        const existing = await storage.getSanctuaryPixel(plotIndex);
+        if (!existing) availableIndices.push(plotIndex);
+      }
+      if (availableIndices.length === 0) {
+        return res.status(409).json({ error: "All selected pixels are already claimed" });
+      }
+
+      const expectedAmount = availableIndices.length * PRICE_PER_PIXEL_USDC;
+      const verification = await verifySolanaTransaction(txSignature, walletAddress, expectedAmount);
+      if (!verification.valid) {
+        return res.status(402).json({ error: verification.error || "Payment verification failed" });
+      }
+
+      const claimed: any[] = [];
+      for (const plotIndex of availableIndices) {
+        const pixel = await storage.claimSanctuaryPixel({
+          plotIndex,
+          ownerName: ownerName.trim(),
+          color: color || "#FFD700",
+          imageUrl: imageUrl || null,
+          walletAddress,
+          txSignature,
+        });
+        claimed.push(pixel);
+      }
+      res.status(201).json({ claimed, skipped: validIndices.length - availableIndices.length, total: claimed.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to claim pixels" });
+    }
+  });
+
   // === MOLTBOOK INTEGRATION (Real API: https://www.moltbook.com/api/v1) ===
   const MOLTBOOK_API = "https://www.moltbook.com/api/v1";
 

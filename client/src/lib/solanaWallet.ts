@@ -140,6 +140,52 @@ export async function sendSolTransfer(recipientAddress: string, amountSol: numbe
   return signature;
 }
 
+export async function sendUsdcTransfer(recipientAddress: string, amountUsdc: number): Promise<string> {
+  const phantom = getPhantom();
+  if (!phantom || !walletState.connected || !walletState.publicKey) {
+    throw new Error("Wallet not connected");
+  }
+
+  const conn = getConnection();
+  const fromPubkey = new PublicKey(walletState.publicKey);
+  const toPubkey = new PublicKey(recipientAddress);
+
+  const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+  const USDC_DECIMALS = 6;
+
+  const { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } = await import("@solana/spl-token");
+
+  const fromAta = await getAssociatedTokenAddress(USDC_MINT, fromPubkey);
+  const toAta = await getAssociatedTokenAddress(USDC_MINT, toPubkey);
+
+  const transaction = new Transaction();
+
+  try {
+    await getAccount(conn, toAta);
+  } catch {
+    transaction.add(
+      createAssociatedTokenAccountInstruction(fromPubkey, toAta, toPubkey, USDC_MINT)
+    );
+  }
+
+  transaction.add(
+    createTransferInstruction(
+      fromAta,
+      toAta,
+      fromPubkey,
+      Math.round(amountUsdc * Math.pow(10, USDC_DECIMALS))
+    )
+  );
+
+  transaction.feePayer = fromPubkey;
+  const { blockhash } = await conn.getLatestBlockhash();
+  transaction.recentBlockhash = blockhash;
+
+  const { signature } = await phantom.signAndSendTransaction(transaction);
+  setTimeout(fetchBalance, 3000);
+  return signature;
+}
+
 export async function signAndSendSerializedTransaction(serializedBase64: string): Promise<string> {
   const phantom = getPhantom();
   if (!phantom || !walletState.connected || !walletState.publicKey) {

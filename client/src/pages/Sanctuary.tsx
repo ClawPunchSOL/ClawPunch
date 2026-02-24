@@ -1,15 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ZoomIn, ZoomOut, Move, Info, X, Map } from "lucide-react";
+import { ArrowLeft, ZoomIn, ZoomOut, Move, Info, X, Map, Upload, Wallet, ImageIcon } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import sanctuaryMap from "@/assets/images/sanctuary-map.png";
 import { useToast } from "@/hooks/use-toast";
+import { useWalletState } from "@/components/WalletButton";
+import { connectWallet, sendUsdcTransfer, shortAddress, isPhantomInstalled } from "@/lib/solanaWallet";
 import type { SanctuaryPixel } from "@shared/schema";
 
 const GRID_SIZE = 100;
 const TOTAL_PLOTS = GRID_SIZE * GRID_SIZE;
 const BASE_MAP_SIZE = 10000;
+const PRICE_PER_PIXEL_USDC = 1;
+const POOL_WALLET = "CzKwqN9CvnkKaNyhP2hLaXS1MdZWob3ejQv5HFPhx7iS";
 
 const toRow = (i: number) => Math.floor(i / GRID_SIZE);
 const toCol = (i: number) => i % GRID_SIZE;
@@ -18,6 +22,7 @@ const toIndex = (row: number, col: number) => row * GRID_SIZE + col;
 export default function Sanctuary() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const wallet = useWalletState();
 
   const { data: pixels = [], isLoading: isLoadingPixels } = useQuery<SanctuaryPixel[]>({
     queryKey: ["/api/sanctuary/pixels"],
@@ -28,9 +33,9 @@ export default function Sanctuary() {
     },
   });
 
-  const purchasedPlots: Record<number, { color: string; name: string }> = {};
+  const purchasedPlots: Record<number, { color: string; name: string; imageUrl?: string | null }> = {};
   for (const pixel of pixels) {
-    purchasedPlots[pixel.plotIndex] = { color: pixel.color, name: pixel.ownerName };
+    purchasedPlots[pixel.plotIndex] = { color: pixel.color, name: pixel.ownerName, imageUrl: pixel.imageUrl };
   }
 
   const totalDonated = pixels.length;
@@ -41,10 +46,15 @@ export default function Sanctuary() {
   const [scale, setScale] = useState(0.1);
   const [mobilePanel, setMobilePanel] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
   const [dragEnd, setDragEnd] = useState<number | null>(null);
+
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [paymentStep, setPaymentStep] = useState<"idle" | "paying" | "claiming">("idle");
 
   const getDragSelection = useCallback((): Set<number> => {
     if (dragStart === null || dragEnd === null) return new Set();
@@ -64,26 +74,25 @@ export default function Sanctuary() {
   const activeSelection = isDragging ? getDragSelection() : selectedPlots;
   const availableInSelection = Array.from(activeSelection).filter(i => !purchasedPlots[i]);
   const claimedInSelection = Array.from(activeSelection).filter(i => purchasedPlots[i]);
+  const totalCostUsdc = availableInSelection.length * PRICE_PER_PIXEL_USDC;
 
   const claimMutation = useMutation({
-    mutationFn: async (plots: { plotIndex: number; ownerName: string; color: string }[]) => {
-      const results = [];
-      for (const plot of plots) {
-        const res = await apiRequest("POST", "/api/sanctuary/pixels", plot);
-        results.push(await res.json());
-      }
-      return results;
+    mutationFn: async (data: { plotIndices: number[]; ownerName: string; color: string; imageUrl: string | null; walletAddress: string; txSignature: string }) => {
+      const res = await apiRequest("POST", "/api/sanctuary/pixels/batch", data);
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sanctuary/pixels"] });
-      const count = availableInSelection.length;
       toast({
-        title: `${count} Pixel${count > 1 ? 's' : ''} Acquired! 🍌`,
-        description: `Your donation of $${count} to Punch has been processed.`,
+        title: `${result.total} Pixel${result.total > 1 ? 's' : ''} Acquired!`,
+        description: `Your USDC donation has been confirmed on-chain. The land is yours!`,
       });
       setOwnerName("");
       setSelectedPlots(new Set());
+      setUploadedImage(null);
+      setUploadedFileName(null);
       setMobilePanel(false);
+      setPaymentStep("idle");
     },
     onError: (error: Error) => {
       toast({
@@ -91,6 +100,7 @@ export default function Sanctuary() {
         description: error.message,
         variant: "destructive",
       });
+      setPaymentStep("idle");
     },
   });
 
@@ -105,14 +115,48 @@ export default function Sanctuary() {
   const handleZoomIn = () => setScale(s => Math.min(s + 0.1, 3));
   const handleZoomOut = () => setScale(s => Math.max(s - 0.1, 0.05));
 
-  const handleBuy = () => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      toast({ title: "Image too large", description: "Max file size is 500KB", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedImage(reader.result as string);
+      setUploadedFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePayAndClaim = async () => {
+    if (!wallet.connected || !wallet.publicKey) {
+      toast({ title: "Connect Wallet", description: "Please connect your Phantom wallet first", variant: "destructive" });
+      return;
+    }
     if (availableInSelection.length === 0 || !ownerName.trim()) return;
-    const plots = availableInSelection.map(plotIndex => ({
-      plotIndex,
-      ownerName: ownerName.trim(),
-      color: selectedColor,
-    }));
-    claimMutation.mutate(plots);
+
+    setPaymentStep("paying");
+    try {
+      const txSignature = await sendUsdcTransfer(POOL_WALLET, totalCostUsdc);
+      setPaymentStep("claiming");
+      claimMutation.mutate({
+        plotIndices: availableInSelection,
+        ownerName: ownerName.trim(),
+        color: selectedColor,
+        imageUrl: uploadedImage,
+        walletAddress: wallet.publicKey,
+        txSignature,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Payment Failed",
+        description: err.message || "Transaction was rejected or failed",
+        variant: "destructive",
+      });
+      setPaymentStep("idle");
+    }
   };
 
   const handleMouseDown = (index: number) => {
@@ -155,13 +199,38 @@ export default function Sanctuary() {
       <div className="p-6 border-b-2 border-border/50">
         <h2 className="font-display text-xl text-white mb-2">CLAIM YOUR LAND</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Click a pixel or click & drag to select multiple. Every dollar goes to the Punch Foundation.
+          Click a pixel or drag to select a patch. Pay with USDC to claim your territory in the Sanctuary.
         </p>
       </div>
+
+      <div className="p-4 border-b-2 border-border/50">
+        {wallet.connected ? (
+          <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/40 p-3">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <div className="flex-1 min-w-0">
+              <div className="font-display text-[9px] text-muted-foreground">CONNECTED</div>
+              <div className="font-mono text-[11px] text-green-400 truncate">{shortAddress(wallet.publicKey)}</div>
+            </div>
+            {wallet.balance !== null && (
+              <div className="font-mono text-[10px] text-white/70">{wallet.balance.toFixed(3)} SOL</div>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={connectWallet}
+            disabled={wallet.connecting}
+            data-testid="button-sanctuary-connect-wallet"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-purple-500/20 border-2 border-purple-500/50 text-purple-400 font-display text-sm hover:bg-purple-500/30 transition-colors disabled:opacity-50"
+          >
+            <Wallet className="w-4 h-4" />
+            {wallet.connecting ? "CONNECTING..." : isPhantomInstalled() ? "CONNECT PHANTOM WALLET" : "GET PHANTOM WALLET"}
+          </button>
+        )}
+      </div>
       
-      <div className="flex-1 p-6 flex flex-col">
+      <div className="flex-1 p-6 flex flex-col overflow-y-auto">
         {activeSelection.size > 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="retro-container p-4 bg-black/50">
               <div className="font-display text-xs text-muted-foreground mb-1">SELECTED</div>
               <div className="font-display text-2xl text-white" data-testid="text-selected-plot">
@@ -186,9 +255,9 @@ export default function Sanctuary() {
             )}
             
             {availableInSelection.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-xs font-display text-muted-foreground">YOUR NAME</label>
+                  <label className="text-xs font-display text-muted-foreground">YOUR NAME / TAG</label>
                   <input 
                     type="text"
                     data-testid="input-owner-name"
@@ -209,25 +278,85 @@ export default function Sanctuary() {
                     className="w-full h-10 bg-black border-2 border-border cursor-pointer"
                   />
                 </div>
-                
-                <div className="flex justify-between items-end border-b-2 border-border pb-2 mt-4">
-                  <span className="font-sans text-muted-foreground">Total Price</span>
-                  <span className="font-display text-2xl text-green-500" data-testid="text-total-price">
-                    ${availableInSelection.length}
-                  </span>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-display text-muted-foreground">UPLOAD IMAGE (OPTIONAL)</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  {uploadedImage ? (
+                    <div className="relative border-2 border-primary bg-black/50 p-2">
+                      <img src={uploadedImage} alt="Preview" className="w-full h-24 object-cover pixel-art-rendering" />
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[10px] text-muted-foreground truncate flex-1">{uploadedFileName}</span>
+                        <button
+                          onClick={() => { setUploadedImage(null); setUploadedFileName(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                          className="text-red-400 hover:text-red-300 ml-2"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      data-testid="button-upload-image"
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-black border-2 border-dashed border-border text-muted-foreground font-display text-xs hover:border-primary hover:text-primary transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      CHOOSE IMAGE (MAX 500KB)
+                    </button>
+                  )}
                 </div>
                 
-                <button 
-                  onClick={handleBuy}
-                  data-testid="button-claim-pixel"
-                  disabled={claimMutation.isPending || !ownerName.trim()}
-                  className="retro-button bg-green-500 text-black py-4 w-full text-lg hover:bg-white hover:text-black disabled:opacity-50"
-                >
-                  {claimMutation.isPending ? 'PROCESSING...' : `MINT ${availableInSelection.length} PIXEL${availableInSelection.length > 1 ? 'S' : ''}`}
-                </button>
+                <div className="border-2 border-border bg-black/30 p-4 space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{availableInSelection.length} pixel{availableInSelection.length > 1 ? 's' : ''} × ${PRICE_PER_PIXEL_USDC} USDC</span>
+                    <span className="text-white font-mono">${totalCostUsdc} USDC</span>
+                  </div>
+                  <div className="flex justify-between items-end border-t border-border pt-2">
+                    <span className="font-display text-xs text-muted-foreground">TOTAL</span>
+                    <span className="font-display text-2xl text-green-500" data-testid="text-total-price">
+                      ${totalCostUsdc} USDC
+                    </span>
+                  </div>
+                </div>
                 
-                <div className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
-                  <Info className="w-4 h-4" /> 100% goes to Punch
+                {!wallet.connected ? (
+                  <button
+                    onClick={connectWallet}
+                    data-testid="button-connect-to-pay"
+                    className="retro-button bg-purple-500 text-white py-4 w-full text-lg hover:bg-purple-400"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <Wallet className="w-5 h-5" /> CONNECT WALLET TO PAY
+                    </span>
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handlePayAndClaim}
+                    data-testid="button-claim-pixel"
+                    disabled={paymentStep !== "idle" || claimMutation.isPending || !ownerName.trim()}
+                    className="retro-button bg-green-500 text-black py-4 w-full text-lg hover:bg-white hover:text-black disabled:opacity-50"
+                  >
+                    {paymentStep === "paying" ? "CONFIRM IN WALLET..." : 
+                     paymentStep === "claiming" ? "CLAIMING PIXELS..." :
+                     claimMutation.isPending ? "PROCESSING..." : 
+                     `PAY ${totalCostUsdc} USDC & MINT ${availableInSelection.length} PIXEL${availableInSelection.length > 1 ? 'S' : ''}`}
+                  </button>
+                )}
+                
+                <div className="text-[10px] text-muted-foreground text-center space-y-1">
+                  <div className="flex items-center justify-center gap-1">
+                    <Info className="w-3 h-3" /> 100% goes to Punch Foundation
+                  </div>
+                  <div className="font-mono opacity-60">
+                    Pool: {shortAddress(POOL_WALLET)}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -348,7 +477,7 @@ export default function Sanctuary() {
                         onMouseEnter={() => handleMouseEnter(i)}
                         onMouseUp={() => handleMouseUp()}
                         className={`
-                          border border-white/5 cursor-crosshair transition-colors min-w-[4px] min-h-[4px]
+                          border border-white/5 cursor-crosshair transition-colors min-w-[4px] min-h-[4px] relative overflow-hidden
                           ${isInSelection && !isPurchased ? 'bg-primary/40 border-primary z-10 shadow-[0_0_8px_rgba(255,200,0,0.6)]' : ''}
                           ${isInSelection && isPurchased ? 'border-red-500/60 z-10' : ''}
                           ${!isInSelection ? 'hover:bg-white/20 hover:border-white/50' : ''}
@@ -359,7 +488,16 @@ export default function Sanctuary() {
                             : undefined,
                           borderColor: isPurchased && !isInSelection ? isPurchased.color : undefined,
                         }}
-                      />
+                      >
+                        {isPurchased?.imageUrl && (
+                          <img 
+                            src={isPurchased.imageUrl} 
+                            alt="" 
+                            className="absolute inset-0 w-full h-full object-cover pixel-art-rendering" 
+                            draggable={false}
+                          />
+                        )}
+                      </div>
                     );
                   })}
                 </div>
