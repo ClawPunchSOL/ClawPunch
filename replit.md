@@ -1,7 +1,7 @@
 # Monkey OS - Retro Crypto Utility Dashboard
 
 ## Overview
-A 16-bit pixel-art crypto utility dashboard featuring 7 AI-driven utility agents operating on Solana, an interactive Sanctuary pixel map, and immersive parallax jungle scrolling.
+A 16-bit pixel-art crypto utility dashboard featuring 8 AI-driven utility agents operating on Solana, an interactive Sanctuary pixel map, and immersive parallax jungle scrolling.
 
 ## Architecture
 - **Frontend**: React + Vite + Tailwind CSS + Framer Motion + wouter routing
