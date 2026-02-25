@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, refreshBalance } from "@/lib/solanaWallet";
+import { Keypair, VersionedTransaction, Connection } from "@solana/web3.js";
 import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Flame, Copy, Check, ChevronDown, ChevronUp, ImagePlus, Globe, X, Zap, Brain, ArrowRight, RotateCcw } from "lucide-react";
+
+const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
 
 interface TokenLaunch {
   id: number;
@@ -197,6 +200,81 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
   const aiTotalCost = PUMP_PORTAL_FEE + parseFloat(aiDevBuy || "0");
 
+  const launchViaPumpPortal = async (params: {
+    tokenName: string; tokenSymbol: string; description: string;
+    devBuyAmount: number; imageUrl: string | null;
+    twitter: string | null; telegram: string | null; website: string | null;
+    onLog?: (line: LogLine) => void;
+  }) => {
+    const { tokenName, tokenSymbol, description, devBuyAmount, imageUrl, twitter, telegram, website, onLog } = params;
+    const log = onLog || (() => {});
+    const phantom = (window as any).phantom?.solana;
+    if (!phantom || !wallet.publicKey) throw new Error("Phantom wallet not connected");
+
+    log({ type: "skill", text: "Skill(mint-keygen)" });
+    log({ type: "skill-sub", text: "└ Generating new token mint address..." });
+    const mintKeypair = Keypair.generate();
+    const mintPubkey = mintKeypair.publicKey.toBase58();
+    log({ type: "code", text: `const mint = "${mintPubkey.slice(0, 20)}..."` });
+
+    log({ type: "gap", text: "" });
+    log({ type: "skill", text: "Skill(ipfs-upload + tx-build)" });
+    log({ type: "skill-sub", text: "└ Uploading metadata to IPFS + building Solana tx via PumpPortal..." });
+
+    const buildRes = await fetch("/api/token-launches/build-tx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tokenName, tokenSymbol: tokenSymbol.toUpperCase(), description,
+        devBuyAmount, walletAddress: wallet.publicKey,
+        mintPublicKey: mintPubkey, imageUrl, twitter, telegram, website,
+      }),
+    });
+
+    if (!buildRes.ok) {
+      const err = await buildRes.json();
+      throw new Error(err.error || "Failed to build transaction");
+    }
+
+    const { transaction: txBase64, metadataUri } = await buildRes.json();
+    log({ type: "code", text: `const metadataUri = "${metadataUri?.slice(0, 50)}..."` });
+
+    log({ type: "gap", text: "" });
+    log({ type: "skill", text: "Skill(phantom-sign)" });
+    log({ type: "skill-sub", text: "└ Requesting Phantom wallet signature..." });
+
+    const txBytes = Uint8Array.from(atob(txBase64), c => c.charCodeAt(0));
+    const tx = VersionedTransaction.deserialize(txBytes);
+    tx.sign([mintKeypair]);
+    const signedTx = await phantom.signTransaction(tx);
+
+    log({ type: "gap", text: "" });
+    log({ type: "bash", text: "Bash(send-transaction)" });
+    log({ type: "bash-sub", text: "└ Broadcasting signed transaction to Solana..." });
+
+    const connection = new Connection(SOLANA_RPC, "confirmed");
+    const signature = await connection.sendTransaction(signedTx);
+    log({ type: "code", text: `const txSignature = "${signature.slice(0, 30)}..."` });
+
+    log({ type: "gap", text: "" });
+    log({ type: "bash-sub", text: "└ Waiting for confirmation..." });
+    await connection.confirmTransaction(signature, "confirmed");
+
+    const saveRes = await fetch("/api/token-launches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tokenName, tokenSymbol: tokenSymbol.toUpperCase(), description,
+        devBuyAmount, walletAddress: wallet.publicKey,
+        imageUrl, twitter, telegram, website,
+        mintAddress: mintPubkey, txSignature: signature, metadataUri,
+      }),
+    });
+    const launch = saveRes.ok ? await saveRes.json() : null;
+
+    return { signature, mintAddress: mintPubkey, metadataUri, launch };
+  };
+
   const handleAiLaunch = async () => {
     if (!aiConcept || !wallet.connected) return;
     setLaunching(true);
@@ -204,57 +282,47 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
     addLog({ type: "gap", text: "" });
     addLog({ type: "bash", text: `Bash(deploy-token ${aiConcept.tokenSymbol})` });
-    addLog({ type: "bash-sub", text: "└ Opening pump.fun with config..." });
+    addLog({ type: "bash-sub", text: "└ Launching via PumpPortal API..." });
 
     try {
       const devBuy = parseFloat(aiDevBuy || "0");
       const tw = aiTwitterOverride.trim().startsWith("https://x.com/") || aiTwitterOverride.trim().startsWith("https://twitter.com/")
         ? aiTwitterOverride.trim() : null;
 
-      const res = await fetch("/api/token-launches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tokenName: aiConcept.tokenName,
-          tokenSymbol: aiConcept.tokenSymbol.toUpperCase(),
-          description: aiConcept.description,
-          devBuyAmount: devBuy,
-          walletAddress: wallet.publicKey,
-          imageUrl: null,
-          twitter: tw,
-          telegram: null,
-          website: null,
-        }),
+      addLog({ type: "bash-sub", text: `  Deploy fee: ${PUMP_PORTAL_FEE} SOL + Dev buy: ${devBuy} SOL` });
+
+      const result = await launchViaPumpPortal({
+        tokenName: aiConcept.tokenName,
+        tokenSymbol: aiConcept.tokenSymbol,
+        description: aiConcept.description,
+        devBuyAmount: devBuy,
+        imageUrl: null,
+        twitter: tw, telegram: null, website: null,
+        onLog: addLog,
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        addLog({ type: "error", text: err.error || "Launch failed" });
-        setError(err.error || "Launch failed");
-        return;
-      }
+      addLog({ type: "gap", text: "" });
+      addLog({ type: "success", text: `Token launched on Solana! Mint: ${result.mintAddress.slice(0, 20)}...` });
+      addLog({ type: "skill-sub", text: `  tx: https://solscan.io/tx/${result.signature}` });
+      addLog({ type: "skill-sub", text: `  pump.fun: https://pump.fun/coin/${result.mintAddress}` });
 
-      const launch = await res.json();
-      if (launch.launchUrl) window.open(launch.launchUrl, '_blank');
-      setLaunches(prev => [launch, ...prev]);
-      
-      addLog({ type: "bash-sub", text: `  Deploy fee: ${PUMP_PORTAL_FEE} SOL + Dev buy: ${devBuy} SOL` });
-      await delay(200);
-      addLog({ type: "success", text: `Token deployed. Wallet signing via Phantom.` });
-
-      onSendChat?.(`AI token launched: $${aiConcept.tokenSymbol} — ${aiConcept.tokenName}`);
+      if (result.launch) setLaunches(prev => [result.launch, ...prev]);
+      onSendChat?.(`AI token launched on-chain: $${aiConcept.tokenSymbol} — ${aiConcept.tokenName} | mint: ${result.mintAddress}`);
 
       setTimeout(() => {
         setAiPhase("idle");
         setAiConcept(null);
+        setAiConcepts([]);
         setAiLog([]);
         setAiDevBuy("0");
+        setAiTwitterOverride("");
         setMode("select");
         refreshBalance();
-      }, 2000);
+      }, 3000);
     } catch (err: any) {
-      addLog({ type: "error", text: err.message || "Launch failed" });
-      setError(err.message || "Launch failed");
+      const msg = err.message?.includes("User rejected") ? "Transaction rejected in Phantom" : (err.message || "Launch failed");
+      addLog({ type: "error", text: msg });
+      setError(msg);
     } finally {
       setLaunching(false);
     }
@@ -271,26 +339,23 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
     setError(null);
     try {
       const devBuy = parseFloat(devBuyAmount || "0");
-      const res = await fetch("/api/token-launches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tokenName: tokenName.trim(), tokenSymbol: tokenSymbol.trim().toUpperCase(),
-          description: description.trim(), devBuyAmount: devBuy, walletAddress: wallet.publicKey,
-          imageUrl: imagePreview || null, twitter: twitter.trim() || null,
-          telegram: telegram.trim() || null, website: website.trim() || null,
-        }),
+      const result = await launchViaPumpPortal({
+        tokenName: tokenName.trim(),
+        tokenSymbol: tokenSymbol.trim(),
+        description: description.trim(),
+        devBuyAmount: devBuy,
+        imageUrl: imagePreview || null,
+        twitter: twitter.trim() || null,
+        telegram: telegram.trim() || null,
+        website: website.trim() || null,
       });
-      if (!res.ok) { const err = await res.json(); setError(err.error || "Launch failed"); return; }
-      const launch = await res.json();
-      if (launch.launchUrl) window.open(launch.launchUrl, '_blank');
-      setLaunches(prev => [launch, ...prev]);
-      onSendChat?.(`Token launched: ${tokenSymbol} — ${tokenName}.`);
+      if (result.launch) setLaunches(prev => [result.launch, ...prev]);
+      onSendChat?.(`Token launched on-chain: $${tokenSymbol.toUpperCase()} | mint: ${result.mintAddress}`);
       setTokenName(""); setTokenSymbol(""); setDescription(""); setDevBuyAmount("0");
       setImagePreview(null); setTwitter(""); setTelegram(""); setWebsite("");
       setManualStep(1); setMode("select"); refreshBalance();
     } catch (err: any) {
-      setError(err.message?.includes("User rejected") ? "Transaction rejected in wallet" : err.message || "Launch failed");
+      setError(err.message?.includes("User rejected") ? "Transaction rejected in Phantom" : err.message || "Launch failed");
     } finally { setLaunching(false); }
   };
 
@@ -942,7 +1007,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                   <div className="text-[10px] text-white/50 font-mono">{wallet.publicKey}</div>
                 </div>
                 <div className="text-[8px] text-white/20 text-center leading-relaxed">
-                  Token deploys on Solana via pump.fun. 100% yours — no custody, no cuts.
+                  Token deploys on Solana via PumpPortal API. Phantom signs — no custody, no cuts.
                 </div>
               </div>
               {error && (

@@ -2141,9 +2141,96 @@ ${JSON.stringify(data, null, 2)}`,
     }
   });
 
+  app.post("/api/token-launches/build-tx", async (req, res) => {
+    try {
+      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress, mintPublicKey, imageUrl, twitter, telegram, website } = req.body;
+      if (!tokenName || !tokenSymbol || !description || !walletAddress || !mintPublicKey) {
+        return res.status(400).json({ error: "Token name, symbol, description, wallet address, and mint public key are required" });
+      }
+
+      const devBuy = parseFloat(devBuyAmount || "0");
+
+      const formData = new FormData();
+      if (imageUrl && imageUrl.startsWith("data:")) {
+        const base64Data = imageUrl.split(",")[1];
+        const mimeType = imageUrl.split(";")[0].split(":")[1] || "image/png";
+        const buffer = Buffer.from(base64Data, "base64");
+        const blob = new Blob([buffer], { type: mimeType });
+        formData.append("file", blob, "token.png");
+      } else {
+        const placeholderBuffer = Buffer.alloc(100, 0);
+        const blob = new Blob([placeholderBuffer], { type: "image/png" });
+        formData.append("file", blob, "token.png");
+      }
+      formData.append("name", tokenName);
+      formData.append("symbol", tokenSymbol.toUpperCase());
+      formData.append("description", description);
+      if (twitter) formData.append("twitter", twitter);
+      if (telegram) formData.append("telegram", telegram);
+      if (website) formData.append("website", website);
+      formData.append("showName", "true");
+
+      console.log(`[launch] Uploading metadata to IPFS for $${tokenSymbol}...`);
+      const ipfsRes = await fetch("https://pump.fun/api/ipfs", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!ipfsRes.ok) {
+        const errText = await ipfsRes.text();
+        console.error(`[launch] IPFS upload failed: ${ipfsRes.status} ${errText}`);
+        return res.status(500).json({ error: `Metadata upload failed: ${ipfsRes.status}` });
+      }
+
+      const ipfsData = await ipfsRes.json();
+      const metadataUri = ipfsData.metadataUri;
+      console.log(`[launch] IPFS metadata URI: ${metadataUri}`);
+
+      console.log(`[launch] Building transaction via PumpPortal for mint ${mintPublicKey}...`);
+      const txRes = await fetch("https://pumpportal.fun/api/trade-local", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          publicKey: walletAddress,
+          action: "create",
+          tokenMetadata: {
+            name: tokenName,
+            symbol: tokenSymbol.toUpperCase(),
+            uri: metadataUri,
+          },
+          mint: mintPublicKey,
+          denominatedInSol: "true",
+          amount: devBuy,
+          slippage: 10,
+          priorityFee: 0.0005,
+          pool: "pump",
+        }),
+      });
+
+      if (!txRes.ok) {
+        const errText = await txRes.text();
+        console.error(`[launch] PumpPortal tx build failed: ${txRes.status} ${errText}`);
+        return res.status(500).json({ error: `Transaction build failed: ${txRes.status} - ${errText}` });
+      }
+
+      const txBuffer = await txRes.arrayBuffer();
+      const txBase64 = Buffer.from(txBuffer).toString("base64");
+      console.log(`[launch] Transaction built successfully (${txBuffer.byteLength} bytes)`);
+
+      res.json({
+        transaction: txBase64,
+        metadataUri,
+        mintAddress: mintPublicKey,
+      });
+    } catch (error) {
+      console.error("Token launch build-tx error:", error);
+      res.status(500).json({ error: "Failed to build launch transaction" });
+    }
+  });
+
   app.post("/api/token-launches", async (req, res) => {
     try {
-      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress, imageUrl, twitter, telegram, website } = req.body;
+      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress, imageUrl, twitter, telegram, website, mintAddress, txSignature, metadataUri } = req.body;
       if (!tokenName || !tokenSymbol || !description) {
         return res.status(400).json({ error: "Token name, symbol, and description are required" });
       }
@@ -2151,10 +2238,7 @@ ${JSON.stringify(data, null, 2)}`,
       const devBuy = parseFloat(devBuyAmount || "0");
       const fee = 0.02;
 
-      let launchUrl = `https://pump.fun/create?name=${encodeURIComponent(tokenName)}&symbol=${encodeURIComponent(tokenSymbol)}&description=${encodeURIComponent(description)}`;
-      if (twitter) launchUrl += `&twitter=${encodeURIComponent(twitter)}`;
-      if (telegram) launchUrl += `&telegram=${encodeURIComponent(telegram)}`;
-      if (website) launchUrl += `&website=${encodeURIComponent(website)}`;
+      const pumpUrl = mintAddress ? `https://pump.fun/coin/${mintAddress}` : null;
 
       const launch = await storage.createTokenLaunch({
         tokenName,
@@ -2163,19 +2247,19 @@ ${JSON.stringify(data, null, 2)}`,
         personality: "",
         devBuyAmount: devBuy,
         feeAmount: fee,
-        status: "launched",
-        pumpUrl: launchUrl,
+        status: txSignature ? "confirmed" : "pending",
+        pumpUrl,
         aiPromptUsed: null,
         imageUrl: imageUrl || null,
-        metadataUri: null,
-        mintAddress: null,
-        txSignature: null,
+        metadataUri: metadataUri || null,
+        mintAddress: mintAddress || null,
+        txSignature: txSignature || null,
         twitter: twitter || null,
         telegram: telegram || null,
         website: website || null,
       });
 
-      res.status(201).json({ ...launch, launchUrl });
+      res.status(201).json(launch);
     } catch (error) {
       console.error("Token launch error:", error);
       res.status(500).json({ error: "Failed to create token launch" });

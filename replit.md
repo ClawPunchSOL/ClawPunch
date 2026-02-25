@@ -37,7 +37,7 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 5. **Ape Vault** - AI-first yield strategist: Claude analyzes live Solana yield pools and recommends BEST YIELDS, SAFE PLAYS, DEGEN PLAYS, ALLOCATION STRATEGY. Raw vault data below.
 6. **Rug Buster** - AI-first security scanner: Claude analyzes real on-chain Solana RPC data and presents SECURITY SCAN, RED FLAGS, POSITIVE SIGNALS, FINAL VERDICT + chat
 7. **Repo Ape** - GitHub repo analyzer with AI-generated legitimacy scores + chat
-8. **Banana Cannon** - Token launcher via launch API + AI concept generation + launch history
+8. **Banana Cannon** - Token launcher via PumpPortal API (real on-chain Solana launches) + AI concept generation from live news + X search links + launch history
 
 ## API Routes
 ### Chat
@@ -76,8 +76,9 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - `GET/POST /api/transactions` - List/create SOL transactions (Banana Bot)
 - `POST /api/transactions/build` - Build serialized Solana tx for Phantom signing
 - `GET /api/token-launches` - List token launches (Banana Cannon)
-- `POST /api/token-launches` - Create token launch
-- `POST /api/token-launches/generate` - AI-generate token concept
+- `POST /api/token-launches/build-tx` - Upload metadata to IPFS + build Solana tx via PumpPortal (returns serialized tx for Phantom signing)
+- `POST /api/token-launches` - Save confirmed token launch to DB
+- `POST /api/token-launches/generate` - AI-generate 3 token concepts from live news headlines + X search URLs
 - `PATCH /api/token-launches/:id` - Update launch status
 - `GET /api/predictions/prices` - Live prices for 10 tracked tokens
 - `GET /api/predictions/markets` - Live external markets feed (cached 2min)
