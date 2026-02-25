@@ -121,25 +121,25 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
     setAiConcept(null);
     setError(null);
 
-    addLog({ type: "prompt", text: "launch a token. scan what's trending. make it good." });
+    addLog({ type: "prompt", text: "what's the play right now? give me a token that would actually trend." });
     await delay(600);
-    addLog({ type: "text", text: "I'll scan the current crypto market, identify the hottest narrative, and build a complete token concept. Let me invoke the launch skill." });
+    addLog({ type: "text", text: "Let me think about what CT is talking about right now. I'll scan the current narratives and build something that fits." });
     await delay(400);
 
     addLog({ type: "gap", text: "" });
-    addLog({ type: "skill", text: "Skill(trend-scanner)" });
-    addLog({ type: "skill-sub", text: "└ Loading market feeds..." });
+    addLog({ type: "skill", text: "Skill(narrative-scan)" });
+    addLog({ type: "skill-sub", text: "└ Scanning crypto twitter narratives, meme metas, market sentiment..." });
+    await delay(500);
+
+    addLog({ type: "text", text: "Checking what's moving — AI agents, political tokens, animal metas, cultural moments, viral threads..." });
     await delay(300);
 
-    addLog({ type: "text", text: "Connecting to CoinGecko trending + top volume APIs." });
-    await delay(200);
-
     addLog({ type: "gap", text: "" });
-    addLog({ type: "skill", text: "Read(market-data)" });
-    addLog({ type: "skill-sub", text: "└ Fetched trending coins, categories, volumes" });
-    await delay(400);
+    addLog({ type: "skill", text: "Skill(concept-builder)" });
+    addLog({ type: "skill-sub", text: "└ Identifying gap in current meta" });
+    await delay(300);
 
-    addLog({ type: "text", text: "Good — data received. Analyzing narratives now." });
+    addLog({ type: "text", text: "Good — I see the angle. Building the concept now." });
     await delay(300);
 
     setIsThinking(true);
@@ -515,7 +515,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                       data-testid="button-ai-scan"
                       className="text-[11px] text-violet-300 hover:text-violet-200 transition-colors cursor-pointer bg-transparent border-none p-0 font-mono underline decoration-violet-500/30 underline-offset-2 hover:decoration-violet-400/60"
                     >
-                      launch a token. scan what's trending. make it good.
+                      what's the play right now? give me a token that would actually trend.
                     </button>
                   </div>
 
