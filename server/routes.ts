@@ -2184,44 +2184,83 @@ ${JSON.stringify(data, null, 2)}`,
 
   app.post("/api/token-launches/generate", async (_req, res) => {
     try {
+      const newsFeeds = [
+        "https://news.google.com/rss/search?q=crypto+OR+bitcoin+OR+solana+OR+trump+OR+elon+musk&hl=en-US&gl=US&ceid=US:en",
+        "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+        "https://www.coindesk.com/arc/outboundfeeds/rss/",
+      ];
+
+      let liveHeadlines: string[] = [];
+
+      const feedResults = await Promise.allSettled(
+        newsFeeds.map(async (url) => {
+          const resp = await fetch(url, {
+            headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/rss+xml, application/xml, text/xml" },
+            signal: AbortSignal.timeout(6000),
+          });
+          if (!resp.ok) return [];
+          const xml = await resp.text();
+          const items: string[] = [];
+          const itemBlocks = xml.split(/<item[\s>]/);
+          for (const block of itemBlocks.slice(1, 15)) {
+            const cdataMatch = block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
+            const plainMatch = block.match(/<title>(.*?)<\/title>/);
+            const title = (cdataMatch?.[1] || plainMatch?.[1] || "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim();
+            if (title && title.length > 10 && !title.includes("Google News") && !title.includes("CoinDesk")) {
+              items.push(title);
+            }
+          }
+          return items;
+        })
+      );
+
+      for (const result of feedResults) {
+        if (result.status === "fulfilled" && Array.isArray(result.value)) {
+          liveHeadlines.push(...result.value);
+        }
+      }
+
+      const uniqueHeadlines = [...new Set(liveHeadlines)].slice(0, 25);
+      const newsContext = uniqueHeadlines.length > 0
+        ? `\n\nLIVE BREAKING NEWS & HEADLINES (REAL, RIGHT NOW):\n${uniqueHeadlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}`
+        : "\n\n[News feeds unavailable — use your best judgment on current events]";
+
+      console.log(`[generate] Fetched ${uniqueHeadlines.length} live headlines for token concept`);
+
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
-        max_tokens: 600,
+        max_tokens: 700,
         temperature: 1,
-        system: `You are a crypto-native Solana meme token strategist. You understand exactly how viral meme tokens are born in the real world:
+        system: `You are a crypto-native Solana meme token strategist. You understand exactly how viral meme tokens are born:
 
 THE PATTERN — how tokens actually blow up:
-1. BREAKING NEWS drops — Trump says something wild, Epstein files leak, a world leader does something insane, a celebrity gets caught, a massive hack happens, war breaks out, a billionaire tweets something unhinged
-2. A POST GOES VIRAL — someone on X/Twitter posts about it and gets 50K+ likes, millions of views, massive engagement. That post becomes the origin story.
-3. WITHIN MINUTES a token launches on Solana with the meme. The X link IS that viral post — not a project account. The token rides the wave of that specific moment.
-4. CT screenshots the chart, the ticker trends, degens pile in
+1. BREAKING NEWS drops — something happens in the real world that everyone is talking about
+2. A POST GOES VIRAL on X/Twitter — millions of views, massive engagement
+3. WITHIN MINUTES a token launches on Solana capturing that moment
+4. The X/Twitter link used IS the viral post or news article that started it — NOT a project account
 
-The best tokens are REACTIVE to real events. They are NOT random animal coins or generic AI plays. They capture a SPECIFIC MOMENT that everyone is talking about.
+You have been given REAL, LIVE headlines from right now. Pick the ONE headline that has the most meme potential — the most shocking, funny, outrageous, or culturally significant — and build a token around it.
 
-Examples of what works:
-- Trump announces tariffs → $TARIFF launches, X link is Trump's tweet
-- Epstein list drops → $EPSTEIN launches, X link is the breaking news post
-- Elon posts a meme → token of that exact meme launches, X link is Elon's post
-- A politician says something insane on live TV → token of the quote launches
-- A massive crypto hack happens → a satirical token about it launches
-- A viral video/moment breaks the internet → token captures it instantly
-
-Your job: Think about what real-world events, breaking news, political drama, cultural moments, or viral posts would be happening RIGHT NOW. Pick one specific moment and build a token around it.
+Rules:
+- The token MUST be based on one of the real headlines provided below
+- The description MUST reference the actual news event
+- For the twitter field: provide an X search URL that would find the viral posts about this event. Format: https://x.com/search?q=KEYWORD&src=typed_query&f=top (use the most relevant keyword from the headline, URL-encoded)
+- Make the ticker something degens would actually type in a DEX search
+- The concept should feel like it was launched 5 minutes after the headline dropped
+${newsContext}
 
 Return ONLY valid JSON:
 {
-  "tokenName": "string (2-4 words — named after the specific moment/event/meme, punchy)",
-  "tokenSymbol": "string (3-6 chars uppercase — the ticker degens would actually type)",
-  "description": "string (2-3 sentences — reference the SPECIFIC event/news/moment, explain why degens are aping, capture the energy)",
-  "twitter": "string (a realistic X/Twitter URL to a viral post that would be driving this narrative — format: https://x.com/username/status/1234567890 — make up a realistic viral post URL from a real public figure, news outlet, or CT personality that would be the origin of this token. This is the post everyone is sharing.)",
-  "telegram": "string (t.me/ group link for the community)",
+  "tokenName": "string (2-4 words — named after the specific headline/event, punchy and memeable)",
+  "tokenSymbol": "string (3-6 chars uppercase — the ticker degens would search for)",
+  "description": "string (2-3 sentences — reference the ACTUAL headline, explain the meme angle, capture degen energy)",
+  "twitter": "string (X search URL: https://x.com/search?q=KEYWORD&src=typed_query&f=top — use the most viral keyword from the headline so users can find the real posts about it)",
+  "telegram": "string (t.me/ group link suggestion)",
   "website": "string (domain — .fun or .xyz or .lol)",
-  "imagePrompt": "string (vivid art direction for the token — should reference the specific event/person/moment, meme-style, iconic, shareable, no text)",
-  "trendRationale": "string (2-3 sentences: what SPECIFIC real-world event/news/moment this token captures, why the timing is perfect, how it would spread on CT. Be specific — name the event, the person, the moment.)"
-}
-
-Think like someone who has push notifications on for every major news outlet and CT influencer. What just happened? What's about to happen? What moment can you capture in a ticker?`,
-        messages: [{ role: "user", content: "What just broke? What's the moment right now that everyone's talking about? Give me a token that captures a specific event, news story, or viral moment — not some generic meme. I want something reactive, something that rides a real wave. The kind of token where the X link is the viral post that started it all." }],
+  "imagePrompt": "string (vivid art direction referencing the actual event/person — meme-style, iconic, no text in image)",
+  "trendRationale": "string (2-3 sentences: which SPECIFIC headline you chose and why it has maximum meme potential right now. Reference the actual news story.)"
+}`,
+        messages: [{ role: "user", content: "Scan the live headlines. Which one has the most meme energy? Build me a token around the most viral-worthy story happening right now. I want something reactive — based on real news, not made-up events." }],
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
@@ -2230,6 +2269,7 @@ Think like someone who has push notifications on for every major news outlet and
         return res.status(500).json({ error: "Failed to parse AI response" });
       }
       const data = JSON.parse(jsonMatch[0]);
+      data._headlines = uniqueHeadlines.slice(0, 5);
       res.json(data);
     } catch (error) {
       console.error("Token generate error:", error);

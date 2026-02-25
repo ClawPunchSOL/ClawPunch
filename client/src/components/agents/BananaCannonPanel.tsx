@@ -123,23 +123,23 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
     addLog({ type: "prompt", text: "what just broke? give me a token that captures the moment." });
     await delay(600);
-    addLog({ type: "text", text: "Let me think about what's happening right now — breaking news, viral posts, political drama, moments that CT is losing their minds over." });
+    addLog({ type: "text", text: "Pulling live news feeds — Google News, crypto outlets, breaking headlines. Let me find what's actually happening right now." });
     await delay(500);
 
     addLog({ type: "gap", text: "" });
-    addLog({ type: "skill", text: "Skill(news-scan)" });
-    addLog({ type: "skill-sub", text: "└ Scanning breaking news, political events, viral X posts..." });
-    await delay(500);
+    addLog({ type: "skill", text: "Skill(live-news-feed)" });
+    addLog({ type: "skill-sub", text: "└ Fetching real-time headlines from news RSS feeds..." });
+    await delay(600);
 
-    addLog({ type: "text", text: "Looking for the moment — the tweet that's getting 100K likes, the headline everyone is screenshotting, the quote that broke the internet..." });
+    addLog({ type: "text", text: "Headlines loaded. Scanning for meme potential — political drama, crypto events, viral moments, cultural shockwaves..." });
     await delay(400);
 
     addLog({ type: "gap", text: "" });
     addLog({ type: "skill", text: "Skill(meme-factory)" });
-    addLog({ type: "skill-sub", text: "└ Matching event to ticker, finding the viral X post" });
+    addLog({ type: "skill-sub", text: "└ Matching hottest headline to ticker + X search link" });
     await delay(300);
 
-    addLog({ type: "text", text: "Got it. Found the angle. Writing the launch script now." });
+    addLog({ type: "text", text: "Found the angle. Building launch concept from a real headline." });
     await delay(300);
 
     setIsThinking(true);
@@ -157,6 +157,18 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
       setIsThinking(false);
       await delay(200);
+
+      if (data._headlines && data._headlines.length > 0) {
+        addLog({ type: "gap", text: "" });
+        addLog({ type: "skill", text: "Read(live-headlines)" });
+        addLog({ type: "skill-sub", text: `└ ${data._headlines.length} headlines scanned` });
+        await delay(200);
+        for (const h of data._headlines.slice(0, 3)) {
+          addLog({ type: "skill-sub", text: `  • ${h}` });
+          await delay(80);
+        }
+        await delay(200);
+      }
 
       addLog({ type: "text", text: `Narrative identified in ${elapsed}s. Writing the launch config now.` });
       await delay(400);
