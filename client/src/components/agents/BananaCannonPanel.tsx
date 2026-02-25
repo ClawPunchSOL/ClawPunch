@@ -44,6 +44,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
   const [website, setWebsite] = useState("");
+  const [trendRationale, setTrendRationale] = useState("");
+  const [imagePromptSuggestion, setImagePromptSuggestion] = useState("");
 
   useEffect(() => {
     fetch("/api/token-launches")
@@ -52,9 +54,12 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       .finally(() => setLoading(false));
   }, []);
 
+  const [generateStatus, setGenerateStatus] = useState("");
+
   const handleGenerate = async () => {
     setGenerating(true);
     setError(null);
+    setGenerateStatus("Scanning trends...");
     try {
       const res = await fetch("/api/token-launches/generate", { method: "POST" });
       if (res.ok) {
@@ -62,8 +67,15 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
         setTokenName(data.tokenName);
         setTokenSymbol(data.tokenSymbol);
         setDescription(data.description);
-        onSendChat?.(`AI generated token concept: ${data.tokenSymbol} — ${data.tokenName}`);
-        setStep(2);
+        if (data.twitter) setTwitter(data.twitter.startsWith("http") ? data.twitter : `https://x.com/${data.twitter.replace(/^@/, "")}`);
+        if (data.telegram) setTelegram(data.telegram.startsWith("http") ? data.telegram : `https://t.me/${data.telegram.replace(/^@/, "")}`);
+        if (data.website) setWebsite(data.website);
+
+        if (data.trendRationale) setTrendRationale(data.trendRationale);
+        if (data.imagePrompt) setImagePromptSuggestion(data.imagePrompt);
+
+        const rationale = data.trendRationale ? ` | Trend: ${data.trendRationale}` : "";
+        onSendChat?.(`AI generated trend-based token: ${data.tokenSymbol} — ${data.tokenName}${rationale}`);
       } else {
         const err = await res.json();
         setError(err.error || "Failed to generate concept");
@@ -72,6 +84,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       setError("Failed to generate concept");
     } finally {
       setGenerating(false);
+      setGenerateStatus("");
     }
   };
 
@@ -142,6 +155,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       setTwitter("");
       setTelegram("");
       setWebsite("");
+      setTrendRationale("");
+      setImagePromptSuggestion("");
       setStep(1);
       refreshBalance();
     } catch (err: any) {
@@ -230,9 +245,19 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-yellow-500/40 bg-yellow-500/10 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/20 transition-all disabled:opacity-50"
               >
                 {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                {generating ? 'GENERATING...' : 'AI GENERATE'}
+                {generating ? (generateStatus || 'GENERATING...') : 'AI GENERATE'}
               </button>
             </div>
+
+            {trendRationale && (
+              <div className="border border-yellow-500/20 bg-yellow-500/5 px-3 py-2 flex items-start gap-2">
+                <Flame className="w-3 h-3 text-yellow-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-[8px] text-yellow-400 font-display">TREND SIGNAL</span>
+                  <p className="text-[10px] text-white/60 mt-0.5 leading-relaxed">{trendRationale}</p>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <div className="shrink-0">
@@ -263,6 +288,12 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                   )}
                 </div>
                 <span className="text-[7px] text-white/15 mt-0.5 block">Max 5MB</span>
+                {imagePromptSuggestion && !imagePreview && (
+                  <div className="mt-1 border border-purple-500/20 bg-purple-500/5 p-1.5 w-20">
+                    <span className="text-[6px] text-purple-400 font-display block mb-0.5">AI IDEA</span>
+                    <p className="text-[7px] text-white/40 leading-tight line-clamp-3">{imagePromptSuggestion}</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 space-y-2">

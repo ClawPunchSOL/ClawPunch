@@ -2184,18 +2184,85 @@ ${JSON.stringify(data, null, 2)}`,
 
   app.post("/api/token-launches/generate", async (_req, res) => {
     try {
+      let trendingContext = "";
+      try {
+        const [trendingRes, searchRes] = await Promise.all([
+          fetch("https://api.coingecko.com/api/v3/search/trending", {
+            headers: { "Accept": "application/json" },
+            signal: AbortSignal.timeout(5000),
+          }),
+          fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=10&page=1&sparkline=false", {
+            headers: { "Accept": "application/json" },
+            signal: AbortSignal.timeout(5000),
+          }),
+        ]);
+
+        if (trendingRes.ok) {
+          const trending = await trendingRes.json();
+          const trendingCoins = trending.coins?.slice(0, 8).map((c: any) => ({
+            name: c.item?.name,
+            symbol: c.item?.symbol,
+            marketCapRank: c.item?.market_cap_rank,
+            priceChange24h: c.item?.data?.price_change_percentage_24h?.usd,
+          })) || [];
+          trendingContext += `\n\nTRENDING ON COINGECKO RIGHT NOW:\n${JSON.stringify(trendingCoins, null, 2)}`;
+        }
+
+        if (searchRes.ok) {
+          const topVol = await searchRes.json();
+          const volData = topVol?.slice(0, 8).map((c: any) => ({
+            name: c.name,
+            symbol: c.symbol?.toUpperCase(),
+            priceChange24h: c.price_change_percentage_24h?.toFixed(2) + "%",
+            totalVolume: "$" + (c.total_volume / 1e6).toFixed(1) + "M",
+          })) || [];
+          trendingContext += `\n\nTOP VOLUME COINS:\n${JSON.stringify(volData, null, 2)}`;
+        }
+      } catch (e) {
+        console.log("[generate] Trending fetch failed, generating without trend data");
+      }
+
+      let socialContext = "";
+      try {
+        const xTrendRes = await fetch("https://api.coingecko.com/api/v3/search/trending", {
+          headers: { "Accept": "application/json" },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (xTrendRes.ok) {
+          const xData = await xTrendRes.json();
+          const nfts = xData.nfts?.slice(0, 3).map((n: any) => n.name) || [];
+          const categories = xData.categories?.slice(0, 5).map((c: any) => ({
+            name: c.name,
+            marketCapChange24h: c.market_cap_change_percentage_24h?.toFixed(1) + "%",
+          })) || [];
+          socialContext += `\n\nTRENDING CATEGORIES: ${JSON.stringify(categories)}`;
+          if (nfts.length) socialContext += `\nTRENDING NFTS: ${nfts.join(", ")}`;
+        }
+      } catch {}
+
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
-        max_tokens: 256,
+        max_tokens: 512,
         temperature: 1,
-        system: `You generate creative Solana meme token concepts. Return ONLY valid JSON with these fields:
+        system: `You are a crypto-native meme token concept generator. You scan real-time market trends and social media buzz to create token concepts that ride current narratives.
+
+Given the current market data and trending topics below, generate a creative Solana meme token concept that capitalizes on what's hot RIGHT NOW. The token should feel like it was born from the current meta — not random.
+
+Return ONLY valid JSON with these exact fields:
 {
-  "tokenName": "string (creative name, 2-4 words max)",
-  "tokenSymbol": "string (3-6 chars, uppercase)",
-  "description": "string (1-2 sentences, fun and catchy, describes the token's vibe)"
+  "tokenName": "string (creative name, 2-4 words, inspired by current trends)",
+  "tokenSymbol": "string (3-6 chars, uppercase, catchy ticker)",
+  "description": "string (2-3 sentences, fun and catchy, references the trend it's riding)",
+  "twitter": "string (suggested twitter handle like @TokenName, based on the concept)",
+  "telegram": "string (suggested telegram link like https://t.me/TokenName)",
+  "website": "string (suggested website like https://tokenname.xyz)",
+  "imagePrompt": "string (detailed art prompt for the token's logo/mascot: describe the character, style, colors, mood — should be a single iconic character or symbol, meme-style, vibrant, no text in the image)",
+  "trendRationale": "string (1 sentence explaining which trend this rides and why it's timely)"
 }
-Make it fun, memeable, and Solana-themed. Think like a degen who also has good taste.`,
-        messages: [{ role: "user", content: "Generate a unique Solana meme token concept. Make it creative and original." }],
+
+Think like a degen who watches crypto twitter 24/7 and spots narratives before they peak. Make it memeable, culturally relevant, and Solana-native.
+${trendingContext}${socialContext}`,
+        messages: [{ role: "user", content: "Scan the current market trends and social buzz. Generate a meme token concept that rides the hottest narrative right now. Make it feel organic and timely — like it was born from the current meta." }],
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
@@ -2208,6 +2275,39 @@ Make it fun, memeable, and Solana-themed. Think like a degen who also has good t
     } catch (error) {
       console.error("Token generate error:", error);
       res.status(500).json({ error: "Failed to generate token concept" });
+    }
+  });
+
+  app.post("/api/token-launches/generate-image", async (req, res) => {
+    try {
+      const { imagePrompt, tokenSymbol } = req.body;
+      if (!imagePrompt) {
+        return res.status(400).json({ error: "Image prompt required" });
+      }
+
+      const fs = await import("fs");
+      const path = await import("path");
+      const dir = path.join(process.cwd(), "client", "public", "generated-tokens");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+      const filename = `${(tokenSymbol || "token").toLowerCase()}_${Date.now()}.png`;
+      const filePath = path.join(dir, filename);
+
+      const anthropicRes = await anthropic.messages.create({
+        model: "claude-sonnet-4-5",
+        max_tokens: 100,
+        system: "You refine image generation prompts. Given a token concept image prompt, make it more specific for AI image generation. Keep it to 1-2 sentences. Focus on: character/mascot design, vibrant colors, meme-style, crypto aesthetic, clean background. Always specify 'digital art, icon style, centered composition, no text'. Return ONLY the refined prompt text, nothing else.",
+        messages: [{ role: "user", content: imagePrompt }],
+      });
+      const refinedPrompt = anthropicRes.content[0].type === 'text' ? anthropicRes.content[0].text : imagePrompt;
+
+      res.json({
+        imagePrompt: refinedPrompt,
+        message: "Use the image prompt to generate your token image via any AI image generator, or upload your own.",
+      });
+    } catch (error) {
+      console.error("Image generation error:", error);
+      res.status(500).json({ error: "Failed to generate image" });
     }
   });
 
