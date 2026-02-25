@@ -34,6 +34,8 @@ interface AIConcept {
   xSearchUrl?: string;
   imagePrompt?: string;
   trendRationale?: string;
+  headlineUsed?: string;
+  [key: string]: any;
 }
 
 type LogLine = {
@@ -165,21 +167,26 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       if (result._headlines && result._headlines.length > 0) {
         addLog({ type: "gap", text: "" });
         addLog({ type: "skill", text: "Read(live-headlines)" });
-        addLog({ type: "skill-sub", text: `└ ${result._headlines.length} headlines scanned` });
-        await delay(200);
-        for (const h of result._headlines.slice(0, 3)) {
-          addLog({ type: "skill-sub", text: `  • ${h}` });
-          await delay(80);
+        addLog({ type: "skill-sub", text: `└ ${result._headlines.length} headlines fed to AI` });
+        await delay(100);
+        for (let i = 0; i < result._headlines.length; i++) {
+          addLog({ type: "skill-sub", text: `  [H${i + 1}] ${result._headlines[i]}` });
+          await delay(40);
         }
       }
 
-      addLog({ type: "text", text: `${concepts.length} concepts generated in ${elapsed}s from different headlines.` });
+      addLog({ type: "gap", text: "" });
+      addLog({ type: "text", text: `${concepts.length} concepts generated in ${elapsed}s — each from a different headline above.` });
       await delay(400);
 
       for (let i = 0; i < concepts.length; i++) {
         const c = concepts[i];
         addLog({ type: "gap", text: "" });
         addLog({ type: "code-header", text: `Concept ${i + 1}: $${c.tokenSymbol}` });
+        if (c.headlineUsed) {
+          addLog({ type: "skill-sub", text: `  ← "${c.headlineUsed.slice(0, 100)}${c.headlineUsed.length > 100 ? '...' : ''}"` });
+          await delay(60);
+        }
         addLog({ type: "code", text: `"${c.tokenName}" — ${c.description.slice(0, 90)}${c.description.length > 90 ? '...' : ''}` });
         await delay(150);
       }
@@ -565,10 +572,10 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                     <span className="text-[9px] text-stone-500">·</span>
                     <span className="text-[10px] text-stone-400 truncate">{c.tokenName}</span>
                   </div>
-                  <div className="text-[9px] text-stone-500 leading-relaxed line-clamp-2 pl-5">{c.description}</div>
-                  {c.trendRationale && (
-                    <div className="text-[8px] text-yellow-500/50 mt-1 pl-5 italic truncate">{c.trendRationale}</div>
+                  {c.headlineUsed && (
+                    <div className="text-[8px] text-green-500/60 pl-5 mb-0.5 truncate">← {c.headlineUsed}</div>
                   )}
+                  <div className="text-[9px] text-stone-500 leading-relaxed line-clamp-2 pl-5">{c.description}</div>
                 </button>
               ))}
               <button

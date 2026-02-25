@@ -2221,50 +2221,48 @@ ${JSON.stringify(data, null, 2)}`,
       const headlines = await fetchRssHeadlines();
       console.log(`[generate] Fetched ${headlines.length} live headlines`);
 
-      const shuffled = [...headlines].sort(() => Math.random() - 0.5);
+      const shuffled = [...headlines].sort(() => Math.random() - 0.5).slice(0, 10);
 
       const newsContext = shuffled.length > 0
-        ? `\n\nLIVE BREAKING NEWS & HEADLINES (REAL, RIGHT NOW):\n${shuffled.map((h, i) => `${i + 1}. ${h}`).join("\n")}`
+        ? `\n\nHere are the ONLY headlines you may use. You MUST pick from THIS list — do NOT invent or recall other news:\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}`
         : "\n\n[News feeds unavailable — use your best judgment on current events]";
 
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
         max_tokens: 2000,
         temperature: 1,
-        system: `You are a crypto-native Solana meme token strategist. You understand exactly how viral meme tokens are born:
+        system: `You are a crypto-native Solana meme token strategist.
 
-THE PATTERN:
-1. BREAKING NEWS drops — something happens in the real world
-2. Someone posts about it on X and it goes VIRAL
-3. WITHIN MINUTES a token launches on Solana capturing that moment
+You will be given a numbered list of REAL headlines labeled [H1] through [H10].
 
-You have been given REAL, LIVE news headlines. Generate EXACTLY 3 DIFFERENT token concepts, each based on a DIFFERENT headline. Do NOT pick the same headline twice. Maximize variety — pick stories from different categories (politics, tech, crypto, culture, sports, etc.).
+YOUR TASK: Pick 3 headlines from the list and build a meme token concept for each one.
 
-RULES:
-- Each token MUST be based on a DIFFERENT real headline from the list
-- Each description MUST reference the actual news event
-- For xSearchUrl: generate a working X search URL with 2-3 specific keywords. Format: https://x.com/search?q=KEYWORD1%20KEYWORD2&src=typed_query&f=top
-- DO NOT generate telegram or website — set them to null
-- Make tickers something degens would actually search for on a DEX
-- Each concept should have a TOTALLY DIFFERENT vibe/angle — don't repeat the same energy
+ABSOLUTE RULES — VIOLATION = FAILURE:
+1. You MUST ONLY use headlines from the provided list. Do NOT use any headline that is not in the list. Do NOT make up news. Do NOT use your training data for news stories.
+2. Each concept MUST reference a DIFFERENT headline number (e.g. H2, H5, H9).
+3. In the "headlineUsed" field, copy the EXACT headline text from the list — word for word.
+4. The token name, symbol, and description MUST clearly relate to the headline you picked.
+5. For xSearchUrl: build a working X search URL with 2-3 keywords FROM the headline. Format: https://x.com/search?q=KEYWORD1%20KEYWORD2&src=typed_query&f=top
+6. Set telegram and website to null.
 ${newsContext}
 
 Return ONLY a valid JSON array with exactly 3 objects:
 [
   {
-    "tokenName": "string (2-4 words — named after the event, punchy)",
-    "tokenSymbol": "string (3-6 chars uppercase)",
-    "description": "string (2-3 sentences — reference the ACTUAL headline)",
-    "xSearchUrl": "string (X search URL)",
+    "headlineUsed": "string (EXACT copy of the headline from the list you chose)",
+    "tokenName": "string (2-4 words — punchy, memeable)",
+    "tokenSymbol": "string (3-6 chars uppercase ticker)",
+    "description": "string (2-3 sentences referencing the headline)",
+    "xSearchUrl": "string (X search URL with keywords from the headline)",
     "telegram": null,
     "website": null,
-    "imagePrompt": "string (art direction — meme-style, no text)",
-    "trendRationale": "string (which headline + why it has meme potential)"
+    "imagePrompt": "string (meme art direction referencing the event, no text in image)",
+    "trendRationale": "string (why this headline has meme potential)"
   },
   { ... },
   { ... }
 ]`,
-        messages: [{ role: "user", content: `Generate 3 completely different token concepts from 3 different headlines. Surprise me — pick unexpected angles. Random seed: ${Date.now()}` }],
+        messages: [{ role: "user", content: `Here are the headlines again. Pick 3 DIFFERENT ones and build tokens. ONLY use headlines from this list:\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}\n\nRandom seed: ${Date.now()}` }],
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
@@ -2274,14 +2272,13 @@ Return ONLY a valid JSON array with exactly 3 objects:
         if (singleMatch) {
           const single = JSON.parse(singleMatch[0]);
           single.twitter = null;
-          single._headlines = shuffled.slice(0, 5);
-          return res.json({ concepts: [single], _headlines: shuffled.slice(0, 5) });
+          return res.json({ concepts: [single], _headlines: shuffled });
         }
         return res.status(500).json({ error: "Failed to parse AI response" });
       }
       const concepts = JSON.parse(jsonMatch[0]);
       for (const c of concepts) { c.twitter = null; }
-      res.json({ concepts, _headlines: shuffled.slice(0, 5) });
+      res.json({ concepts, _headlines: shuffled });
     } catch (error) {
       console.error("Token generate error:", error);
       res.status(500).json({ error: "Failed to generate token concept" });
