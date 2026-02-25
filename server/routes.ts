@@ -5,6 +5,7 @@ import { getAgentConfig } from "./agents";
 import Anthropic from "@anthropic-ai/sdk";
 import { insertConversationSchema, insertMessageSchema, insertSanctuaryPixelSchema, insertMoltbookAgentSchema, insertPredictionSchema, insertPredictionBetSchema, insertTransactionSchema } from "@shared/schema";
 import { scanSolanaToken } from "./solanaScanner";
+import { generateImageBuffer } from "./replit_integrations/image/client";
 
 const anthropic = new Anthropic({
   apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
@@ -151,8 +152,8 @@ export async function registerRoutes(
   const PRICE_PER_PIXEL_USDC = 1;
 
   const SOLANA_RPC_URLS = [
-    "https://api.mainnet-beta.solana.com",
     "https://rpc.ankr.com/solana",
+    "https://api.mainnet-beta.solana.com",
     "https://solana-mainnet.g.alchemy.com/v2/demo",
   ];
 
@@ -2151,16 +2152,54 @@ ${JSON.stringify(data, null, 2)}`,
       const devBuy = parseFloat(devBuyAmount || "0");
 
       const formData = new FormData();
+      let hasImage = false;
       if (imageUrl && imageUrl.startsWith("data:")) {
         const base64Data = imageUrl.split(",")[1];
         const mimeType = imageUrl.split(";")[0].split(":")[1] || "image/png";
         const buffer = Buffer.from(base64Data, "base64");
-        const blob = new Blob([buffer], { type: mimeType });
-        formData.append("file", blob, "token.png");
-      } else {
-        const placeholderBuffer = Buffer.alloc(100, 0);
-        const blob = new Blob([placeholderBuffer], { type: "image/png" });
-        formData.append("file", blob, "token.png");
+        if (buffer.length > 200) {
+          const blob = new Blob([buffer], { type: mimeType });
+          formData.append("file", blob, "token.png");
+          hasImage = true;
+        }
+      }
+      if (!hasImage && imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
+        try {
+          const imgFetch = await fetch(imageUrl);
+          if (imgFetch.ok) {
+            const imgBuffer = Buffer.from(await imgFetch.arrayBuffer());
+            const blob = new Blob([imgBuffer], { type: "image/png" });
+            formData.append("file", blob, "token.png");
+            hasImage = true;
+          }
+        } catch {}
+      }
+      if (!hasImage) {
+        const { createCanvas } = await import("canvas").catch(() => ({ createCanvas: null }));
+        if (createCanvas) {
+          const c = createCanvas(256, 256);
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = "#FFD700";
+          ctx.fillRect(0, 0, 256, 256);
+          ctx.fillStyle = "#000";
+          ctx.font = "bold 80px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(tokenSymbol.slice(0, 3), 128, 128);
+          const pngBuf = c.toBuffer("image/png");
+          const blob = new Blob([pngBuf], { type: "image/png" });
+          formData.append("file", blob, "token.png");
+        } else {
+          const pngHeader = Buffer.from([
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+            0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+            0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, 0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
+            0x44, 0xAE, 0x42, 0x60, 0x82
+          ]);
+          const blob = new Blob([pngHeader], { type: "image/png" });
+          formData.append("file", blob, "token.png");
+        }
       }
       formData.append("name", tokenName);
       formData.append("symbol", tokenSymbol.toUpperCase());
@@ -2170,7 +2209,7 @@ ${JSON.stringify(data, null, 2)}`,
       if (website) formData.append("website", website);
       formData.append("showName", "true");
 
-      console.log(`[launch] Uploading metadata to IPFS for $${tokenSymbol}...`);
+      console.log(`[launch] Uploading metadata to IPFS for $${tokenSymbol} (hasImage: ${hasImage})...`);
       const ipfsRes = await fetch("https://pump.fun/api/ipfs", {
         method: "POST",
         body: formData,
@@ -2199,7 +2238,7 @@ ${JSON.stringify(data, null, 2)}`,
             uri: metadataUri,
           },
           mint: mintPublicKey,
-          denominatedInSol: "true",
+          denominatedInSol: true,
           amount: devBuy,
           slippage: 10,
           priorityFee: 0.0005,
@@ -2272,9 +2311,12 @@ ${JSON.stringify(data, null, 2)}`,
 
   async function fetchRssHeadlines(): Promise<string[]> {
     const feeds = [
-      "https://news.google.com/rss/search?q=crypto+OR+bitcoin+OR+solana+OR+trump+OR+elon+musk&hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=crypto+OR+bitcoin+OR+solana+OR+memecoin+OR+defi&hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=AI+OR+tech+OR+trump+OR+elon+musk+OR+SEC&hl=en-US&gl=US&ceid=US:en",
       "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
       "https://www.coindesk.com/arc/outboundfeeds/rss/",
+      "https://cointelegraph.com/rss",
+      "https://rss.app/feeds/v1.1/ts5BjsBcOcJrOvnr.xml",
     ];
     const all: string[] = [];
     const results = await Promise.allSettled(
@@ -2287,7 +2329,7 @@ ${JSON.stringify(data, null, 2)}`,
         const xml = await resp.text();
         const items: string[] = [];
         const itemBlocks = xml.split(/<item[\s>]/);
-        for (const block of itemBlocks.slice(1, 15)) {
+        for (const block of itemBlocks.slice(1, 20)) {
           const cdataMatch = block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
           const plainMatch = block.match(/<title>(.*?)<\/title>/);
           const title = (cdataMatch?.[1] || plainMatch?.[1] || "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim();
@@ -2301,7 +2343,7 @@ ${JSON.stringify(data, null, 2)}`,
     for (const r of results) {
       if (r.status === "fulfilled" && Array.isArray(r.value)) all.push(...r.value);
     }
-    return [...new Set(all)].slice(0, 25);
+    return [...new Set(all)].slice(0, 40);
   }
 
   app.post("/api/token-launches/generate", async (_req, res) => {
@@ -2309,7 +2351,7 @@ ${JSON.stringify(data, null, 2)}`,
       const headlines = await fetchRssHeadlines();
       console.log(`[generate] Fetched ${headlines.length} live headlines`);
 
-      const shuffled = [...headlines].sort(() => Math.random() - 0.5).slice(0, 10);
+      const shuffled = [...headlines].sort(() => Math.random() - 0.5).slice(0, 15);
 
       const newsContext = shuffled.length > 0
         ? `\n\nHEADLINES (you MUST pick from ONLY this list):\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}`
@@ -2360,7 +2402,7 @@ ${JSON.stringify(data, null, 2)}`,
         temperature: 1,
         system: `You are a crypto-native Solana meme token strategist.
 
-You will be given a numbered list of REAL headlines labeled [H1] through [H10].
+You will be given a numbered list of REAL headlines labeled [H1] through [H15].
 
 YOUR TASK: Pick 3 headlines and build a meme token concept for each.
 
@@ -2426,6 +2468,25 @@ Return ONLY a valid JSON array with exactly 3 objects:
     } catch (error) {
       console.error("Token generate error:", error);
       res.status(500).json({ error: "Failed to generate token concept" });
+    }
+  });
+
+  app.post("/api/token-launches/generate-image", async (req, res) => {
+    try {
+      const { prompt, symbol } = req.body;
+      if (!prompt || !symbol) {
+        return res.status(400).json({ error: "prompt and symbol required" });
+      }
+      const enhancedPrompt = `Meme token logo for "${symbol}": ${prompt}. Style: bold, colorful, crypto meme art, clean circular token logo design, no text or letters, vibrant colors, high contrast, fun and irreverent`;
+      console.log(`[image-gen] Generating image for ${symbol}...`);
+      const buffer = await generateImageBuffer(enhancedPrompt, "1024x1024", "low");
+      const base64 = buffer.toString("base64");
+      const dataUrl = `data:image/png;base64,${base64}`;
+      console.log(`[image-gen] Generated image for ${symbol} (${buffer.length} bytes)`);
+      res.json({ imageUrl: dataUrl, symbol });
+    } catch (error) {
+      console.error("[image-gen] Error:", error);
+      res.status(500).json({ error: "Failed to generate image" });
     }
   });
 

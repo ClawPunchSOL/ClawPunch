@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, refreshBalance } from "@/lib/solanaWallet";
-import { Keypair, VersionedTransaction, Connection } from "@solana/web3.js";
+import { Keypair, VersionedTransaction } from "@solana/web3.js";
 import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, ImagePlus, Globe, X, Zap, ArrowRight, RotateCcw, Search, Trophy, Flame, Star, TrendingUp, Clock, Users, Award, Target, Sparkles, Crown, Medal, Swords, Eye, MessageCircle } from "lucide-react";
 
 import bananaLab from "@/assets/images/banana-lab.png";
 import fighterMonkey from "@/assets/images/fighter-monkey.png";
 import crabClaw from "@/assets/images/crab-claw.png";
 
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
 
 interface TokenLaunch {
   id: number;
@@ -112,6 +111,7 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
   const [website, setWebsite] = useState("");
   const [manualStep, setManualStep] = useState<1 | 2 | 3>(1);
   const [aiPhase, setAiPhase] = useState<"idle" | "running" | "ready" | "picking" | "config">("idle");
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [aiLog, setAiLog] = useState<LogLine[]>([]);
   const [aiConcepts, setAiConcepts] = useState<AIConcept[]>([]);
   const [aiConcept, setAiConcept] = useState<AIConcept | null>(null);
@@ -222,21 +222,14 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
     const { transaction: txBase64, metadataUri } = await buildRes.json();
     log({ type: "code", text: `metadata = ${metadataUri?.slice(0, 40)}...` });
     log({ type: "gap", text: "" });
-    log({ type: "skill", text: "PHANTOM SIGNING" });
+    log({ type: "skill", text: "PHANTOM SIGN + SEND" });
     const txBytes = Uint8Array.from(atob(txBase64), c => c.charCodeAt(0));
     const tx = VersionedTransaction.deserialize(txBytes);
     tx.sign([mintKeypair]);
-    log({ type: "skill-sub", text: "  Requesting wallet signature..." });
-    const signedTx = await phantom.signTransaction(tx);
-    log({ type: "gap", text: "" });
-    log({ type: "bash", text: "BROADCASTING TO SOLANA" });
-    const connection = new Connection(SOLANA_RPC, "confirmed");
-    const rawTx = signedTx.serialize();
-    const signature = await connection.sendRawTransaction(rawTx, { skipPreflight: false, preflightCommitment: "confirmed" });
+    log({ type: "skill-sub", text: "  Requesting Phantom signature & broadcast..." });
+    const { signature } = await phantom.signAndSendTransaction(tx);
     log({ type: "code", text: `tx = ${signature.slice(0, 30)}...` });
-    log({ type: "bash-sub", text: "  Confirming..." });
-    try { await connection.confirmTransaction(signature, "confirmed"); }
-    catch { log({ type: "skill-sub", text: "  Confirmation slow — check Solscan." }); }
+    log({ type: "bash-sub", text: "  Sent via Phantom RPC" });
     const scanMs = scanStartTime ? Date.now() - scanStartTime : null;
     const saveRes = await fetch("/api/token-launches", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -253,7 +246,7 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
     try {
       const devBuy = parseFloat(aiDevBuy || "0");
       const tw = aiTwitterOverride.trim().startsWith("https://x.com/") || aiTwitterOverride.trim().startsWith("https://twitter.com/") ? aiTwitterOverride.trim() : null;
-      const result = await launchViaPumpPortal({ tokenName: aiConcept.tokenName, tokenSymbol: aiConcept.tokenSymbol, description: aiConcept.description, devBuyAmount: devBuy, imageUrl: null, twitter: tw, telegram: null, website: null, headlineUsed: aiConcept.headlineUsed, launchMethod: "ai", onLog: addLog });
+      const result = await launchViaPumpPortal({ tokenName: aiConcept.tokenName, tokenSymbol: aiConcept.tokenSymbol, description: aiConcept.description, devBuyAmount: devBuy, imageUrl: aiConcept.generatedImageUrl || null, twitter: tw, telegram: null, website: null, headlineUsed: aiConcept.headlineUsed, launchMethod: "ai", onLog: addLog });
       addLog({ type: "gap", text: "" }); addLog({ type: "success", text: `LIVE ON SOLANA! $${aiConcept.tokenSymbol}` });
       if (result.launch) setLaunches(prev => [result.launch, ...prev]);
       onSendChat?.(`Token launched: $${aiConcept.tokenSymbol} — ${aiConcept.tokenName} | mint: ${result.mintAddress}`);
@@ -840,13 +833,47 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
                 <div className="flex items-center gap-2 px-1"><span className="text-lg">🎯</span><span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">PICK YOUR BANANA</span></div>
                 {aiConcepts.map((c, i) => (
                   <button key={i} data-testid={`button-pick-concept-${i}`}
-                    onClick={() => { setAiConcept(c); setAiTwitterOverride(""); setAiPhase("ready"); addLog({ type: "gap", text: "" }); addLog({ type: "success", text: `Selected: $${c.tokenSymbol}` }); onSendChat?.(`AI trend token: $${c.tokenSymbol} — ${c.tokenName}`); }}
+                    onClick={async () => {
+                      setAiConcept(c); setAiTwitterOverride(""); setAiPhase("ready");
+                      addLog({ type: "gap", text: "" }); addLog({ type: "success", text: `Selected: $${c.tokenSymbol}` });
+                      onSendChat?.(`AI trend token: $${c.tokenSymbol} — ${c.tokenName}`);
+                      if (c.imagePrompt && !c.generatedImageUrl) {
+                        setGeneratingImage(true);
+                        addLog({ type: "skill", text: "GENERATING TOKEN ART..." });
+                        try {
+                          const imgRes = await fetch("/api/token-launches/generate-image", {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ prompt: c.imagePrompt, symbol: c.tokenSymbol }),
+                          });
+                          if (imgRes.ok) {
+                            const imgData = await imgRes.json();
+                            if (imgData.imageUrl) {
+                              const updated = { ...c, generatedImageUrl: imgData.imageUrl };
+                              setAiConcept(updated);
+                              addLog({ type: "success", text: "Token art ready" });
+                            } else {
+                              addLog({ type: "skill-sub", text: "  No image — launching without art" });
+                            }
+                          } else {
+                            addLog({ type: "skill-sub", text: "  Image gen failed — launching without art" });
+                          }
+                        } catch {
+                          addLog({ type: "skill-sub", text: "  Image gen failed — launching without art" });
+                        } finally {
+                          setGeneratingImage(false);
+                        }
+                      }
+                    }}
                     className="w-full text-left border-4 border-yellow-700/15 bg-gradient-to-r from-yellow-200/50 to-amber-200/50 hover:from-yellow-200/80 hover:to-amber-200/80 hover:border-yellow-600/30 p-3.5 transition-all group"
                     style={{ boxShadow: '3px 3px 0px rgba(120,53,15,0.12)' }}>
                     <div className="flex items-center gap-3 mb-1">
-                      <div className="w-8 h-8 border-2 border-yellow-700/20 bg-yellow-400/30 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }}>
-                        <span className="font-display text-sm text-yellow-950 font-bold">{i + 1}</span>
-                      </div>
+                      {c.generatedImageUrl ? (
+                        <img src={c.generatedImageUrl} alt={c.tokenSymbol} className="w-10 h-10 border-2 border-yellow-700/20 pixel-art-rendering object-cover" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }} />
+                      ) : (
+                        <div className="w-8 h-8 border-2 border-yellow-700/20 bg-yellow-400/30 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }}>
+                          <span className="font-display text-sm text-yellow-950 font-bold">{i + 1}</span>
+                        </div>
+                      )}
                       <span className="font-display text-sm text-yellow-950 tracking-wider font-bold">${c.tokenSymbol}</span>
                       <span className="font-display text-[9px] text-yellow-800/35 truncate">{c.tokenName}</span>
                     </div>
@@ -872,9 +899,13 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
                   </div>
 
                   <div className="border-3 border-yellow-700/15 bg-yellow-300/25 p-3 flex items-center gap-3">
-                    <div className="w-10 h-10 border-2 border-yellow-700/15 bg-yellow-400/20 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
-                      <Rocket className="w-5 h-5 text-yellow-900/70" />
-                    </div>
+                    {aiConcept.generatedImageUrl ? (
+                      <img src={aiConcept.generatedImageUrl} alt={aiConcept.tokenSymbol} className="w-12 h-12 border-2 border-yellow-700/15 object-cover" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }} />
+                    ) : (
+                      <div className="w-10 h-10 border-2 border-yellow-700/15 bg-yellow-400/20 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
+                        <Rocket className="w-5 h-5 text-yellow-900/70" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="font-display text-sm text-yellow-950 tracking-wider font-bold">${aiConcept.tokenSymbol}</div>
                       <div className="font-display text-[9px] text-yellow-800/40 truncate">{aiConcept.tokenName}</div>
@@ -938,16 +969,16 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
                 <div className="flex gap-2">
                   <button onClick={() => { setAiPhase("picking"); setAiConcept(null); setAiTwitterOverride(""); }}
                     className="px-3 py-2.5 font-display text-[9px] border-3 border-yellow-700/12 bg-yellow-500/8 text-yellow-800/40 hover:bg-yellow-500/15 transition-all">BACK</button>
-                  <button onClick={handleAiLaunch} disabled={launching || !wallet.connected} data-testid="button-ai-launch"
+                  <button onClick={handleAiLaunch} disabled={launching || !wallet.connected || generatingImage} data-testid="button-ai-launch"
                     className="flex-1 py-3.5 font-display text-sm disabled:opacity-30 flex items-center justify-center gap-2 border-4 transition-all tracking-wider font-bold"
                     style={{
-                      background: launching ? 'rgba(220,38,38,0.08)' : 'linear-gradient(135deg, #ef4444, #f97316, #eab308)',
-                      borderColor: launching ? 'rgba(220,38,38,0.15)' : 'rgba(180,60,20,0.4)',
-                      boxShadow: launching ? 'none' : '5px 5px 0px rgba(120,53,15,0.3)',
+                      background: (launching || generatingImage) ? 'rgba(220,38,38,0.08)' : 'linear-gradient(135deg, #ef4444, #f97316, #eab308)',
+                      borderColor: (launching || generatingImage) ? 'rgba(220,38,38,0.15)' : 'rgba(180,60,20,0.4)',
+                      boxShadow: (launching || generatingImage) ? 'none' : '5px 5px 0px rgba(120,53,15,0.3)',
                       textShadow: '1px 1px 0px rgba(0,0,0,0.15)',
                       color: '#fff',
                     }}>
-                    {launching ? <><Loader2 className="w-4 h-4 animate-spin" /> FIRING...</> : <><img src={crabClaw} alt="" className="w-6 h-6 pixel-art-rendering" style={{ imageRendering: 'pixelated' }} /> FIRE CANNON</>}
+                    {launching ? <><Loader2 className="w-4 h-4 animate-spin" /> FIRING...</> : generatingImage ? <><Loader2 className="w-4 h-4 animate-spin" /> GENERATING ART...</> : <><img src={crabClaw} alt="" className="w-6 h-6 pixel-art-rendering" style={{ imageRendering: 'pixelated' }} /> FIRE CANNON</>}
                   </button>
                 </div>
               </div>
