@@ -322,31 +322,6 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
   return (
     <div className={`${fullscreen ? 'h-full' : ''} flex flex-col bg-gradient-to-b from-yellow-400 via-amber-300 to-orange-300 overflow-y-auto`}>
 
-      <div className="relative overflow-hidden border-b-4 border-yellow-700/30">
-        <div className="absolute inset-0">
-          <img src={bananaLab} alt="" className="w-full h-full object-cover pixel-art-rendering opacity-20" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/50 via-amber-400/60 to-orange-500/70" />
-        <div className="relative px-5 pt-4 pb-3">
-          <div className="flex items-center gap-3">
-            <img src={fighterMonkey} alt="" className="w-12 h-12 pixel-art-rendering drop-shadow-lg border-3 border-yellow-800/30" style={{ imageRendering: 'pixelated' }} />
-            <div className="flex-1">
-              <h1 className="font-display text-lg text-yellow-950 tracking-wider" style={{ textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
-                BANANA CANNON
-              </h1>
-              <p className="font-display text-[8px] text-yellow-800/60 tracking-widest">TOKEN LAUNCHER ON SOLANA</p>
-            </div>
-            {mode !== "home" && (
-              <button onClick={resetToHome}
-                className="font-display text-[9px] text-yellow-900/60 hover:text-yellow-950 border-2 border-yellow-800/20 bg-yellow-500/30 hover:bg-yellow-500/50 px-3 py-1.5 transition-all"
-                style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>
-                ← BACK
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className={`relative overflow-hidden border-b-4 border-yellow-700/20`}>
         <div className={`absolute inset-0 bg-gradient-to-r ${theme.gradient} opacity-80`} />
         <div className="relative px-5 py-3 flex items-center gap-3">
@@ -355,10 +330,18 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
             <div className="font-display text-[11px] text-white tracking-[0.15em] font-bold drop-shadow-md">{theme.name}</div>
             <div className="font-display text-[8px] text-white/60 mt-0.5">{theme.desc}</div>
           </div>
-          <div className="bg-white/20 border-2 border-white/30 px-3 py-1.5 backdrop-blur-sm">
-            <div className="font-display text-[7px] text-white/60 tracking-wider">THIS WEEK</div>
-            <div className="font-display text-sm text-white font-bold text-center">{launches.length}</div>
-          </div>
+          {mode !== "home" ? (
+            <button onClick={resetToHome}
+              className="font-display text-[9px] text-white/80 hover:text-white border-2 border-white/30 bg-white/10 hover:bg-white/20 px-3 py-1.5 transition-all backdrop-blur-sm tracking-wider font-bold"
+              style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.15)' }}>
+              ← BACK
+            </button>
+          ) : (
+            <div className="bg-white/20 border-2 border-white/30 px-3 py-1.5 backdrop-blur-sm">
+              <div className="font-display text-[7px] text-white/60 tracking-wider">THIS WEEK</div>
+              <div className="font-display text-sm text-white font-bold text-center">{launches.length}</div>
+            </div>
+          )}
         </div>
       </div>
 
