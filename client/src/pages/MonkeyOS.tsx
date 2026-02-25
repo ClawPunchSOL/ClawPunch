@@ -268,7 +268,10 @@ export default function MonkeyOS() {
     return conv.id;
   }, [conversationIds]);
 
+  const UNLOCKED_AGENTS: AgentId[] = ['swarm-monkey'];
+
   const handleAgentSelect = (agentId: AgentId) => {
+    if (!UNLOCKED_AGENTS.includes(agentId)) return;
     setActiveAgentId(agentId);
     setActiveTab(agentId === 'banana-cannon' ? 'tools' : 'intel');
     setChatResponse('');
@@ -476,7 +479,13 @@ export default function MonkeyOS() {
                             style={{ background: `linear-gradient(90deg, transparent, ${agent.accentHex}, transparent)` }}
                           />
 
-                          <div className="relative flex flex-col items-center text-center gap-3">
+                            {!UNLOCKED_AGENTS.includes(id) && (
+                            <div className="absolute inset-0 z-10 bg-black/60 backdrop-blur-[1px] flex items-center justify-center cursor-not-allowed">
+                              <div className="font-display text-[8px] text-white/30 tracking-widest">COMING SOON</div>
+                            </div>
+                          )}
+
+                          <div className={`relative flex flex-col items-center text-center gap-3 ${!UNLOCKED_AGENTS.includes(id) ? 'opacity-40' : ''}`}>
                             <div className="relative">
                               <motion.img
                                 src={agent.avatar}
@@ -986,15 +995,16 @@ export default function MonkeyOS() {
             <motion.button
               key={agent.id}
               onClick={() => handleAgentSelect(agent.id)}
-              whileHover={{ scale: 1.15 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: UNLOCKED_AGENTS.includes(agent.id) ? 1.15 : 1 }}
+              whileTap={{ scale: UNLOCKED_AGENTS.includes(agent.id) ? 0.9 : 1 }}
               className={`shrink-0 p-1 md:p-1.5 transition-all relative ${
+                !UNLOCKED_AGENTS.includes(agent.id) ? 'opacity-25 cursor-not-allowed' :
                 activeAgentId === agent.id
                   ? 'bg-white/10 border border-white/20'
                   : 'hover:bg-white/5 border border-transparent'
               }`}
               data-testid={`taskbar-agent-${agent.id}`}
-              title={agent.name}
+              title={UNLOCKED_AGENTS.includes(agent.id) ? agent.name : `${agent.name} (Coming Soon)`}
             >
               <img src={agent.avatar} className="w-5 h-5 md:w-6 md:h-6 pixel-art-rendering" />
               {activeAgentId === agent.id && (
