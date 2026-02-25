@@ -270,7 +270,7 @@ export default function MonkeyOS() {
 
   const handleAgentSelect = (agentId: AgentId) => {
     setActiveAgentId(agentId);
-    setActiveTab('intel');
+    setActiveTab(agentId === 'banana-cannon' ? 'tools' : 'intel');
     setChatResponse('');
     setShowChat(false);
   };
@@ -344,7 +344,7 @@ export default function MonkeyOS() {
       case 'banana-bot': return <BananaBotPanel onSendChat={sendMessage} />;
       case 'trend-puncher': return <TrendPuncherPanel onSendChat={sendMessage} />;
       case 'vault-swinger': return <ApeVaultPanel onSendChat={sendMessage} />;
-      case 'banana-cannon': return <BananaCannonPanel />;
+      case 'banana-cannon': return <BananaCannonPanel onSendChat={sendMessage} fullscreen={true} />;
       default: return null;
     }
   };
@@ -836,7 +836,7 @@ export default function MonkeyOS() {
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col min-h-0 relative z-10 bg-black/70 backdrop-blur-sm">
+              <div className={`flex-1 flex flex-col min-h-0 relative z-10 ${activeAgentId === 'banana-cannon' ? '' : 'bg-black/70 backdrop-blur-sm'}`}>
                 <AnimatePresence mode="wait">
                   {activeTab === 'intel' ? (
                     <motion.div
@@ -860,9 +860,9 @@ export default function MonkeyOS() {
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
-                      className="flex-1 overflow-y-auto custom-scrollbar relative"
+                      className={`flex-1 overflow-y-auto custom-scrollbar relative ${activeAgentId === 'banana-cannon' ? '' : ''}`}
                     >
-                      <div className="relative z-10 p-3 md:p-5">
+                      <div className={`relative z-10 ${activeAgentId === 'banana-cannon' ? 'h-full' : 'p-3 md:p-5'}`}>
                         {renderToolPanel()}
                       </div>
                     </motion.div>
