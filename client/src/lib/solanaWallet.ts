@@ -20,9 +20,9 @@ let connection: Connection | null = null;
 let balanceInterval: ReturnType<typeof setInterval> | null = null;
 
 const RPC_ENDPOINTS = [
+  "https://rpc.ankr.com/solana",
   "https://api.mainnet-beta.solana.com",
   "https://solana-mainnet.g.alchemy.com/v2/demo",
-  "https://rpc.ankr.com/solana",
 ];
 
 function getConnection(): Connection {
