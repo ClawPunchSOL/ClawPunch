@@ -241,11 +241,13 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
     log({ type: "gap", text: "" });
     log({ type: "skill", text: "Skill(phantom-sign)" });
-    log({ type: "skill-sub", text: "└ Requesting Phantom wallet signature..." });
+    log({ type: "skill-sub", text: "└ Deserializing transaction + signing with mint keypair..." });
 
     const txBytes = Uint8Array.from(atob(txBase64), c => c.charCodeAt(0));
     const tx = VersionedTransaction.deserialize(txBytes);
     tx.sign([mintKeypair]);
+
+    log({ type: "skill-sub", text: "└ Requesting Phantom wallet signature..." });
     const signedTx = await phantom.signTransaction(tx);
 
     log({ type: "gap", text: "" });
@@ -253,12 +255,20 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
     log({ type: "bash-sub", text: "└ Broadcasting signed transaction to Solana..." });
 
     const connection = new Connection(SOLANA_RPC, "confirmed");
-    const signature = await connection.sendTransaction(signedTx);
+    const rawTx = signedTx.serialize();
+    const signature = await connection.sendRawTransaction(rawTx, {
+      skipPreflight: false,
+      preflightCommitment: "confirmed",
+    });
     log({ type: "code", text: `const txSignature = "${signature.slice(0, 30)}..."` });
 
     log({ type: "gap", text: "" });
     log({ type: "bash-sub", text: "└ Waiting for confirmation..." });
-    await connection.confirmTransaction(signature, "confirmed");
+    try {
+      await connection.confirmTransaction(signature, "confirmed");
+    } catch (confirmErr: any) {
+      log({ type: "skill-sub", text: "└ Confirmation timeout — tx may still succeed. Check Solscan." });
+    }
 
     const saveRes = await fetch("/api/token-launches", {
       method: "POST",
