@@ -2218,31 +2218,65 @@ ${JSON.stringify(data, null, 2)}`,
 
   async function findViralTweets(keywords: string[]): Promise<string[]> {
     const allTweets: string[] = [];
-    const searchQueries = keywords.map(kw =>
-      `site:x.com ${kw}`
-    );
-    const results = await Promise.allSettled(
-      searchQueries.slice(0, 3).map(async (q) => {
-        const encoded = encodeURIComponent(q);
+
+    async function searchBrave(query: string): Promise<string[]> {
+      try {
+        const encoded = encodeURIComponent(query);
         const resp = await fetch(`https://search.brave.com/search?q=${encoded}&source=web`, {
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
           },
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(10000),
         });
-        if (!resp.ok) return [];
+        if (!resp.ok) { console.log(`[tweets] Brave returned ${resp.status} for: ${query}`); return []; }
         const html = await resp.text();
-        const tweetUrls: string[] = [];
+        const urls: string[] = [];
         const urlRegex = /https?:\/\/(?:x|twitter)\.com\/[A-Za-z0-9_]+\/status\/[0-9]+/g;
         let match;
         while ((match = urlRegex.exec(html)) !== null) {
           const url = match[0].replace('twitter.com', 'x.com');
-          if (!tweetUrls.includes(url)) tweetUrls.push(url);
+          if (!urls.includes(url)) urls.push(url);
         }
-        return tweetUrls;
-      })
-    );
+        console.log(`[tweets] Brave "${query}" → ${urls.length} tweets`);
+        return urls;
+      } catch (e) {
+        console.log(`[tweets] Brave search failed for "${query}": ${e}`);
+        return [];
+      }
+    }
+
+    async function searchHN(keyword: string): Promise<string[]> {
+      try {
+        const resp = await fetch(
+          `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(keyword)}&tags=story&hitsPerPage=30`,
+          { signal: AbortSignal.timeout(6000) }
+        );
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        const urls = (data.hits || [])
+          .filter((h: any) => h.url && (h.url.includes('x.com/') || h.url.includes('twitter.com/')))
+          .map((h: any) => h.url.replace('twitter.com', 'x.com'))
+          .filter((u: string) => /\/status\/\d+/.test(u));
+        console.log(`[tweets] HN "${keyword}" → ${urls.length} tweets`);
+        return urls;
+      } catch { return []; }
+    }
+
+    const braveQueries = [
+      `site:x.com ${keywords.slice(0, 3).join(" ")}`,
+      `site:x.com ${keywords[0]} viral`,
+      `site:x.com ${keywords.slice(0, 2).join(" ")} crypto`,
+    ];
+
+    const searches = [
+      ...braveQueries.map(q => searchBrave(q)),
+      ...keywords.slice(0, 2).map(kw => searchHN(kw)),
+    ];
+
+    const results = await Promise.allSettled(searches);
     for (const r of results) {
       if (r.status === "fulfilled" && Array.isArray(r.value)) allTweets.push(...r.value);
     }
@@ -2299,14 +2333,15 @@ THE PATTERN — how tokens actually blow up:
 
 You have been given REAL, LIVE headlines AND real X/Twitter post URLs that are currently getting engagement. Your job:
 1. Pick the headline with the most meme potential
-2. Pick the most relevant REAL tweet URL from the list provided (or the closest match to your chosen headline)
+2. Pick the most relevant REAL tweet URL from the list provided
 3. Build a token concept around that moment
 
 CRITICAL RULES:
 - The token MUST be based on a real headline provided below
-- The twitter field MUST be one of the REAL tweet URLs provided below — pick the one most related to your chosen headline. If none match well, use the most viral/interesting one from the list.
-- NEVER make up a tweet URL. NEVER use a search URL. Only use URLs from the provided list.
+- The twitter field MUST be one of the REAL tweet URLs provided below — the one most related to your chosen headline
+- NEVER make up a tweet URL. NEVER use a search URL. Only use a URL from the provided list.
 - If no tweet URLs were found, set twitter to null
+- DO NOT generate telegram or website links — set them to null. The user will fill those in themselves.
 ${newsContext}
 ${tweetContext}
 
@@ -2315,9 +2350,9 @@ Return ONLY valid JSON:
   "tokenName": "string (2-4 words — named after the specific headline/event, punchy and memeable)",
   "tokenSymbol": "string (3-6 chars uppercase — the ticker degens would search for)",
   "description": "string (2-3 sentences — reference the ACTUAL headline, explain the meme angle, capture degen energy)",
-  "twitter": "string (MUST be one of the real tweet URLs from the list above — pick the most relevant one) or null if no tweets found",
-  "telegram": "string (t.me/ group link suggestion)",
-  "website": "string (domain — .fun or .xyz or .lol)",
+  "twitter": "string (one of the REAL tweet URLs from the list above) or null",
+  "telegram": null,
+  "website": null,
   "imagePrompt": "string (vivid art direction referencing the actual event/person — meme-style, iconic, no text in image)",
   "trendRationale": "string (2-3 sentences: which headline + which tweet you chose and why. Reference the real news story and the real X post.)"
 }`,

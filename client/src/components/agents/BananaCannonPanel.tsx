@@ -201,15 +201,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       await delay(80);
 
       if (data.twitter) {
-        addLog({ type: "code", text: `const twitter       = "${data.twitter}"` });
-        await delay(60);
-      }
-      if (data.telegram) {
-        addLog({ type: "code", text: `const telegram      = "${data.telegram}"` });
-        await delay(60);
-      }
-      if (data.website) {
-        addLog({ type: "code", text: `const website       = "${data.website}"` });
+        addLog({ type: "code", text: `const xPost         = "${data.twitter}"` });
         await delay(60);
       }
       addLog({ type: "code", text: `const deployFee     = ${PUMP_PORTAL_FEE}` });
@@ -250,8 +242,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
     try {
       const devBuy = parseFloat(aiDevBuy || "0");
-      const tw = aiConcept.twitter?.startsWith("http") ? aiConcept.twitter : aiConcept.twitter ? `https://x.com/${aiConcept.twitter.replace(/^@/, "")}` : null;
-      const tg = aiConcept.telegram?.startsWith("http") ? aiConcept.telegram : aiConcept.telegram ? `https://t.me/${aiConcept.telegram.replace(/^@/, "")}` : null;
+      const tw = aiConcept.twitter?.startsWith("http") ? aiConcept.twitter : null;
 
       const res = await fetch("/api/token-launches", {
         method: "POST",
@@ -264,8 +255,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
           walletAddress: wallet.publicKey,
           imageUrl: null,
           twitter: tw,
-          telegram: tg,
-          website: aiConcept.website || null,
+          telegram: null,
+          website: null,
         }),
       });
 
@@ -621,6 +612,15 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                     REVIEW
                   </button>
                 </div>
+
+                {aiConcept.twitter && aiConcept.twitter.startsWith("http") && (
+                  <div className="border border-blue-500/20 bg-blue-500/5 p-3 rounded">
+                    <div className="text-[8px] text-blue-400/60 font-display mb-1">VIRAL X POST</div>
+                    <a href={aiConcept.twitter} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-300 underline underline-offset-2 break-all" data-testid="link-viral-tweet">
+                      {aiConcept.twitter}
+                    </a>
+                  </div>
+                )}
 
                 {!wallet.connected ? (
                   <button
