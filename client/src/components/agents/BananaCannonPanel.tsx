@@ -121,25 +121,25 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
     setAiConcept(null);
     setError(null);
 
-    addLog({ type: "prompt", text: "what's the play right now? give me a token that would actually trend." });
+    addLog({ type: "prompt", text: "what just broke? give me a token that captures the moment." });
     await delay(600);
-    addLog({ type: "text", text: "Let me think about what CT is talking about right now. I'll scan the current narratives and build something that fits." });
+    addLog({ type: "text", text: "Let me think about what's happening right now — breaking news, viral posts, political drama, moments that CT is losing their minds over." });
+    await delay(500);
+
+    addLog({ type: "gap", text: "" });
+    addLog({ type: "skill", text: "Skill(news-scan)" });
+    addLog({ type: "skill-sub", text: "└ Scanning breaking news, political events, viral X posts..." });
+    await delay(500);
+
+    addLog({ type: "text", text: "Looking for the moment — the tweet that's getting 100K likes, the headline everyone is screenshotting, the quote that broke the internet..." });
     await delay(400);
 
     addLog({ type: "gap", text: "" });
-    addLog({ type: "skill", text: "Skill(narrative-scan)" });
-    addLog({ type: "skill-sub", text: "└ Scanning crypto twitter narratives, meme metas, market sentiment..." });
-    await delay(500);
-
-    addLog({ type: "text", text: "Checking what's moving — AI agents, political tokens, animal metas, cultural moments, viral threads..." });
+    addLog({ type: "skill", text: "Skill(meme-factory)" });
+    addLog({ type: "skill-sub", text: "└ Matching event to ticker, finding the viral X post" });
     await delay(300);
 
-    addLog({ type: "gap", text: "" });
-    addLog({ type: "skill", text: "Skill(concept-builder)" });
-    addLog({ type: "skill-sub", text: "└ Identifying gap in current meta" });
-    await delay(300);
-
-    addLog({ type: "text", text: "Good — I see the angle. Building the concept now." });
+    addLog({ type: "text", text: "Got it. Found the angle. Writing the launch script now." });
     await delay(300);
 
     setIsThinking(true);
@@ -515,12 +515,12 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                       data-testid="button-ai-scan"
                       className="text-[11px] text-violet-300 hover:text-violet-200 transition-colors cursor-pointer bg-transparent border-none p-0 font-mono underline decoration-violet-500/30 underline-offset-2 hover:decoration-violet-400/60"
                     >
-                      what's the play right now? give me a token that would actually trend.
+                      what just broke? give me a token that captures the moment.
                     </button>
                   </div>
 
                   <div className="text-[9px] text-stone-600 mt-4 pl-4">
-                    Click the prompt above or type in chat to begin.
+                    Click the prompt above to launch. Claude will find the moment.
                   </div>
                 </div>
               )}
