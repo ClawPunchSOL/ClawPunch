@@ -2227,6 +2227,45 @@ ${JSON.stringify(data, null, 2)}`,
         ? `\n\nHEADLINES (you MUST pick from ONLY this list):\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}`
         : "\n\n[News feeds unavailable — use your best judgment on current events]";
 
+      function buildXSearchUrl(headline: string): string {
+        const stripped = headline.replace(/\s*[-–—|]\s*(?:Reuters|AP|CNN|BBC|CNBC|Bloomberg|CoinDesk|The [A-Z][\w\s]+|[A-Z][\w]+ News|Department of [A-Z][\w\s]+)\.?\s*$/i, '').trim();
+        const junk = new Set(["the","a","an","is","are","was","were","be","been","have","has","had","do","does","did","will","would","shall","should","may","might","must","can","could","in","on","at","to","for","of","with","by","from","as","into","through","during","before","after","about","up","down","says","said","also","its","and","or","but","not","no","if","how","why","what","when","where","who","which","that","this","these","those","than","more","most","some","any","all","each","every","other","over","out","off","just","very","so","too","now","then","here","there","new","being","against","between","under","according","reportedly","allegedly","amid","despite","while","citing","per","via","sources"]);
+        const words = stripped.split(/\s+/);
+        const names: string[] = [];
+        let i = 0;
+        while (i < words.length) {
+          const raw = words[i];
+          const clean = raw.replace(/[^a-zA-Z0-9$'-]/g, '');
+          if (clean.length >= 2 && /^[A-Z]/.test(clean) && !junk.has(clean.toLowerCase())) {
+            let group = [clean];
+            let j = i + 1;
+            while (j < words.length) {
+              const nxt = words[j].replace(/[^a-zA-Z0-9$'-]/g, '');
+              if (nxt.length >= 2 && /^[A-Z]/.test(nxt) && !junk.has(nxt.toLowerCase())) {
+                group.push(nxt); j++;
+              } else break;
+            }
+            names.push(group.length > 1 ? `"${group.join(' ')}"` : clean);
+            i = j;
+          } else { i++; }
+        }
+        if (names.length >= 2) {
+          return `https://x.com/search?q=${encodeURIComponent(names.slice(0, 3).join(' '))}&f=top`;
+        }
+        const subject = names[0] || '';
+        const actionWords = stripped.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/)
+          .filter(w => w.length > 4 && !junk.has(w) && !['their','would','could','about','after','where','which','being','those','these','other','still','first','since','under','three','right','found','every','going','might','again','place','point','great','based','given','along','until','among','using','never','known','large','small','early','young'].includes(w));
+        const topic = actionWords.slice(0, 2).join(' ');
+        if (subject && topic) {
+          return `https://x.com/search?q=${encodeURIComponent(subject + ' ' + topic)}&f=top`;
+        }
+        if (subject) {
+          return `https://x.com/search?q=${encodeURIComponent(subject)}&f=top`;
+        }
+        const fallback = stripped.split(/\s+/).filter(w => w.length > 4).slice(0, 3).join(' ');
+        return `https://x.com/search?q=${encodeURIComponent(fallback)}&f=top`;
+      }
+
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
         max_tokens: 2000,
@@ -2240,43 +2279,27 @@ YOUR TASK: Pick 3 headlines and build a meme token concept for each.
 RULES:
 1. ONLY use headlines from the list. Do NOT invent news.
 2. Each concept uses a DIFFERENT headline.
-3. Copy the EXACT headline text into "headlineUsed".
+3. Copy the EXACT headline text into "headlineUsed" — word for word from the list.
 4. Token name/symbol/description must clearly relate to the headline.
-5. Set telegram and website to null.
-
-X SEARCH URL — THIS IS CRITICAL:
-The xSearchUrl must actually find viral posts about this story on X. Build it properly:
-- Use the MOST SPECIFIC proper nouns from the headline (person names, company names, place names)
-- Wrap multi-word names in quotes using %22 (e.g. %22Elon%20Musk%22)
-- Add "min_faves:1000" to filter for viral posts only
-- Use "lang:en" to keep results relevant
-- Format: https://x.com/search?q=%22Person%20Name%22%20keyword%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
-
-EXAMPLES of GOOD xSearchUrl:
-- Headline about Elon Musk and Pentagon: https://x.com/search?q=%22Elon%20Musk%22%20Pentagon%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
-- Headline about Bitcoin ETF: https://x.com/search?q=%22Bitcoin%20ETF%22%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
-- Headline about Trump tariffs: https://x.com/search?q=Trump%20tariffs%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
-
-EXAMPLES of BAD xSearchUrl (DO NOT DO THIS):
-- https://x.com/search?q=flooding%20disaster (too generic, returns random posts)
-- https://x.com/search?q=crypto%20news (useless, shows everything)
+5. For xSearchTerms: provide the 2-3 most specific words/names people would ACTUALLY type into X/Twitter to find viral posts about this story. Use proper nouns (person names, company names, places) — NOT generic words like "breaking" or "crisis". Think: what would a degen type into X search to find the hot takes?
+6. Set telegram, website to null.
 ${newsContext}
 
 Return ONLY a valid JSON array with exactly 3 objects:
 [
   {
-    "headlineUsed": "exact headline text",
+    "headlineUsed": "exact headline text from the list",
     "tokenName": "2-4 words, punchy",
     "tokenSymbol": "3-6 chars uppercase",
     "description": "2-3 sentences referencing the headline",
-    "xSearchUrl": "X search URL using specific proper nouns + min_faves:1000",
+    "xSearchTerms": "2-3 specific words for X search (proper nouns preferred)",
     "telegram": null,
     "website": null,
     "imagePrompt": "meme art direction, no text",
     "trendRationale": "why this has meme potential"
   }
 ]`,
-        messages: [{ role: "user", content: `Pick 3 DIFFERENT headlines from the list below. Build tokens. Use SPECIFIC proper nouns in X search URLs.\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}\n\nSeed: ${Date.now()}` }],
+        messages: [{ role: "user", content: `Pick 3 DIFFERENT headlines. Build tokens. For xSearchTerms, give me the exact words someone would type into X to find viral posts about each story.\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}\n\nSeed: ${Date.now()}` }],
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
@@ -2286,12 +2309,31 @@ Return ONLY a valid JSON array with exactly 3 objects:
         if (singleMatch) {
           const single = JSON.parse(singleMatch[0]);
           single.twitter = null;
+          if (single.xSearchTerms) {
+            single.xSearchUrl = `https://x.com/search?q=${encodeURIComponent(single.xSearchTerms)}&f=top`;
+          } else {
+            single.xSearchUrl = single.headlineUsed ? buildXSearchUrl(single.headlineUsed) : null;
+          }
           return res.json({ concepts: [single], _headlines: shuffled });
         }
         return res.status(500).json({ error: "Failed to parse AI response" });
       }
       const concepts = JSON.parse(jsonMatch[0]);
-      for (const c of concepts) { c.twitter = null; }
+      for (const c of concepts) {
+        c.twitter = null;
+        const parsedUrl = c.headlineUsed ? buildXSearchUrl(c.headlineUsed) : null;
+        const parsedQ = parsedUrl ? decodeURIComponent(parsedUrl.split('q=')[1]?.split('&')[0] || '') : '';
+        const parsedWords = parsedQ.replace(/"/g, '').split(/\s+/).filter(Boolean);
+        const hasGoodTerms = parsedWords.length >= 2 && parsedWords.some(w => w.length > 3);
+        if (hasGoodTerms) {
+          c.xSearchUrl = parsedUrl;
+        } else if (c.xSearchTerms) {
+          c.xSearchUrl = `https://x.com/search?q=${encodeURIComponent(c.xSearchTerms)}&f=top`;
+        } else {
+          c.xSearchUrl = parsedUrl;
+        }
+        console.log(`[generate] ${c.tokenSymbol}: search="${c.xSearchUrl}"`);
+      }
       res.json({ concepts, _headlines: shuffled });
     } catch (error) {
       console.error("Token generate error:", error);

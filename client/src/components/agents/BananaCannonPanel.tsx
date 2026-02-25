@@ -35,6 +35,7 @@ interface AIConcept {
   imagePrompt?: string;
   trendRationale?: string;
   headlineUsed?: string;
+  xSearchTerms?: string;
   [key: string]: any;
 }
 
