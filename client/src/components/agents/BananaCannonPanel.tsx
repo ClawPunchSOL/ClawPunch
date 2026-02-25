@@ -123,23 +123,27 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
     addLog({ type: "prompt", text: "what just broke? give me a token that captures the moment." });
     await delay(600);
-    addLog({ type: "text", text: "Pulling live news feeds — Google News, crypto outlets, breaking headlines. Let me find what's actually happening right now." });
+    addLog({ type: "text", text: "Pulling live news feeds + scanning X for viral posts. Give me a sec." });
     await delay(500);
 
     addLog({ type: "gap", text: "" });
     addLog({ type: "skill", text: "Skill(live-news-feed)" });
     addLog({ type: "skill-sub", text: "└ Fetching real-time headlines from news RSS feeds..." });
+    await delay(400);
+
+    addLog({ type: "skill", text: "Skill(x-scanner)" });
+    addLog({ type: "skill-sub", text: "└ Searching for real viral X posts matching top headlines..." });
     await delay(600);
 
-    addLog({ type: "text", text: "Headlines loaded. Scanning for meme potential — political drama, crypto events, viral moments, cultural shockwaves..." });
+    addLog({ type: "text", text: "Headlines loaded. Found real X posts. Matching the hottest story to a viral tweet..." });
     await delay(400);
 
     addLog({ type: "gap", text: "" });
     addLog({ type: "skill", text: "Skill(meme-factory)" });
-    addLog({ type: "skill-sub", text: "└ Matching hottest headline to ticker + X search link" });
+    addLog({ type: "skill-sub", text: "└ Picking headline + real viral X post → building concept" });
     await delay(300);
 
-    addLog({ type: "text", text: "Found the angle. Building launch concept from a real headline." });
+    addLog({ type: "text", text: "Got it. Real news + real tweet. Writing the launch config." });
     await delay(300);
 
     setIsThinking(true);
@@ -167,7 +171,12 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
           addLog({ type: "skill-sub", text: `  • ${h}` });
           await delay(80);
         }
-        await delay(200);
+        await delay(100);
+        if (data._tweetsFound > 0) {
+          addLog({ type: "skill", text: "Read(x-posts)" });
+          addLog({ type: "skill-sub", text: `└ ${data._tweetsFound} real viral X posts found and matched` });
+          await delay(200);
+        }
       }
 
       addLog({ type: "text", text: `Narrative identified in ${elapsed}s. Writing the launch config now.` });

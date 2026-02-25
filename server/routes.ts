@@ -2182,50 +2182,108 @@ ${JSON.stringify(data, null, 2)}`,
     }
   });
 
-  app.post("/api/token-launches/generate", async (_req, res) => {
-    try {
-      const newsFeeds = [
-        "https://news.google.com/rss/search?q=crypto+OR+bitcoin+OR+solana+OR+trump+OR+elon+musk&hl=en-US&gl=US&ceid=US:en",
-        "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
-        "https://www.coindesk.com/arc/outboundfeeds/rss/",
-      ];
-
-      let liveHeadlines: string[] = [];
-
-      const feedResults = await Promise.allSettled(
-        newsFeeds.map(async (url) => {
-          const resp = await fetch(url, {
-            headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/rss+xml, application/xml, text/xml" },
-            signal: AbortSignal.timeout(6000),
-          });
-          if (!resp.ok) return [];
-          const xml = await resp.text();
-          const items: string[] = [];
-          const itemBlocks = xml.split(/<item[\s>]/);
-          for (const block of itemBlocks.slice(1, 15)) {
-            const cdataMatch = block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
-            const plainMatch = block.match(/<title>(.*?)<\/title>/);
-            const title = (cdataMatch?.[1] || plainMatch?.[1] || "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim();
-            if (title && title.length > 10 && !title.includes("Google News") && !title.includes("CoinDesk")) {
-              items.push(title);
-            }
+  async function fetchRssHeadlines(): Promise<string[]> {
+    const feeds = [
+      "https://news.google.com/rss/search?q=crypto+OR+bitcoin+OR+solana+OR+trump+OR+elon+musk&hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+      "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    ];
+    const all: string[] = [];
+    const results = await Promise.allSettled(
+      feeds.map(async (url) => {
+        const resp = await fetch(url, {
+          headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/rss+xml, application/xml, text/xml" },
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!resp.ok) return [];
+        const xml = await resp.text();
+        const items: string[] = [];
+        const itemBlocks = xml.split(/<item[\s>]/);
+        for (const block of itemBlocks.slice(1, 15)) {
+          const cdataMatch = block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
+          const plainMatch = block.match(/<title>(.*?)<\/title>/);
+          const title = (cdataMatch?.[1] || plainMatch?.[1] || "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim();
+          if (title && title.length > 10 && !title.includes("Google News") && !title.includes("CoinDesk")) {
+            items.push(title);
           }
-          return items;
-        })
-      );
+        }
+        return items;
+      })
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled" && Array.isArray(r.value)) all.push(...r.value);
+    }
+    return [...new Set(all)].slice(0, 25);
+  }
 
-      for (const result of feedResults) {
-        if (result.status === "fulfilled" && Array.isArray(result.value)) {
-          liveHeadlines.push(...result.value);
+  async function findViralTweets(keywords: string[]): Promise<string[]> {
+    const allTweets: string[] = [];
+    const searchQueries = keywords.map(kw =>
+      `site:x.com ${kw}`
+    );
+    const results = await Promise.allSettled(
+      searchQueries.slice(0, 3).map(async (q) => {
+        const encoded = encodeURIComponent(q);
+        const resp = await fetch(`https://search.brave.com/search?q=${encoded}&source=web`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml",
+          },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) return [];
+        const html = await resp.text();
+        const tweetUrls: string[] = [];
+        const urlRegex = /https?:\/\/(?:x|twitter)\.com\/[A-Za-z0-9_]+\/status\/[0-9]+/g;
+        let match;
+        while ((match = urlRegex.exec(html)) !== null) {
+          const url = match[0].replace('twitter.com', 'x.com');
+          if (!tweetUrls.includes(url)) tweetUrls.push(url);
+        }
+        return tweetUrls;
+      })
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled" && Array.isArray(r.value)) allTweets.push(...r.value);
+    }
+    return [...new Set(allTweets)];
+  }
+
+  function extractKeywords(headlines: string[]): string[] {
+    const stopWords = new Set(["the","a","an","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","shall","should","may","might","must","can","could","in","on","at","to","for","of","with","by","from","as","into","through","during","before","after","above","below","between","out","off","over","under","again","further","then","once","here","there","when","where","why","how","all","each","every","both","few","more","most","other","some","such","no","not","only","same","so","than","too","very","just","because","but","and","or","if","while","about","up","down","new","says","said","also","its"]);
+    const wordCounts: Record<string, number> = {};
+    for (const h of headlines) {
+      const words = h.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/);
+      for (const w of words) {
+        if (w.length > 2 && !stopWords.has(w)) {
+          wordCounts[w] = (wordCounts[w] || 0) + 1;
         }
       }
+    }
+    return Object.entries(wordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([word]) => word);
+  }
 
-      const uniqueHeadlines = [...new Set(liveHeadlines)].slice(0, 25);
-      const newsContext = uniqueHeadlines.length > 0
-        ? `\n\nLIVE BREAKING NEWS & HEADLINES (REAL, RIGHT NOW):\n${uniqueHeadlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}`
+  app.post("/api/token-launches/generate", async (_req, res) => {
+    try {
+      const headlines = await fetchRssHeadlines();
+      console.log(`[generate] Fetched ${headlines.length} live headlines`);
+
+      const topKeywords = extractKeywords(headlines);
+      console.log(`[generate] Top keywords: ${topKeywords.join(", ")}`);
+
+      const tweetUrls = await findViralTweets(topKeywords);
+      console.log(`[generate] Found ${tweetUrls.length} real tweet URLs`);
+
+      const newsContext = headlines.length > 0
+        ? `\n\nLIVE BREAKING NEWS & HEADLINES (REAL, RIGHT NOW):\n${headlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}`
         : "\n\n[News feeds unavailable — use your best judgment on current events]";
 
-      console.log(`[generate] Fetched ${uniqueHeadlines.length} live headlines for token concept`);
+      const tweetContext = tweetUrls.length > 0
+        ? `\n\nREAL VIRAL X/TWITTER POSTS FOUND (these are REAL links — use one as the twitter field):\n${tweetUrls.map((u, i) => `${i + 1}. ${u}`).join("\n")}`
+        : "";
 
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
@@ -2234,33 +2292,36 @@ ${JSON.stringify(data, null, 2)}`,
         system: `You are a crypto-native Solana meme token strategist. You understand exactly how viral meme tokens are born:
 
 THE PATTERN — how tokens actually blow up:
-1. BREAKING NEWS drops — something happens in the real world that everyone is talking about
-2. A POST GOES VIRAL on X/Twitter — millions of views, massive engagement
+1. BREAKING NEWS drops — something happens in the real world
+2. Someone posts about it on X and it goes VIRAL — millions of views
 3. WITHIN MINUTES a token launches on Solana capturing that moment
-4. The X/Twitter link used IS the viral post or news article that started it — NOT a project account
+4. The X/Twitter link used IS that viral post — the REAL tweet that started the conversation
 
-You have been given REAL, LIVE headlines from right now. Pick the ONE headline that has the most meme potential — the most shocking, funny, outrageous, or culturally significant — and build a token around it.
+You have been given REAL, LIVE headlines AND real X/Twitter post URLs that are currently getting engagement. Your job:
+1. Pick the headline with the most meme potential
+2. Pick the most relevant REAL tweet URL from the list provided (or the closest match to your chosen headline)
+3. Build a token concept around that moment
 
-Rules:
-- The token MUST be based on one of the real headlines provided below
-- The description MUST reference the actual news event
-- For the twitter field: provide an X search URL that would find the viral posts about this event. Format: https://x.com/search?q=KEYWORD&src=typed_query&f=top (use the most relevant keyword from the headline, URL-encoded)
-- Make the ticker something degens would actually type in a DEX search
-- The concept should feel like it was launched 5 minutes after the headline dropped
+CRITICAL RULES:
+- The token MUST be based on a real headline provided below
+- The twitter field MUST be one of the REAL tweet URLs provided below — pick the one most related to your chosen headline. If none match well, use the most viral/interesting one from the list.
+- NEVER make up a tweet URL. NEVER use a search URL. Only use URLs from the provided list.
+- If no tweet URLs were found, set twitter to null
 ${newsContext}
+${tweetContext}
 
 Return ONLY valid JSON:
 {
   "tokenName": "string (2-4 words — named after the specific headline/event, punchy and memeable)",
   "tokenSymbol": "string (3-6 chars uppercase — the ticker degens would search for)",
   "description": "string (2-3 sentences — reference the ACTUAL headline, explain the meme angle, capture degen energy)",
-  "twitter": "string (X search URL: https://x.com/search?q=KEYWORD&src=typed_query&f=top — use the most viral keyword from the headline so users can find the real posts about it)",
+  "twitter": "string (MUST be one of the real tweet URLs from the list above — pick the most relevant one) or null if no tweets found",
   "telegram": "string (t.me/ group link suggestion)",
   "website": "string (domain — .fun or .xyz or .lol)",
   "imagePrompt": "string (vivid art direction referencing the actual event/person — meme-style, iconic, no text in image)",
-  "trendRationale": "string (2-3 sentences: which SPECIFIC headline you chose and why it has maximum meme potential right now. Reference the actual news story.)"
+  "trendRationale": "string (2-3 sentences: which headline + which tweet you chose and why. Reference the real news story and the real X post.)"
 }`,
-        messages: [{ role: "user", content: "Scan the live headlines. Which one has the most meme energy? Build me a token around the most viral-worthy story happening right now. I want something reactive — based on real news, not made-up events." }],
+        messages: [{ role: "user", content: "Scan the live headlines and real X posts. Pick the most viral-worthy story and match it with a real tweet. Build me a token that captures this exact moment." }],
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
@@ -2269,7 +2330,8 @@ Return ONLY valid JSON:
         return res.status(500).json({ error: "Failed to parse AI response" });
       }
       const data = JSON.parse(jsonMatch[0]);
-      data._headlines = uniqueHeadlines.slice(0, 5);
+      data._headlines = headlines.slice(0, 5);
+      data._tweetsFound = tweetUrls.length;
       res.json(data);
     } catch (error) {
       console.error("Token generate error:", error);
