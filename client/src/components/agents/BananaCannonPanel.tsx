@@ -164,31 +164,21 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       setIsThinking(false);
       await delay(200);
 
-      if (result._headlines && result._headlines.length > 0) {
-        addLog({ type: "gap", text: "" });
-        addLog({ type: "skill", text: "Read(live-headlines)" });
-        addLog({ type: "skill-sub", text: `└ ${result._headlines.length} headlines fed to AI` });
-        await delay(100);
-        for (let i = 0; i < result._headlines.length; i++) {
-          addLog({ type: "skill-sub", text: `  [H${i + 1}] ${result._headlines[i]}` });
-          await delay(40);
-        }
-      }
-
       addLog({ type: "gap", text: "" });
-      addLog({ type: "text", text: `${concepts.length} concepts generated in ${elapsed}s — each from a different headline above.` });
-      await delay(400);
+      addLog({ type: "skill", text: "Read(live-headlines)" });
+      addLog({ type: "skill-sub", text: `└ ${result._headlines?.length || 0} headlines scanned → ${concepts.length} concepts (${elapsed}s)` });
+      await delay(200);
 
       for (let i = 0; i < concepts.length; i++) {
         const c = concepts[i];
         addLog({ type: "gap", text: "" });
-        addLog({ type: "code-header", text: `Concept ${i + 1}: $${c.tokenSymbol}` });
+        addLog({ type: "code-header", text: `$${c.tokenSymbol} — ${c.tokenName}` });
         if (c.headlineUsed) {
-          addLog({ type: "skill-sub", text: `  ← "${c.headlineUsed.slice(0, 100)}${c.headlineUsed.length > 100 ? '...' : ''}"` });
-          await delay(60);
+          addLog({ type: "skill-sub", text: `  headline: "${c.headlineUsed.slice(0, 120)}"` });
+          await delay(40);
         }
-        addLog({ type: "code", text: `"${c.tokenName}" — ${c.description.slice(0, 90)}${c.description.length > 90 ? '...' : ''}` });
-        await delay(150);
+        addLog({ type: "code", text: c.description.slice(0, 120) + (c.description.length > 120 ? '...' : '') });
+        await delay(100);
       }
 
       addLog({ type: "gap", text: "" });

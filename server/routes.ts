@@ -2224,7 +2224,7 @@ ${JSON.stringify(data, null, 2)}`,
       const shuffled = [...headlines].sort(() => Math.random() - 0.5).slice(0, 10);
 
       const newsContext = shuffled.length > 0
-        ? `\n\nHere are the ONLY headlines you may use. You MUST pick from THIS list — do NOT invent or recall other news:\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}`
+        ? `\n\nHEADLINES (you MUST pick from ONLY this list):\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}`
         : "\n\n[News feeds unavailable — use your best judgment on current events]";
 
       const message = await anthropic.messages.create({
@@ -2235,34 +2235,48 @@ ${JSON.stringify(data, null, 2)}`,
 
 You will be given a numbered list of REAL headlines labeled [H1] through [H10].
 
-YOUR TASK: Pick 3 headlines from the list and build a meme token concept for each one.
+YOUR TASK: Pick 3 headlines and build a meme token concept for each.
 
-ABSOLUTE RULES — VIOLATION = FAILURE:
-1. You MUST ONLY use headlines from the provided list. Do NOT use any headline that is not in the list. Do NOT make up news. Do NOT use your training data for news stories.
-2. Each concept MUST reference a DIFFERENT headline number (e.g. H2, H5, H9).
-3. In the "headlineUsed" field, copy the EXACT headline text from the list — word for word.
-4. The token name, symbol, and description MUST clearly relate to the headline you picked.
-5. For xSearchUrl: build a working X search URL with 2-3 keywords FROM the headline. Format: https://x.com/search?q=KEYWORD1%20KEYWORD2&src=typed_query&f=top
-6. Set telegram and website to null.
+RULES:
+1. ONLY use headlines from the list. Do NOT invent news.
+2. Each concept uses a DIFFERENT headline.
+3. Copy the EXACT headline text into "headlineUsed".
+4. Token name/symbol/description must clearly relate to the headline.
+5. Set telegram and website to null.
+
+X SEARCH URL — THIS IS CRITICAL:
+The xSearchUrl must actually find viral posts about this story on X. Build it properly:
+- Use the MOST SPECIFIC proper nouns from the headline (person names, company names, place names)
+- Wrap multi-word names in quotes using %22 (e.g. %22Elon%20Musk%22)
+- Add "min_faves:1000" to filter for viral posts only
+- Use "lang:en" to keep results relevant
+- Format: https://x.com/search?q=%22Person%20Name%22%20keyword%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
+
+EXAMPLES of GOOD xSearchUrl:
+- Headline about Elon Musk and Pentagon: https://x.com/search?q=%22Elon%20Musk%22%20Pentagon%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
+- Headline about Bitcoin ETF: https://x.com/search?q=%22Bitcoin%20ETF%22%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
+- Headline about Trump tariffs: https://x.com/search?q=Trump%20tariffs%20min_faves%3A1000%20lang%3Aen&src=typed_query&f=top
+
+EXAMPLES of BAD xSearchUrl (DO NOT DO THIS):
+- https://x.com/search?q=flooding%20disaster (too generic, returns random posts)
+- https://x.com/search?q=crypto%20news (useless, shows everything)
 ${newsContext}
 
 Return ONLY a valid JSON array with exactly 3 objects:
 [
   {
-    "headlineUsed": "string (EXACT copy of the headline from the list you chose)",
-    "tokenName": "string (2-4 words — punchy, memeable)",
-    "tokenSymbol": "string (3-6 chars uppercase ticker)",
-    "description": "string (2-3 sentences referencing the headline)",
-    "xSearchUrl": "string (X search URL with keywords from the headline)",
+    "headlineUsed": "exact headline text",
+    "tokenName": "2-4 words, punchy",
+    "tokenSymbol": "3-6 chars uppercase",
+    "description": "2-3 sentences referencing the headline",
+    "xSearchUrl": "X search URL using specific proper nouns + min_faves:1000",
     "telegram": null,
     "website": null,
-    "imagePrompt": "string (meme art direction referencing the event, no text in image)",
-    "trendRationale": "string (why this headline has meme potential)"
-  },
-  { ... },
-  { ... }
+    "imagePrompt": "meme art direction, no text",
+    "trendRationale": "why this has meme potential"
+  }
 ]`,
-        messages: [{ role: "user", content: `Here are the headlines again. Pick 3 DIFFERENT ones and build tokens. ONLY use headlines from this list:\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}\n\nRandom seed: ${Date.now()}` }],
+        messages: [{ role: "user", content: `Pick 3 DIFFERENT headlines from the list below. Build tokens. Use SPECIFIC proper nouns in X search URLs.\n${shuffled.map((h, i) => `[H${i + 1}] ${h}`).join("\n")}\n\nSeed: ${Date.now()}` }],
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
