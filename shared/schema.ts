@@ -175,6 +175,10 @@ export const tokenLaunches = pgTable("token_launches", {
   twitter: text("twitter"),
   telegram: text("telegram"),
   website: text("website"),
+  walletAddress: text("wallet_address"),
+  headlineUsed: text("headline_used"),
+  launchMethod: text("launch_method").default("manual"),
+  scanToLaunchMs: integer("scan_to_launch_ms"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

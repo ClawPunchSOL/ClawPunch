@@ -2230,7 +2230,7 @@ ${JSON.stringify(data, null, 2)}`,
 
   app.post("/api/token-launches", async (req, res) => {
     try {
-      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress, imageUrl, twitter, telegram, website, mintAddress, txSignature, metadataUri } = req.body;
+      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress, imageUrl, twitter, telegram, website, mintAddress, txSignature, metadataUri, headlineUsed, launchMethod, scanToLaunchMs } = req.body;
       if (!tokenName || !tokenSymbol || !description) {
         return res.status(400).json({ error: "Token name, symbol, and description are required" });
       }
@@ -2257,6 +2257,10 @@ ${JSON.stringify(data, null, 2)}`,
         twitter: twitter || null,
         telegram: telegram || null,
         website: website || null,
+        walletAddress: walletAddress || null,
+        headlineUsed: headlineUsed || null,
+        launchMethod: launchMethod || "manual",
+        scanToLaunchMs: scanToLaunchMs ? parseInt(scanToLaunchMs) : null,
       });
 
       res.status(201).json(launch);
