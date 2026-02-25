@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, refreshBalance } from "@/lib/solanaWallet";
 import { Keypair, VersionedTransaction, Connection } from "@solana/web3.js";
-import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, ImagePlus, Globe, X, Zap, ArrowRight, RotateCcw, Search, Trophy, Flame, Star, TrendingUp, Clock, Users } from "lucide-react";
+import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, ImagePlus, Globe, X, Zap, ArrowRight, RotateCcw, Search, Trophy, Flame, Star, TrendingUp, Clock, Users, Award, Target, Sparkles, Crown, Medal, Swords, Eye, MessageCircle } from "lucide-react";
 
 import bananaLab from "@/assets/images/banana-lab.png";
 import fighterMonkey from "@/assets/images/fighter-monkey.png";
@@ -101,6 +101,7 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [mode, setMode] = useState<"home" | "manual" | "ai">("home");
+  const [homeTab, setHomeTab] = useState<"launch" | "feed" | "rank" | "events">("launch");
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [description, setDescription] = useState("");
@@ -349,192 +350,445 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
 
         {mode === "home" && (
           <>
-            <div className="flex gap-2">
-              <button onClick={() => setMode("ai")} data-testid="button-ai-mode"
-                className="flex-1 border-4 border-yellow-700/25 bg-gradient-to-br from-yellow-200/80 via-amber-100/80 to-orange-200/80 p-4 hover:border-yellow-600/50 hover:from-yellow-100 hover:to-orange-100 transition-all group text-left"
-                style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.2)' }}>
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div className="w-12 h-12 border-3 border-yellow-700/25 bg-yellow-500/20 flex items-center justify-center overflow-hidden" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>
-                      <img src={fighterMonkey} alt="" className="w-10 h-10 pixel-art-rendering group-hover:scale-110 transition-transform" style={{ imageRendering: 'pixelated' }} />
-                    </div>
-                    <div className="absolute -top-1 -right-1 px-1 py-0.5 bg-green-500 border border-green-700 font-display text-[5px] text-white font-bold">AI</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-display text-[11px] text-yellow-950 tracking-wider font-bold flex items-center gap-2">
-                      AI TREND LAUNCH
-                      <span className="text-[6px] text-green-700 border border-green-500/40 px-1 bg-green-400/20 animate-pulse">LIVE</span>
-                    </div>
-                    <p className="font-display text-[8px] text-yellow-800/50 mt-1 truncate">Claude scans news, builds your token</p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-yellow-700/20 group-hover:text-yellow-800 transition-all shrink-0" />
-                </div>
-              </button>
-
-              <button onClick={() => setMode("manual")} data-testid="button-manual-mode"
-                className="border-4 border-yellow-700/12 bg-yellow-500/10 p-4 hover:border-yellow-700/25 hover:bg-yellow-500/20 transition-all group"
-                style={{ boxShadow: '3px 3px 0px rgba(120,53,15,0.08)' }}>
-                <div className="flex flex-col items-center gap-2">
-                  <Rocket className="w-6 h-6 text-yellow-800/25 group-hover:text-yellow-800/50 transition-colors" />
-                  <span className="font-display text-[8px] text-yellow-800/40 group-hover:text-yellow-900/60 transition-colors tracking-wider font-bold">MANUAL</span>
-                </div>
-              </button>
+            <div className="flex border-4 border-yellow-700/20 overflow-hidden" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.12)' }}>
+              {([
+                { key: "launch" as const, label: "LAUNCH", icon: <Rocket className="w-3.5 h-3.5" /> },
+                { key: "feed" as const, label: "FEED", icon: <Flame className="w-3.5 h-3.5" />, badge: launches.length || undefined },
+                { key: "rank" as const, label: "RANK", icon: <Trophy className="w-3.5 h-3.5" /> },
+                { key: "events" as const, label: "EVENTS", icon: <Swords className="w-3.5 h-3.5" /> },
+              ]).map((tab) => (
+                <button key={tab.key} onClick={() => setHomeTab(tab.key)} data-testid={`tab-home-${tab.key}`}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 font-display text-[9px] tracking-wider font-bold transition-all border-r last:border-r-0 border-yellow-700/15 ${
+                    homeTab === tab.key
+                      ? 'bg-gradient-to-b from-yellow-300/80 to-amber-300/80 text-yellow-950'
+                      : 'bg-yellow-400/15 text-yellow-800/35 hover:bg-yellow-400/30 hover:text-yellow-900/60'
+                  }`}>
+                  {tab.icon}
+                  {tab.label}
+                  {tab.badge && tab.badge > 0 && (
+                    <span className="bg-orange-500 text-white text-[6px] px-1 py-0.5 border border-orange-700 font-bold min-w-[14px] text-center">{tab.badge}</span>
+                  )}
+                </button>
+              ))}
             </div>
 
-            <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-yellow-200/50 via-amber-100/40 to-yellow-200/50 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Trophy className="w-4 h-4 text-yellow-800/50" />
-                <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">YOUR RANK</span>
-                <div className="flex-1" />
-                <div className="flex gap-0.5">
-                  {[1,2,3,4,5].map(t => (
-                    <div key={t} className={`w-2.5 h-2.5 border ${t <= creatorStats.tier ? 'bg-yellow-500 border-yellow-700' : 'bg-yellow-500/10 border-yellow-700/10'}`} />
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-display text-base text-yellow-950 font-bold">{creatorStats.rank}</span>
-                    <span className="font-display text-[9px] text-yellow-800/40">SCORE {creatorStats.score}/100</span>
+            {homeTab === "launch" && (
+              <div className="space-y-3">
+                <button onClick={() => setMode("ai")} data-testid="button-ai-mode"
+                  className="w-full border-4 border-yellow-700/25 bg-gradient-to-br from-yellow-200/80 via-amber-100/80 to-orange-200/80 p-4 hover:border-yellow-600/50 hover:from-yellow-100 hover:to-orange-100 transition-all group text-left"
+                  style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.2)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0">
+                      <div className="w-14 h-14 border-3 border-yellow-700/25 bg-yellow-500/20 flex items-center justify-center overflow-hidden" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>
+                        <img src={fighterMonkey} alt="" className="w-12 h-12 pixel-art-rendering group-hover:scale-110 transition-transform" style={{ imageRendering: 'pixelated' }} />
+                      </div>
+                      <div className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-green-500 border border-green-700 font-display text-[6px] text-white font-bold">AI</div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display text-sm text-yellow-950 tracking-wider font-bold flex items-center gap-2">
+                        AI TREND LAUNCH
+                        <span className="text-[7px] text-green-700 border border-green-500/40 px-1.5 py-0.5 bg-green-400/20 animate-pulse">LIVE</span>
+                      </div>
+                      <p className="font-display text-[9px] text-yellow-800/50 mt-1">Claude scans breaking news, finds the narrative, builds your token</p>
+                    </div>
+                    <ArrowRight className="w-6 h-6 text-yellow-700/20 group-hover:text-yellow-800 transition-all shrink-0" />
                   </div>
-                  <div className="h-2.5 bg-yellow-800/10 border-2 border-yellow-800/15 overflow-hidden" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
-                    <div className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all" style={{ width: `${creatorStats.score}%`, boxShadow: '0 0 6px rgba(234,179,8,0.4)' }} />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                {[
-                  { val: creatorStats.launches, label: "LAUNCHES", icon: <Rocket className="w-3 h-3" /> },
-                  { val: creatorStats.aiLaunches, label: "AI PICKS", icon: <Zap className="w-3 h-3" /> },
-                  { val: creatorStats.avgSpeed ? `${creatorStats.avgSpeed}s` : '—', label: "SPEED", icon: <Clock className="w-3 h-3" /> },
-                  { val: launches.filter(l => l.twitter || l.website).length, label: "SOCIAL", icon: <Users className="w-3 h-3" /> },
-                ].map(s => (
-                  <div key={s.label} className="border-2 border-yellow-700/10 bg-yellow-400/15 p-2 text-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.05)' }}>
-                    <div className="text-yellow-800/30 flex justify-center mb-1">{s.icon}</div>
-                    <div className="font-display text-sm text-yellow-950 font-bold">{s.val}</div>
-                    <div className="font-display text-[5px] text-yellow-800/30 tracking-wider mt-0.5">{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                </button>
 
-            {recentLaunches.length > 0 && (
-              <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-orange-200/30 via-yellow-100/30 to-amber-200/30 overflow-hidden" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
-                <div className="bg-gradient-to-r from-orange-500/15 to-yellow-500/10 px-4 py-2.5 border-b-2 border-yellow-700/10 flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-600/50" />
-                  <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold flex-1">RECENT LAUNCHES</span>
-                  <span className="font-display text-[8px] text-yellow-800/30">{launches.length} total</span>
+                <button onClick={() => setMode("manual")} data-testid="button-manual-mode"
+                  className="w-full border-4 border-yellow-700/12 bg-yellow-500/10 p-4 hover:border-yellow-700/25 hover:bg-yellow-500/20 transition-all group text-left"
+                  style={{ boxShadow: '3px 3px 0px rgba(120,53,15,0.08)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 border-3 border-yellow-700/12 bg-yellow-400/10 flex items-center justify-center">
+                      <Rocket className="w-7 h-7 text-yellow-800/25 group-hover:text-yellow-800/50 transition-colors" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-display text-sm text-yellow-900/50 tracking-wider font-bold group-hover:text-yellow-950 transition-colors">MANUAL LAUNCH</div>
+                      <p className="font-display text-[9px] text-yellow-800/30 mt-1">Custom name, image, socials — your vision, your ticker</p>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-yellow-700/10 group-hover:text-yellow-800/30 transition-all shrink-0" />
+                  </div>
+                </button>
+
+                <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-yellow-200/40 to-amber-200/40 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Target className="w-4 h-4 text-orange-600/50" />
+                    <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">QUICK STATS</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { val: creatorStats.launches, label: "LAUNCHED", color: "text-yellow-950" },
+                      { val: creatorStats.aiLaunches, label: "AI PICKS", color: "text-cyan-700" },
+                      { val: creatorStats.avgSpeed ? `${creatorStats.avgSpeed}s` : '—', label: "AVG SPEED", color: "text-orange-700" },
+                      { val: launches.filter(l => l.twitter || l.website).length, label: "W/ SOCIALS", color: "text-purple-700" },
+                    ].map(s => (
+                      <div key={s.label} className="border-2 border-yellow-700/10 bg-yellow-300/20 p-2.5 text-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.05)' }}>
+                        <div className={`font-display text-lg font-bold ${s.color}`}>{s.val}</div>
+                        <div className="font-display text-[6px] text-yellow-800/30 tracking-wider mt-0.5">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="divide-y divide-yellow-700/8">
-                  {recentLaunches.map(launch => (
-                    <div key={launch.id} className="px-4 py-3 hover:bg-yellow-400/10 transition-colors group" data-testid={`launch-${launch.id}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 border-2 border-yellow-700/15 bg-yellow-400/20 flex items-center justify-center shrink-0" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
-                          <span className="font-display text-[10px] text-yellow-950 font-bold">${launch.tokenSymbol.slice(0, 4)}</span>
+
+                {launches.length > 0 && recentLaunches.slice(0, 2).length > 0 && (
+                  <div className="border-4 border-yellow-700/12 bg-yellow-400/8 p-3" style={{ boxShadow: '3px 3px 0px rgba(120,53,15,0.06)' }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-3.5 h-3.5 text-yellow-800/30" />
+                      <span className="font-display text-[9px] text-yellow-800/35 tracking-wider font-bold">LATEST</span>
+                    </div>
+                    {recentLaunches.slice(0, 2).map(l => (
+                      <div key={l.id} className="flex items-center gap-2 py-1.5">
+                        <div className="w-7 h-7 border-2 border-yellow-700/10 bg-yellow-400/15 flex items-center justify-center shrink-0">
+                          <span className="font-display text-[8px] text-yellow-950 font-bold">${l.tokenSymbol.slice(0, 3)}</span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-display text-[11px] text-yellow-950 font-bold" data-testid={`text-launch-symbol-${launch.id}`}>${launch.tokenSymbol}</span>
-                            {launch.launchMethod === "ai" && <span className="font-display text-[5px] text-cyan-700 border border-cyan-500/30 px-1 bg-cyan-400/10 tracking-wider">AI</span>}
-                            <span className={`font-display text-[5px] px-1 border tracking-wider ${
-                              launch.status === 'launched' || launch.status === 'confirmed' ? 'text-green-700 border-green-500/30 bg-green-400/10' :
-                              launch.status === 'pending' ? 'text-yellow-800 border-yellow-600/30 bg-yellow-400/15' :
-                              'text-red-700 border-red-500/30 bg-red-400/10'
-                            }`} data-testid={`text-launch-status-${launch.id}`}>{launch.status.toUpperCase()}</span>
+                        <span className="font-display text-[10px] text-yellow-950 font-bold flex-1">${l.tokenSymbol}</span>
+                        <span className="font-display text-[8px] text-yellow-800/25">{timeAgo(l.createdAt)}</span>
+                      </div>
+                    ))}
+                    <button onClick={() => setHomeTab("feed")} className="w-full mt-1 font-display text-[8px] text-yellow-800/30 hover:text-yellow-900 tracking-wider transition-colors">VIEW ALL →</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {homeTab === "feed" && (
+              <div className="space-y-3">
+                <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-orange-200/30 via-yellow-100/30 to-amber-200/30 overflow-hidden" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
+                  <div className="bg-gradient-to-r from-orange-500/15 to-yellow-500/10 px-4 py-2.5 border-b-2 border-yellow-700/10 flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-orange-600/50" />
+                    <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold flex-1">DISCOVERY BOARD</span>
+                    <span className="font-display text-[8px] text-yellow-800/30">{launches.length} tokens</span>
+                  </div>
+                  {launches.length === 0 ? (
+                    <div className="p-8 text-center space-y-3">
+                      <img src={crabClaw} alt="" className="w-14 h-14 mx-auto pixel-art-rendering opacity-25" style={{ imageRendering: 'pixelated' }} />
+                      <div className="font-display text-[9px] text-yellow-800/30 tracking-wider">NO TOKENS LAUNCHED YET</div>
+                      <button onClick={() => setHomeTab("launch")} className="font-display text-[9px] text-orange-700/50 hover:text-orange-800 border-2 border-orange-600/20 bg-orange-400/10 px-4 py-1.5 tracking-wider font-bold transition-colors">LAUNCH FIRST TOKEN →</button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-yellow-700/8">
+                      {[...launches].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(launch => (
+                        <div key={launch.id} className="px-4 py-3.5 hover:bg-yellow-400/10 transition-colors group" data-testid={`launch-${launch.id}`}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 border-2 border-yellow-700/15 bg-yellow-400/20 flex items-center justify-center shrink-0" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
+                              {launch.imageUrl ? (
+                                <img src={launch.imageUrl} alt="" className="w-full h-full object-cover pixel-art-rendering" />
+                              ) : (
+                                <span className="font-display text-[10px] text-yellow-950 font-bold">${launch.tokenSymbol.slice(0, 3)}</span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-display text-[11px] text-yellow-950 font-bold" data-testid={`text-launch-symbol-${launch.id}`}>${launch.tokenSymbol}</span>
+                                <span className="font-display text-[9px] text-yellow-800/35 truncate">{launch.tokenName}</span>
+                                {launch.launchMethod === "ai" && <span className="font-display text-[6px] text-cyan-700 border border-cyan-500/30 px-1 bg-cyan-400/10 tracking-wider font-bold">AI TREND</span>}
+                                <span className={`font-display text-[6px] px-1 border tracking-wider font-bold ${
+                                  launch.status === 'launched' || launch.status === 'confirmed' ? 'text-green-700 border-green-500/30 bg-green-400/10' :
+                                  launch.status === 'pending' ? 'text-yellow-800 border-yellow-600/30 bg-yellow-400/15' :
+                                  'text-red-700 border-red-500/30 bg-red-400/10'
+                                }`} data-testid={`text-launch-status-${launch.id}`}>{launch.status.toUpperCase()}</span>
+                              </div>
+                              <div className="font-display text-[8px] text-yellow-800/30 mt-1 line-clamp-2 leading-relaxed">{launch.description?.slice(0, 120)}</div>
+                            </div>
+                            <div className="text-right shrink-0 space-y-1">
+                              <div className="font-display text-[8px] text-yellow-800/25">{timeAgo(launch.createdAt)}</div>
+                              {launch.scanToLaunchMs && <div className="font-display text-[7px] text-orange-600/50">⚡ {Math.round(launch.scanToLaunchMs / 1000)}s</div>}
+                            </div>
                           </div>
-                          <div className="font-display text-[8px] text-yellow-800/30 truncate mt-0.5">{launch.tokenName}</div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="font-display text-[8px] text-yellow-800/30">{timeAgo(launch.createdAt)}</div>
-                          <div className="flex items-center gap-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {launch.headlineUsed && (
+                            <div className="mt-2 ml-13 font-display text-[8px] text-green-700/40 truncate border-l-2 border-green-500/20 pl-2">📰 {launch.headlineUsed.slice(0, 80)}</div>
+                          )}
+                          <div className="flex items-center gap-2 mt-2 ml-13">
                             {launch.mintAddress && (
-                              <button onClick={() => copyToClipboard(launch.mintAddress!, launch.id)} className="text-yellow-700/30 hover:text-yellow-900" data-testid={`button-copy-mint-${launch.id}`}>
-                                {copiedId === launch.id ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                              <button onClick={() => copyToClipboard(launch.mintAddress!, launch.id)}
+                                className="flex items-center gap-1 px-2 py-1 border border-yellow-700/10 bg-yellow-400/10 text-yellow-800/40 hover:text-yellow-950 hover:bg-yellow-400/20 transition-all font-display text-[7px] tracking-wider"
+                                data-testid={`button-copy-mint-${launch.id}`}>
+                                {copiedId === launch.id ? <><Check className="w-2.5 h-2.5 text-green-600" /> COPIED</> : <><Copy className="w-2.5 h-2.5" /> MINT</>}
                               </button>
                             )}
                             {launch.pumpUrl && (
-                              <a href={launch.pumpUrl} target="_blank" rel="noopener noreferrer" className="text-orange-600/40 hover:text-orange-700" data-testid={`link-pump-${launch.id}`}>
-                                <ExternalLink className="w-3 h-3" />
+                              <a href={launch.pumpUrl} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-2 py-1 border border-orange-500/15 bg-orange-400/10 text-orange-700/50 hover:text-orange-800 transition-all font-display text-[7px] tracking-wider"
+                                data-testid={`link-pump-${launch.id}`}>
+                                <ExternalLink className="w-2.5 h-2.5" /> PUMP.FUN
                               </a>
                             )}
                             {launch.txSignature && (
-                              <a href={`https://solscan.io/tx/${launch.txSignature}`} target="_blank" rel="noopener noreferrer" className="text-blue-600/40 hover:text-blue-700" data-testid={`link-tx-${launch.id}`}>
-                                <ExternalLink className="w-3 h-3" />
+                              <a href={`https://solscan.io/tx/${launch.txSignature}`} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-2 py-1 border border-blue-500/15 bg-blue-400/10 text-blue-700/40 hover:text-blue-700 transition-all font-display text-[7px] tracking-wider"
+                                data-testid={`link-tx-${launch.id}`}>
+                                <ExternalLink className="w-2.5 h-2.5" /> SOLSCAN
                               </a>
+                            )}
+                            {(launch.twitter || launch.website) && (
+                              <div className="flex items-center gap-1 ml-auto">
+                                {launch.twitter && <a href={launch.twitter} target="_blank" rel="noopener noreferrer" className="text-yellow-800/20 hover:text-yellow-900 transition-colors"><MessageCircle className="w-3 h-3" /></a>}
+                                {launch.website && <a href={launch.website} target="_blank" rel="noopener noreferrer" className="text-yellow-800/20 hover:text-yellow-900 transition-colors"><Globe className="w-3 h-3" /></a>}
+                              </div>
                             )}
                           </div>
                         </div>
-                      </div>
-                      {launch.headlineUsed && (
-                        <div className="mt-1.5 ml-12 font-display text-[7px] text-green-700/40 truncate">📰 {launch.headlineUsed.slice(0, 70)}...</div>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  )}
+                </div>
+
+                {launches.length > 0 && (
+                  <div className="border-4 border-yellow-700/12 bg-yellow-400/8 p-4" style={{ boxShadow: '3px 3px 0px rgba(120,53,15,0.06)' }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-purple-500/40" />
+                      <span className="font-display text-[10px] text-yellow-900/50 tracking-[0.15em] font-bold">WEEKLY HIGHLIGHTS</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="border-2 border-yellow-700/10 bg-yellow-300/15 p-3 text-center">
+                        <div className="font-display text-[6px] text-yellow-800/25 tracking-wider mb-1">HOTTEST TOKEN</div>
+                        <div className="font-display text-sm text-yellow-950 font-bold">${recentLaunches[0]?.tokenSymbol || '—'}</div>
+                        <div className="font-display text-[7px] text-yellow-800/30 mt-0.5">{recentLaunches[0]?.tokenName?.slice(0, 15) || ''}</div>
+                      </div>
+                      <div className="border-2 border-yellow-700/10 bg-yellow-300/15 p-3 text-center">
+                        <div className="font-display text-[6px] text-yellow-800/25 tracking-wider mb-1">FASTEST LAUNCH</div>
+                        <div className="font-display text-sm text-yellow-950 font-bold">{fastestLaunch ? `${Math.round((fastestLaunch.scanToLaunchMs || 0) / 1000)}s` : '—'}</div>
+                        <div className="font-display text-[7px] text-yellow-800/30 mt-0.5">{fastestLaunch ? `$${fastestLaunch.tokenSymbol}` : 'No speed runs'}</div>
+                      </div>
+                      <div className="border-2 border-yellow-700/10 bg-yellow-300/15 p-3 text-center">
+                        <div className="font-display text-[6px] text-yellow-800/25 tracking-wider mb-1">AI HIT RATE</div>
+                        <div className="font-display text-sm text-yellow-950 font-bold">{launches.length > 0 ? Math.round((aiLaunches.length / launches.length) * 100) : 0}%</div>
+                        <div className="font-display text-[7px] text-yellow-800/30 mt-0.5">{aiLaunches.length} AI launches</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {homeTab === "rank" && (
+              <div className="space-y-3">
+                <div className="border-4 border-yellow-700/20 bg-gradient-to-br from-yellow-200/60 via-amber-100/50 to-orange-200/40 p-5" style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.15)' }}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-16 h-16 border-3 border-yellow-700/25 bg-yellow-500/20 flex items-center justify-center overflow-hidden" style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.1)' }}>
+                      <img src={fighterMonkey} alt="" className="w-14 h-14 pixel-art-rendering" style={{ imageRendering: 'pixelated' }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Crown className="w-5 h-5 text-yellow-600" />
+                        <span className="font-display text-lg text-yellow-950 font-bold tracking-wider">{creatorStats.rank}</span>
+                      </div>
+                      <div className="font-display text-[9px] text-yellow-800/40 tracking-wider">CREATOR SCORE {creatorStats.score}/100</div>
+                      <div className="h-3 bg-yellow-800/10 border-2 border-yellow-800/15 overflow-hidden mt-1.5" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+                        <div className="h-full bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 transition-all" style={{ width: `${creatorStats.score}%`, boxShadow: '0 0 8px rgba(234,179,8,0.5)' }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 mb-4">
+                    {[1,2,3,4,5].map(t => (
+                      <div key={t} className={`flex-1 h-3 border-2 transition-all ${t <= creatorStats.tier ? 'bg-gradient-to-r from-yellow-400 to-orange-400 border-yellow-700/30' : 'bg-yellow-500/5 border-yellow-700/8'}`} />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { val: creatorStats.launches, label: "LAUNCHES", icon: <Rocket className="w-4 h-4" />, color: "text-yellow-950" },
+                      { val: creatorStats.aiLaunches, label: "AI PICKS", icon: <Zap className="w-4 h-4" />, color: "text-cyan-700" },
+                      { val: creatorStats.avgSpeed ? `${creatorStats.avgSpeed}s` : '—', label: "SPEED", icon: <Clock className="w-4 h-4" />, color: "text-orange-700" },
+                      { val: launches.filter(l => l.twitter || l.website).length, label: "SOCIAL", icon: <Users className="w-4 h-4" />, color: "text-purple-700" },
+                    ].map(s => (
+                      <div key={s.label} className="border-2 border-yellow-700/12 bg-yellow-300/20 p-3 text-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
+                        <div className="text-yellow-800/25 flex justify-center mb-1.5">{s.icon}</div>
+                        <div className={`font-display text-lg font-bold ${s.color}`}>{s.val}</div>
+                        <div className="font-display text-[6px] text-yellow-800/25 tracking-wider mt-0.5">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-purple-200/20 via-yellow-100/20 to-pink-200/20 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="w-4 h-4 text-purple-500/50" />
+                    <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">ACHIEVEMENTS</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { name: "FIRST BLOOD", desc: "Launch your first token", done: confirmedLaunches.length >= 1, icon: "🍌" },
+                      { name: "AI NATIVE", desc: "Use AI trend scanner", done: aiLaunches.length >= 1, icon: "🤖" },
+                      { name: "SPEED DEMON", desc: "Launch under 2 minutes", done: launches.some(l => l.scanToLaunchMs && l.scanToLaunchMs < 120000), icon: "⚡" },
+                      { name: "SOCIAL BUTTERFLY", desc: "Launch with Twitter link", done: launches.some(l => l.twitter), icon: "🦋" },
+                      { name: "TRIPLE THREAT", desc: "Launch 3 tokens", done: confirmedLaunches.length >= 3, icon: "🔥" },
+                      { name: "NARRATIVE KING", desc: "5 AI-powered launches", done: aiLaunches.length >= 5, icon: "👑" },
+                      { name: "FULL STACK", desc: "Launch with image + socials", done: launches.some(l => l.imageUrl && (l.twitter || l.website)), icon: "💎" },
+                      { name: "CANNON MASTER", desc: "Reach max creator rank", done: creatorStats.score >= 80, icon: "🏆" },
+                    ].map(a => (
+                      <div key={a.name} className={`border-2 p-3 flex items-center gap-2.5 transition-all ${
+                        a.done
+                          ? 'border-green-500/30 bg-green-200/20'
+                          : 'border-yellow-700/8 bg-yellow-500/5 opacity-50'
+                      }`} style={a.done ? { boxShadow: '2px 2px 0px rgba(34,197,94,0.15)' } : {}}>
+                        <span className={`text-xl ${a.done ? '' : 'grayscale'}`}>{a.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-display text-[9px] tracking-wider font-bold ${a.done ? 'text-green-800' : 'text-yellow-800/25'}`}>{a.name}</div>
+                          <div className={`font-display text-[7px] mt-0.5 ${a.done ? 'text-green-700/50' : 'text-yellow-800/15'}`}>{a.desc}</div>
+                        </div>
+                        {a.done && <Check className="w-4 h-4 text-green-600 shrink-0" />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-cyan-200/15 via-yellow-100/15 to-blue-200/15 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="w-4 h-4 text-cyan-600/40" />
+                    <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">NEXT UNLOCK</span>
+                  </div>
+                  <div className="border-3 border-yellow-700/12 bg-yellow-300/15 p-4">
+                    <div className="font-display text-[11px] text-yellow-950 font-bold mb-1">
+                      {creatorStats.score < 20 ? '🍌 Launch your first token to start ranking' :
+                       creatorStats.score < 40 ? '🤖 Try an AI trend launch for +10 creator points' :
+                       creatorStats.score < 60 ? '🦋 Add Twitter or website links for +5pts each' :
+                       creatorStats.score < 80 ? '⚡ Speed run: scan-to-launch under 2 minutes for +15pts' :
+                       '🏆 You reached CANNON MASTER — respect earned.'}
+                    </div>
+                    <div className="font-display text-[8px] text-yellow-800/30 mt-1">
+                      {creatorStats.score < 80
+                        ? `${80 - creatorStats.score} points to next rank`
+                        : 'Max rank achieved'}
+                    </div>
+                    {creatorStats.score < 80 && (
+                      <div className="h-2 bg-yellow-800/8 border border-yellow-800/10 overflow-hidden mt-2">
+                        <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all" style={{ width: `${(creatorStats.score % 20) / 20 * 100}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-orange-200/20 via-yellow-100/20 to-amber-200/20 overflow-hidden" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
+                  <div className="bg-gradient-to-r from-orange-500/15 to-yellow-500/10 px-4 py-2.5 border-b-2 border-yellow-700/10 flex items-center gap-2">
+                    <Medal className="w-4 h-4 text-orange-500/50" />
+                    <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold flex-1">CREATOR LEADERBOARD</span>
+                    <span className="font-display text-[7px] text-yellow-800/20 tracking-wider">ALL TIME</span>
+                  </div>
+                  <div className="px-4 py-3">
+                    <div className="flex items-center gap-3 py-2.5 border-b border-yellow-700/8">
+                      <div className="w-8 h-8 border-2 border-yellow-500/40 bg-gradient-to-br from-yellow-400/30 to-orange-400/30 flex items-center justify-center">
+                        <span className="font-display text-sm font-bold text-yellow-800">1</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-[11px] text-yellow-950 font-bold tracking-wider">YOU</span>
+                          <span className="font-display text-[7px] text-yellow-600 border border-yellow-500/30 px-1.5 bg-yellow-400/15 tracking-wider font-bold">{creatorStats.rank}</span>
+                        </div>
+                        <div className="font-display text-[8px] text-yellow-800/30 mt-0.5">{creatorStats.launches} launches · {creatorStats.score} pts</div>
+                      </div>
+                      <Crown className="w-5 h-5 text-yellow-500/50" />
+                    </div>
+                    <div className="py-3 text-center">
+                      <div className="font-display text-[8px] text-yellow-800/20 tracking-wider">More creators coming soon</div>
+                      <div className="font-display text-[7px] text-yellow-800/15 mt-1">Launch tokens to climb the board</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-purple-200/30 via-pink-100/20 to-yellow-200/30 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <Star className="w-4 h-4 text-purple-600/40" />
-                  <span className="font-display text-[8px] text-yellow-900/50 tracking-[0.15em] font-bold">HIGHLIGHTS</span>
+            {homeTab === "events" && (
+              <div className="space-y-3">
+                <div className={`border-4 border-yellow-700/20 overflow-hidden`} style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.15)' }}>
+                  <div className={`relative bg-gradient-to-r ${theme.gradient} p-5`}>
+                    <div className="absolute top-2 right-3">
+                      <div className="bg-white/20 border border-white/30 px-2 py-1 backdrop-blur-sm">
+                        <div className="font-display text-[6px] text-white/50 tracking-wider">ACTIVE NOW</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-4xl">{theme.icon}</span>
+                      <div>
+                        <div className="font-display text-lg text-white tracking-wider font-bold drop-shadow-lg">{theme.name}</div>
+                        <div className="font-display text-[9px] text-white/60 mt-0.5">{theme.desc}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-4">
+                      <div className="bg-white/10 border border-white/20 p-2.5 text-center backdrop-blur-sm">
+                        <div className="font-display text-lg text-white font-bold">{launches.length}</div>
+                        <div className="font-display text-[6px] text-white/40 tracking-wider">ENTRIES</div>
+                      </div>
+                      <div className="bg-white/10 border border-white/20 p-2.5 text-center backdrop-blur-sm">
+                        <div className="font-display text-lg text-white font-bold">{aiLaunches.length}</div>
+                        <div className="font-display text-[6px] text-white/40 tracking-wider">AI PICKS</div>
+                      </div>
+                      <div className="bg-white/10 border border-white/20 p-2.5 text-center backdrop-blur-sm">
+                        <div className="font-display text-lg text-white font-bold">{fastestLaunch ? `${Math.round((fastestLaunch.scanToLaunchMs || 0) / 1000)}s` : '—'}</div>
+                        <div className="font-display text-[6px] text-white/40 tracking-wider">BEST TIME</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-yellow-200/30 p-4 border-t-2 border-yellow-700/10">
+                    <div className="font-display text-[9px] text-yellow-900/60 tracking-wider font-bold mb-2">HOW TO WIN</div>
+                    <div className="space-y-2">
+                      {[
+                        { text: "Launch a token matching the weekly theme", pts: "+20 pts" },
+                        { text: "Use AI trend scanner for narrative-based picks", pts: "+10 pts" },
+                        { text: "Fastest scan-to-launch time wins Speed Crown", pts: "CROWN" },
+                        { text: "Add socials (Twitter, website) to every launch", pts: "+5 pts" },
+                      ].map((rule, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-yellow-700/15 bg-yellow-400/15 flex items-center justify-center shrink-0">
+                            <span className="font-display text-[8px] text-yellow-900/40 font-bold">{i + 1}</span>
+                          </div>
+                          <span className="font-display text-[9px] text-yellow-900/50 flex-1">{rule.text}</span>
+                          <span className="font-display text-[7px] text-orange-700/50 border border-orange-500/20 bg-orange-400/10 px-1.5 py-0.5 tracking-wider font-bold shrink-0">{rule.pts}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2.5">
-                  {fastestLaunch ? (
-                    <div>
-                      <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">FASTEST LAUNCH</div>
-                      <div className="font-display text-[10px] text-yellow-950 font-bold mt-0.5">${fastestLaunch.tokenSymbol}</div>
-                      <div className="font-display text-[8px] text-orange-600/60">{Math.round((fastestLaunch.scanToLaunchMs || 0) / 1000)}s scan-to-live</div>
+
+                <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-yellow-200/30 to-amber-200/30 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Star className="w-4 h-4 text-yellow-600/50" />
+                    <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">CREATOR SPOTLIGHT</span>
+                  </div>
+                  {recentLaunches.length > 0 ? (
+                    <div className="border-3 border-yellow-700/15 bg-yellow-300/20 p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-12 h-12 border-2 border-yellow-700/15 bg-yellow-400/20 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }}>
+                          <span className="font-display text-base text-yellow-950 font-bold">${recentLaunches[0].tokenSymbol.slice(0, 3)}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-display text-sm text-yellow-950 font-bold">${recentLaunches[0].tokenSymbol}</div>
+                          <div className="font-display text-[9px] text-yellow-800/35">{recentLaunches[0].tokenName}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-display text-[8px] text-yellow-800/25">{timeAgo(recentLaunches[0].createdAt)}</div>
+                          {recentLaunches[0].launchMethod === "ai" && <div className="font-display text-[6px] text-cyan-700 mt-0.5 font-bold">AI TREND</div>}
+                        </div>
+                      </div>
+                      <div className="font-display text-[8px] text-yellow-800/35 leading-relaxed line-clamp-3">{recentLaunches[0].description?.slice(0, 150)}</div>
+                      {recentLaunches[0].headlineUsed && (
+                        <div className="mt-2 font-display text-[7px] text-green-700/40 border-l-2 border-green-500/20 pl-2">📰 {recentLaunches[0].headlineUsed.slice(0, 90)}</div>
+                      )}
                     </div>
                   ) : (
-                    <div>
-                      <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">FASTEST LAUNCH</div>
-                      <div className="font-display text-[9px] text-yellow-800/30 mt-0.5">No speed runs yet</div>
+                    <div className="text-center py-4">
+                      <img src={crabClaw} alt="" className="w-12 h-12 mx-auto pixel-art-rendering opacity-20 mb-2" style={{ imageRendering: 'pixelated' }} />
+                      <div className="font-display text-[9px] text-yellow-800/25">Launch a token to get featured</div>
                     </div>
                   )}
-                  <div>
-                    <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">AI DETECTION RATE</div>
-                    <div className="font-display text-[10px] text-yellow-950 font-bold mt-0.5">
-                      {launches.length > 0 ? Math.round((aiLaunches.length / launches.length) * 100) : 0}%
-                    </div>
-                    <div className="font-display text-[8px] text-yellow-800/30">{aiLaunches.length} of {launches.length} launches</div>
-                  </div>
                 </div>
-              </div>
 
-              <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-cyan-200/20 via-blue-100/20 to-yellow-200/30 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <TrendingUp className="w-4 h-4 text-cyan-600/40" />
-                  <span className="font-display text-[8px] text-yellow-900/50 tracking-[0.15em] font-bold">NEXT UP</span>
-                </div>
-                <div className="space-y-2.5">
-                  <div>
-                    <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">RANK PROGRESS</div>
-                    <div className="font-display text-[9px] text-yellow-950 mt-0.5">
-                      {creatorStats.score < 20 ? 'Launch 1 token to rank up' :
-                       creatorStats.score < 40 ? 'Try an AI launch for +10pts' :
-                       creatorStats.score < 60 ? 'Add socials for +5pts each' :
-                       creatorStats.score < 80 ? 'Speed run under 2min for +15pts' :
-                       'Max rank achieved!'}
-                    </div>
+                <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-blue-200/15 via-yellow-100/15 to-purple-200/15 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Swords className="w-4 h-4 text-blue-500/40" />
+                    <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">UPCOMING THEMES</span>
                   </div>
-                  <div>
-                    <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">WEEKLY THEME</div>
-                    <div className="font-display text-[10px] text-yellow-950 font-bold mt-0.5">{theme.tag}</div>
-                    <div className="font-display text-[8px] text-yellow-800/30">Match the theme for bonus clout</div>
+                  <div className="space-y-2">
+                    {WEEKLY_THEMES.filter(t => t.name !== theme.name).map((t, i) => (
+                      <div key={t.name} className="flex items-center gap-3 p-2.5 border-2 border-yellow-700/8 bg-yellow-400/5 hover:bg-yellow-400/10 transition-colors">
+                        <span className="text-xl">{t.icon}</span>
+                        <div className="flex-1">
+                          <div className="font-display text-[10px] text-yellow-950 tracking-wider font-bold">{t.name}</div>
+                          <div className="font-display text-[7px] text-yellow-800/25 mt-0.5">{t.desc}</div>
+                        </div>
+                        <span className="font-display text-[7px] text-yellow-800/20 tracking-wider">WEEK {i + 1}</span>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {launches.length === 0 && (
-              <div className="border-4 border-dashed border-yellow-700/15 bg-yellow-500/5 p-6 text-center space-y-3">
-                <img src={crabClaw} alt="" className="w-16 h-16 mx-auto pixel-art-rendering opacity-30" style={{ imageRendering: 'pixelated' }} />
-                <div className="font-display text-[10px] text-yellow-800/40 tracking-wider">NO LAUNCHES YET</div>
-                <div className="font-display text-[8px] text-yellow-800/25 max-w-[200px] mx-auto leading-relaxed">
-                  Fire up the AI scanner or build your own token to get started
                 </div>
               </div>
             )}
