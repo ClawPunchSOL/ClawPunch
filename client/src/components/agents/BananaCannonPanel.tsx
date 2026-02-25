@@ -31,6 +31,7 @@ interface AIConcept {
   twitter?: string;
   telegram?: string;
   website?: string;
+  xSearchUrl?: string;
   imagePrompt?: string;
   trendRationale?: string;
 }
@@ -67,6 +68,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
   const [aiLog, setAiLog] = useState<LogLine[]>([]);
   const [aiConcept, setAiConcept] = useState<AIConcept | null>(null);
   const [aiDevBuy, setAiDevBuy] = useState("0");
+  const [aiTwitterOverride, setAiTwitterOverride] = useState("");
   const [thinkingDots, setThinkingDots] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -123,27 +125,23 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
     addLog({ type: "prompt", text: "what just broke? give me a token that captures the moment." });
     await delay(600);
-    addLog({ type: "text", text: "Pulling live news feeds + scanning X for viral posts. Give me a sec." });
+    addLog({ type: "text", text: "Pulling live news feeds. Let me find what's trending right now." });
     await delay(500);
 
     addLog({ type: "gap", text: "" });
     addLog({ type: "skill", text: "Skill(live-news-feed)" });
-    addLog({ type: "skill-sub", text: "└ Fetching real-time headlines from news RSS feeds..." });
-    await delay(400);
-
-    addLog({ type: "skill", text: "Skill(x-scanner)" });
-    addLog({ type: "skill-sub", text: "└ Searching for real viral X posts matching top headlines..." });
+    addLog({ type: "skill-sub", text: "└ Fetching real-time headlines from Google News + crypto outlets..." });
     await delay(600);
 
-    addLog({ type: "text", text: "Headlines loaded. Found real X posts. Matching the hottest story to a viral tweet..." });
+    addLog({ type: "text", text: "Headlines loaded. Picking the one with the most meme energy..." });
     await delay(400);
 
     addLog({ type: "gap", text: "" });
     addLog({ type: "skill", text: "Skill(meme-factory)" });
-    addLog({ type: "skill-sub", text: "└ Picking headline + real viral X post → building concept" });
+    addLog({ type: "skill-sub", text: "└ Matching headline → ticker + X search link" });
     await delay(300);
 
-    addLog({ type: "text", text: "Got it. Real news + real tweet. Writing the launch config." });
+    addLog({ type: "text", text: "Building concept. You'll get an X search link to find the viral post yourself." });
     await delay(300);
 
     setIsThinking(true);
@@ -200,8 +198,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       addLog({ type: "code", text: `const description   = "${data.description.slice(0, 80)}${data.description.length > 80 ? '...' : ''}"` });
       await delay(80);
 
-      if (data.twitter) {
-        addLog({ type: "code", text: `const xPost         = "${data.twitter}"` });
+      if (data.xSearchUrl) {
+        addLog({ type: "code", text: `const xSearch       = "${data.xSearchUrl}"` });
         await delay(60);
       }
       addLog({ type: "code", text: `const deployFee     = ${PUMP_PORTAL_FEE}` });
@@ -242,7 +240,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
 
     try {
       const devBuy = parseFloat(aiDevBuy || "0");
-      const tw = aiConcept.twitter?.startsWith("http") ? aiConcept.twitter : null;
+      const tw = aiTwitterOverride.trim().startsWith("https://x.com/") || aiTwitterOverride.trim().startsWith("https://twitter.com/")
+        ? aiTwitterOverride.trim() : null;
 
       const res = await fetch("/api/token-launches", {
         method: "POST",
@@ -576,7 +575,7 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
           {aiPhase === "ready" && aiConcept && (
             <div className="flex gap-2">
               <button
-                onClick={() => { setAiPhase("idle"); setAiConcept(null); setAiLog([]); setIsThinking(false); }}
+                onClick={() => { setAiPhase("idle"); setAiConcept(null); setAiLog([]); setIsThinking(false); setAiTwitterOverride(""); }}
                 className="flex items-center gap-1.5 px-4 py-2.5 font-display text-[9px] border border-white/10 text-white/40 hover:text-white/60 hover:border-white/20 transition-all"
               >
                 <RotateCcw className="w-3 h-3" /> REGENERATE
@@ -613,14 +612,28 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
                   </button>
                 </div>
 
-                {aiConcept.twitter && aiConcept.twitter.startsWith("http") && (
-                  <div className="border border-blue-500/20 bg-blue-500/5 p-3 rounded">
-                    <div className="text-[8px] text-blue-400/60 font-display mb-1">VIRAL X POST</div>
-                    <a href={aiConcept.twitter} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-300 underline underline-offset-2 break-all" data-testid="link-viral-tweet">
-                      {aiConcept.twitter}
+                <div className="border border-blue-500/20 bg-blue-500/5 p-3 rounded space-y-2">
+                  <div className="text-[8px] text-blue-400/60 font-display">VIRAL X POST</div>
+                  {aiConcept.xSearchUrl && (
+                    <a
+                      href={aiConcept.xSearchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="link-x-search"
+                      className="flex items-center gap-2 px-3 py-2 border border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] font-display hover:bg-blue-500/20 transition-colors rounded w-full justify-center"
+                    >
+                      <ExternalLink className="w-3 h-3" /> FIND VIRAL POSTS ON X
                     </a>
-                  </div>
-                )}
+                  )}
+                  <div className="text-[8px] text-stone-500">Paste the viral tweet URL below:</div>
+                  <input
+                    value={aiTwitterOverride}
+                    onChange={e => setAiTwitterOverride(e.target.value)}
+                    placeholder="https://x.com/user/status/..."
+                    data-testid="input-ai-twitter"
+                    className="w-full bg-stone-800/50 border border-stone-700/40 text-white px-3 py-2 text-[11px] font-mono focus:outline-none focus:border-blue-500/50 transition-colors rounded placeholder:text-stone-600"
+                  />
+                </div>
 
                 {!wallet.connected ? (
                   <button
