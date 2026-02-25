@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, refreshBalance } from "@/lib/solanaWallet";
 import { Keypair, VersionedTransaction, Connection } from "@solana/web3.js";
-import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, ImagePlus, Globe, X, Zap, ArrowRight, RotateCcw, Search } from "lucide-react";
+import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, ImagePlus, Globe, X, Zap, ArrowRight, RotateCcw, Search, Trophy, Flame, Star, TrendingUp, Clock, Users } from "lucide-react";
 
 import bananaLab from "@/assets/images/banana-lab.png";
 import fighterMonkey from "@/assets/images/fighter-monkey.png";
@@ -57,11 +57,11 @@ type LogLine = {
 const PUMP_PORTAL_FEE = 0.02;
 
 const WEEKLY_THEMES = [
-  { name: "BREAKING NEWS WEEK", desc: "Launch tokens from breaking headlines", color: "from-red-500/30 to-orange-500/20" },
-  { name: "CULTURE HIJACK WEEK", desc: "Ride the wave of viral culture moments", color: "from-purple-500/30 to-pink-500/20" },
-  { name: "AI VS AI WEEK", desc: "Let the AI battle for best narrative", color: "from-cyan-500/30 to-blue-500/20" },
-  { name: "MARKET REACTION WEEK", desc: "React to market moves in real-time", color: "from-green-500/30 to-emerald-500/20" },
-  { name: "MEME LORD WEEK", desc: "Pure meme energy", color: "from-yellow-500/30 to-amber-500/20" },
+  { name: "MEME LORD WEEK", tag: "MEMES", desc: "Pure meme energy — unhinged launches only", gradient: "from-purple-600 via-pink-500 to-orange-500", icon: "🐒" },
+  { name: "BREAKING NEWS WEEK", tag: "NEWS", desc: "First to the headline wins. Speed is alpha.", gradient: "from-red-600 via-orange-500 to-yellow-500", icon: "📰" },
+  { name: "AI AGENT WEEK", tag: "AI", desc: "Build utility. Deploy intelligence. Win respect.", gradient: "from-cyan-500 via-blue-500 to-purple-600", icon: "🤖" },
+  { name: "CULTURE WARS WEEK", tag: "CULTURE", desc: "Hijack the moment. Own the narrative.", gradient: "from-green-500 via-emerald-500 to-teal-500", icon: "🎭" },
+  { name: "DEGEN SPEED RUN", tag: "SPEED", desc: "Fastest scan-to-launch wins. Clock is ticking.", gradient: "from-yellow-500 via-orange-500 to-red-600", icon: "⚡" },
 ];
 
 function getCurrentTheme() {
@@ -70,7 +70,7 @@ function getCurrentTheme() {
 }
 
 function getCreatorScore(launches: TokenLaunch[]) {
-  if (launches.length === 0) return { score: 0, rank: "ROOKIE", launches: 0, aiLaunches: 0, avgSpeed: 0 };
+  if (launches.length === 0) return { score: 0, rank: "ROOKIE", launches: 0, aiLaunches: 0, avgSpeed: 0, tier: 0 };
   const confirmed = launches.filter(l => l.status === "confirmed" || l.status === "launched");
   const aiLaunches = launches.filter(l => l.launchMethod === "ai").length;
   const speeds = launches.filter(l => l.scanToLaunchMs).map(l => l.scanToLaunchMs!);
@@ -78,7 +78,19 @@ function getCreatorScore(launches: TokenLaunch[]) {
   const hasSocials = launches.filter(l => l.twitter || l.telegram || l.website).length;
   let score = Math.min(confirmed.length * 20 + aiLaunches * 10 + hasSocials * 5 + (avgSpeed > 0 && avgSpeed < 120 ? 15 : 0), 100);
   let rank = score >= 80 ? "CANNON MASTER" : score >= 60 ? "TREND SNIPER" : score >= 40 ? "DEGEN APE" : score >= 20 ? "LAUNCHER" : "ROOKIE";
-  return { score, rank, launches: confirmed.length, aiLaunches, avgSpeed };
+  let tier = score >= 80 ? 5 : score >= 60 ? 4 : score >= 40 ? 3 : score >= 20 ? 2 : 1;
+  return { score, rank, launches: confirmed.length, aiLaunches, avgSpeed, tier };
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendChat?: (msg: string) => void; fullscreen?: boolean }) {
@@ -88,8 +100,7 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
   const [launching, setLaunching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const [mode, setMode] = useState<"select" | "manual" | "ai">("select");
+  const [mode, setMode] = useState<"home" | "manual" | "ai">("home");
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [description, setDescription] = useState("");
@@ -245,7 +256,7 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
       addLog({ type: "gap", text: "" }); addLog({ type: "success", text: `LIVE ON SOLANA! $${aiConcept.tokenSymbol}` });
       if (result.launch) setLaunches(prev => [result.launch, ...prev]);
       onSendChat?.(`Token launched: $${aiConcept.tokenSymbol} — ${aiConcept.tokenName} | mint: ${result.mintAddress}`);
-      setTimeout(() => { setAiPhase("idle"); setAiConcept(null); setAiConcepts([]); setAiLog([]); setAiDevBuy("0"); setAiTwitterOverride(""); setMode("select"); refreshBalance(); }, 3000);
+      setTimeout(() => { setAiPhase("idle"); setAiConcept(null); setAiConcepts([]); setAiLog([]); setAiDevBuy("0"); setAiTwitterOverride(""); setMode("home"); refreshBalance(); }, 3000);
     } catch (err: any) {
       const msg = err.message?.includes("User rejected") ? "Transaction rejected" : (err.message || "Launch failed");
       addLog({ type: "error", text: msg }); setError(msg);
@@ -261,7 +272,7 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
       const result = await launchViaPumpPortal({ tokenName: tokenName.trim(), tokenSymbol: tokenSymbol.trim(), description: description.trim(), devBuyAmount: devBuy, imageUrl: imagePreview || null, twitter: twitter.trim() || null, telegram: telegram.trim() || null, website: website.trim() || null, launchMethod: "manual" });
       if (result.launch) setLaunches(prev => [result.launch, ...prev]);
       onSendChat?.(`Token launched: $${tokenSymbol.toUpperCase()} | mint: ${result.mintAddress}`);
-      setTokenName(""); setTokenSymbol(""); setDescription(""); setDevBuyAmount("0"); setImagePreview(null); setTwitter(""); setTelegram(""); setWebsite(""); setManualStep(1); setMode("select"); refreshBalance();
+      setTokenName(""); setTokenSymbol(""); setDescription(""); setDevBuyAmount("0"); setImagePreview(null); setTwitter(""); setTelegram(""); setWebsite(""); setManualStep(1); setMode("home"); refreshBalance();
     } catch (err: any) {
       setError(err.message?.includes("User rejected") ? "Transaction rejected" : err.message || "Launch failed");
     } finally { setLaunching(false); }
@@ -277,32 +288,27 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
   const canProceedToStep2 = tokenName.trim() && tokenSymbol.trim() && description.trim();
 
   const renderLogLine = (line: LogLine, i: number) => {
-    const base: Record<string, string> = {
-      prompt: "mt-1 mb-2 text-[11px] text-yellow-900 font-display",
-      text: "text-[10px] text-yellow-800/60 pl-2 my-0.5",
-      skill: "flex items-center gap-2 mt-2",
-      "skill-sub": "text-[9px] text-yellow-700/50 pl-7",
-      "code-header": "flex items-center gap-2 mt-2",
-      code: "text-[9px] text-amber-700/60 pl-7 font-mono",
-      bash: "flex items-center gap-2 mt-2",
-      "bash-sub": "text-[9px] text-yellow-700/40 pl-7",
-      success: "text-[11px] text-green-700 pl-2 mt-2 font-display font-bold",
-      error: "text-[11px] text-red-600 pl-2 mt-1 font-display font-bold",
-      gap: "h-1.5",
-      thinking: "text-[9px] text-yellow-600/40",
-    };
-    if (line.type === "skill") return <div key={i} className={base.skill}><span className="text-lg">🍌</span><span className="text-[9px] text-amber-700 font-display tracking-wider font-bold">{line.text}</span></div>;
-    if (line.type === "code-header") return <div key={i} className={base["code-header"]}><span className="text-lg">🔥</span><span className="text-[10px] text-orange-700 font-display tracking-wider font-bold">{line.text}</span></div>;
-    if (line.type === "bash") return <div key={i} className={base.bash}><span className="text-lg">🚀</span><span className="text-[9px] text-orange-700 font-display tracking-wider font-bold">{line.text}</span></div>;
-    if (line.type === "success") return <div key={i} className={base.success}>✓ {line.text}</div>;
-    if (line.type === "error") return <div key={i} className={base.error}>✗ {line.text}</div>;
-    return <div key={i} className={base[line.type] || base.text}>{line.text}</div>;
+    if (line.type === "skill") return <div key={i} className="flex items-center gap-2 mt-2"><span className="text-lg">🍌</span><span className="text-[9px] text-amber-700 font-display tracking-wider font-bold">{line.text}</span></div>;
+    if (line.type === "code-header") return <div key={i} className="flex items-center gap-2 mt-2"><span className="text-lg">🔥</span><span className="text-[10px] text-orange-700 font-display tracking-wider font-bold">{line.text}</span></div>;
+    if (line.type === "bash") return <div key={i} className="flex items-center gap-2 mt-2"><span className="text-lg">🚀</span><span className="text-[9px] text-orange-700 font-display tracking-wider font-bold">{line.text}</span></div>;
+    if (line.type === "success") return <div key={i} className="text-[11px] text-green-700 pl-2 mt-2 font-display font-bold">✓ {line.text}</div>;
+    if (line.type === "error") return <div key={i} className="text-[11px] text-red-600 pl-2 mt-1 font-display font-bold">✗ {line.text}</div>;
+    if (line.type === "prompt") return <div key={i} className="mt-1 mb-2 text-[11px] text-yellow-900 font-display">{line.text}</div>;
+    if (line.type === "gap") return <div key={i} className="h-1.5" />;
+    if (line.type === "code") return <div key={i} className="text-[9px] text-amber-700/60 pl-7 font-mono">{line.text}</div>;
+    if (line.type === "skill-sub" || line.type === "bash-sub") return <div key={i} className="text-[9px] text-yellow-700/50 pl-7">{line.text}</div>;
+    return <div key={i} className="text-[10px] text-yellow-800/60 pl-2 my-0.5">{line.text}</div>;
   };
 
-  const resetToSelect = () => {
-    setMode("select"); setAiPhase("idle"); setAiLog([]); setAiConcept(null); setAiConcepts([]);
+  const resetToHome = () => {
+    setMode("home"); setAiPhase("idle"); setAiLog([]); setAiConcept(null); setAiConcepts([]);
     setManualStep(1); setError(null); setIsThinking(false); setAiTwitterOverride("");
   };
+
+  const confirmedLaunches = launches.filter(l => l.status === "confirmed" || l.status === "launched");
+  const aiLaunches = launches.filter(l => l.launchMethod === "ai");
+  const recentLaunches = [...launches].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+  const fastestLaunch = launches.filter(l => l.scanToLaunchMs).sort((a, b) => (a.scanToLaunchMs || Infinity) - (b.scanToLaunchMs || Infinity))[0];
 
   if (loading) {
     return (
@@ -314,150 +320,269 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
   }
 
   return (
-    <div className={`${fullscreen ? 'h-full' : ''} flex flex-col bg-gradient-to-b from-yellow-400 via-amber-300 to-orange-400 overflow-y-auto`}>
+    <div className={`${fullscreen ? 'h-full' : ''} flex flex-col bg-gradient-to-b from-yellow-400 via-amber-300 to-orange-300 overflow-y-auto`}>
 
-      <div className="relative overflow-hidden border-b-4 border-yellow-600/40">
+      <div className="relative overflow-hidden border-b-4 border-yellow-700/30">
         <div className="absolute inset-0">
-          <img src={bananaLab} alt="" className="w-full h-full object-cover pixel-art-rendering opacity-25" />
+          <img src={bananaLab} alt="" className="w-full h-full object-cover pixel-art-rendering opacity-20" />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/60 via-amber-400/70 to-orange-500/80" />
-        <div className="relative px-5 pt-5 pb-4">
-          <div className="flex items-center gap-4">
-            <img src={fighterMonkey} alt="" className="w-16 h-16 pixel-art-rendering drop-shadow-[0_4px_8px_rgba(0,0,0,0.3)] border-4 border-yellow-800/40" style={{ imageRendering: 'pixelated' }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/50 via-amber-400/60 to-orange-500/70" />
+        <div className="relative px-5 pt-4 pb-3">
+          <div className="flex items-center gap-3">
+            <img src={fighterMonkey} alt="" className="w-12 h-12 pixel-art-rendering drop-shadow-lg border-3 border-yellow-800/30" style={{ imageRendering: 'pixelated' }} />
             <div className="flex-1">
-              <h1 className="font-display text-xl md:text-2xl text-yellow-950 tracking-wider drop-shadow-[0_2px_0px_rgba(255,255,255,0.3)]" style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.15)' }}>
+              <h1 className="font-display text-lg text-yellow-950 tracking-wider" style={{ textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
                 BANANA CANNON
               </h1>
-              <p className="font-display text-[10px] text-yellow-800/70 tracking-widest mt-0.5">
-                TOKEN LAUNCHER ON SOLANA
-              </p>
+              <p className="font-display text-[8px] text-yellow-800/60 tracking-widest">TOKEN LAUNCHER ON SOLANA</p>
             </div>
-            {mode !== "select" && (
-              <button onClick={resetToSelect}
-                className="font-display text-[10px] text-yellow-900/70 hover:text-yellow-950 border-3 border-yellow-800/30 bg-yellow-500/40 hover:bg-yellow-500/60 px-3 py-1.5 transition-all"
-                style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.15)' }}>
+            {mode !== "home" && (
+              <button onClick={resetToHome}
+                className="font-display text-[9px] text-yellow-900/60 hover:text-yellow-950 border-2 border-yellow-800/20 bg-yellow-500/30 hover:bg-yellow-500/50 px-3 py-1.5 transition-all"
+                style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>
                 ← BACK
               </button>
             )}
           </div>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="flex-1 h-3 bg-yellow-800/20 border-2 border-yellow-800/30 overflow-hidden" style={{ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)' }}>
-              <div className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all" style={{ width: `${creatorStats.score}%`, boxShadow: '0 0 8px rgba(34,197,94,0.5)' }} />
-            </div>
-            <span className="font-display text-[9px] text-yellow-900/80 font-bold tracking-wider">{creatorStats.rank}</span>
-          </div>
         </div>
       </div>
 
-      <div className={`bg-gradient-to-r ${theme.color} border-b-2 border-yellow-600/20 px-5 py-2.5 flex items-center gap-3`}>
-        <div className="flex-1">
-          <div className="font-display text-[9px] text-yellow-950/80 tracking-[0.15em] font-bold">{theme.name}</div>
-          <div className="font-display text-[8px] text-yellow-900/40 mt-0.5">{theme.desc}</div>
-        </div>
-        <div className="flex items-center gap-1.5 border-2 border-yellow-800/20 bg-yellow-500/30 px-2.5 py-1">
-          <span className="font-display text-[10px] text-yellow-950 font-bold">{launches.length}</span>
-          <span className="font-display text-[7px] text-yellow-900/50">LAUNCHED</span>
+      <div className={`relative overflow-hidden border-b-4 border-yellow-700/20`}>
+        <div className={`absolute inset-0 bg-gradient-to-r ${theme.gradient} opacity-80`} />
+        <div className="relative px-5 py-3 flex items-center gap-3">
+          <span className="text-2xl">{theme.icon}</span>
+          <div className="flex-1">
+            <div className="font-display text-[11px] text-white tracking-[0.15em] font-bold drop-shadow-md">{theme.name}</div>
+            <div className="font-display text-[8px] text-white/60 mt-0.5">{theme.desc}</div>
+          </div>
+          <div className="bg-white/20 border-2 border-white/30 px-3 py-1.5 backdrop-blur-sm">
+            <div className="font-display text-[7px] text-white/60 tracking-wider">THIS WEEK</div>
+            <div className="font-display text-sm text-white font-bold text-center">{launches.length}</div>
+          </div>
         </div>
       </div>
 
       <div className="flex-1 px-4 py-4 space-y-4">
 
-        {mode === "select" && (
-          <div className="space-y-3">
-            <button onClick={() => setMode("ai")} data-testid="button-ai-mode"
-              className="w-full border-4 border-yellow-700/30 bg-gradient-to-br from-yellow-300/80 via-amber-200/80 to-orange-300/80 p-5 hover:border-yellow-600/60 hover:from-yellow-200 hover:via-amber-100 hover:to-orange-200 transition-all group text-left"
-              style={{ boxShadow: '6px 6px 0px rgba(120,53,15,0.25)' }}>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-16 h-16 border-4 border-yellow-700/30 bg-yellow-500/30 flex items-center justify-center group-hover:border-yellow-600 transition-colors overflow-hidden" style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.15)' }}>
-                    <img src={fighterMonkey} alt="" className="w-14 h-14 pixel-art-rendering group-hover:scale-110 transition-transform" style={{ imageRendering: 'pixelated' }} />
+        {mode === "home" && (
+          <>
+            <div className="flex gap-2">
+              <button onClick={() => setMode("ai")} data-testid="button-ai-mode"
+                className="flex-1 border-4 border-yellow-700/25 bg-gradient-to-br from-yellow-200/80 via-amber-100/80 to-orange-200/80 p-4 hover:border-yellow-600/50 hover:from-yellow-100 hover:to-orange-100 transition-all group text-left"
+                style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.2)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div className="w-12 h-12 border-3 border-yellow-700/25 bg-yellow-500/20 flex items-center justify-center overflow-hidden" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>
+                      <img src={fighterMonkey} alt="" className="w-10 h-10 pixel-art-rendering group-hover:scale-110 transition-transform" style={{ imageRendering: 'pixelated' }} />
+                    </div>
+                    <div className="absolute -top-1 -right-1 px-1 py-0.5 bg-green-500 border border-green-700 font-display text-[5px] text-white font-bold">AI</div>
                   </div>
-                  <div className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-green-500 border-2 border-green-700 font-display text-[6px] text-white font-bold tracking-wider" style={{ boxShadow: '1px 1px 0px rgba(0,0,0,0.3)' }}>AI</div>
-                </div>
-                <div className="flex-1">
-                  <div className="font-display text-sm text-yellow-950 tracking-wider flex items-center gap-2 font-bold" style={{ textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
-                    AI TREND LAUNCH
-                    <span className="text-[7px] text-green-700 border-2 border-green-600/40 px-1.5 py-0.5 bg-green-400/30 animate-pulse font-display">LIVE</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display text-[11px] text-yellow-950 tracking-wider font-bold flex items-center gap-2">
+                      AI TREND LAUNCH
+                      <span className="text-[6px] text-green-700 border border-green-500/40 px-1 bg-green-400/20 animate-pulse">LIVE</span>
+                    </div>
+                    <p className="font-display text-[8px] text-yellow-800/50 mt-1 truncate">Claude scans news, builds your token</p>
                   </div>
-                  <p className="font-display text-[9px] text-yellow-800/60 mt-1.5 leading-relaxed">
-                    Claude scans breaking news, finds the narrative, builds your token
-                  </p>
+                  <ArrowRight className="w-5 h-5 text-yellow-700/20 group-hover:text-yellow-800 transition-all shrink-0" />
                 </div>
-                <ArrowRight className="w-6 h-6 text-yellow-700/30 group-hover:text-yellow-800 group-hover:translate-x-1 transition-all" />
-              </div>
-            </button>
+              </button>
 
-            <button onClick={() => setMode("manual")} data-testid="button-manual-mode"
-              className="w-full border-4 border-yellow-700/15 bg-yellow-500/15 p-5 hover:border-yellow-700/30 hover:bg-yellow-500/25 transition-all group text-left"
-              style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
+              <button onClick={() => setMode("manual")} data-testid="button-manual-mode"
+                className="border-4 border-yellow-700/12 bg-yellow-500/10 p-4 hover:border-yellow-700/25 hover:bg-yellow-500/20 transition-all group"
+                style={{ boxShadow: '3px 3px 0px rgba(120,53,15,0.08)' }}>
+                <div className="flex flex-col items-center gap-2">
+                  <Rocket className="w-6 h-6 text-yellow-800/25 group-hover:text-yellow-800/50 transition-colors" />
+                  <span className="font-display text-[8px] text-yellow-800/40 group-hover:text-yellow-900/60 transition-colors tracking-wider font-bold">MANUAL</span>
+                </div>
+              </button>
+            </div>
+
+            <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-yellow-200/50 via-amber-100/40 to-yellow-200/50 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy className="w-4 h-4 text-yellow-800/50" />
+                <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">YOUR RANK</span>
+                <div className="flex-1" />
+                <div className="flex gap-0.5">
+                  {[1,2,3,4,5].map(t => (
+                    <div key={t} className={`w-2.5 h-2.5 border ${t <= creatorStats.tier ? 'bg-yellow-500 border-yellow-700' : 'bg-yellow-500/10 border-yellow-700/10'}`} />
+                  ))}
+                </div>
+              </div>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 border-4 border-yellow-700/15 bg-yellow-500/10 flex items-center justify-center group-hover:border-yellow-700/30 transition-colors">
-                  <Rocket className="w-7 h-7 text-yellow-800/30 group-hover:text-yellow-800/60 transition-colors" />
-                </div>
                 <div className="flex-1">
-                  <div className="font-display text-sm text-yellow-900/60 tracking-wider group-hover:text-yellow-950 transition-colors font-bold">MANUAL LAUNCH</div>
-                  <p className="font-display text-[9px] text-yellow-800/30 mt-1 group-hover:text-yellow-800/50 transition-colors">Your token, your narrative, your rules</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-display text-base text-yellow-950 font-bold">{creatorStats.rank}</span>
+                    <span className="font-display text-[9px] text-yellow-800/40">SCORE {creatorStats.score}/100</span>
+                  </div>
+                  <div className="h-2.5 bg-yellow-800/10 border-2 border-yellow-800/15 overflow-hidden" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <div className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all" style={{ width: `${creatorStats.score}%`, boxShadow: '0 0 6px rgba(234,179,8,0.4)' }} />
+                  </div>
                 </div>
-                <ArrowRight className="w-6 h-6 text-yellow-700/15 group-hover:text-yellow-700/40 transition-all" />
               </div>
-            </button>
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                {[
+                  { val: creatorStats.launches, label: "LAUNCHES", icon: <Rocket className="w-3 h-3" /> },
+                  { val: creatorStats.aiLaunches, label: "AI PICKS", icon: <Zap className="w-3 h-3" /> },
+                  { val: creatorStats.avgSpeed ? `${creatorStats.avgSpeed}s` : '—', label: "SPEED", icon: <Clock className="w-3 h-3" /> },
+                  { val: launches.filter(l => l.twitter || l.website).length, label: "SOCIAL", icon: <Users className="w-3 h-3" /> },
+                ].map(s => (
+                  <div key={s.label} className="border-2 border-yellow-700/10 bg-yellow-400/15 p-2 text-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.05)' }}>
+                    <div className="text-yellow-800/30 flex justify-center mb-1">{s.icon}</div>
+                    <div className="font-display text-sm text-yellow-950 font-bold">{s.val}</div>
+                    <div className="font-display text-[5px] text-yellow-800/30 tracking-wider mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            {creatorStats.launches > 0 && (
-              <div className="border-4 border-yellow-700/20 bg-yellow-500/20 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.12)' }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">🏆</span>
-                  <span className="font-display text-[9px] text-yellow-900/60 tracking-[0.15em] font-bold">CREATOR STATS</span>
+            {recentLaunches.length > 0 && (
+              <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-orange-200/30 via-yellow-100/30 to-amber-200/30 overflow-hidden" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
+                <div className="bg-gradient-to-r from-orange-500/15 to-yellow-500/10 px-4 py-2.5 border-b-2 border-yellow-700/10 flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-orange-600/50" />
+                  <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold flex-1">RECENT LAUNCHES</span>
+                  <span className="font-display text-[8px] text-yellow-800/30">{launches.length} total</span>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { val: creatorStats.launches, label: "DEPLOYS" },
-                    { val: creatorStats.aiLaunches, label: "AI PICKS" },
-                    { val: creatorStats.score, label: "SCORE" },
-                    { val: creatorStats.avgSpeed ? `${creatorStats.avgSpeed}s` : '—', label: "AVG SPEED" },
-                  ].map(s => (
-                    <div key={s.label} className="border-2 border-yellow-700/15 bg-yellow-400/20 p-2 text-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }}>
-                      <div className="font-display text-base text-yellow-950 font-bold">{s.val}</div>
-                      <div className="font-display text-[6px] text-yellow-800/40 mt-0.5 tracking-wider">{s.label}</div>
+                <div className="divide-y divide-yellow-700/8">
+                  {recentLaunches.map(launch => (
+                    <div key={launch.id} className="px-4 py-3 hover:bg-yellow-400/10 transition-colors group" data-testid={`launch-${launch.id}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 border-2 border-yellow-700/15 bg-yellow-400/20 flex items-center justify-center shrink-0" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
+                          <span className="font-display text-[10px] text-yellow-950 font-bold">${launch.tokenSymbol.slice(0, 4)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-display text-[11px] text-yellow-950 font-bold" data-testid={`text-launch-symbol-${launch.id}`}>${launch.tokenSymbol}</span>
+                            {launch.launchMethod === "ai" && <span className="font-display text-[5px] text-cyan-700 border border-cyan-500/30 px-1 bg-cyan-400/10 tracking-wider">AI</span>}
+                            <span className={`font-display text-[5px] px-1 border tracking-wider ${
+                              launch.status === 'launched' || launch.status === 'confirmed' ? 'text-green-700 border-green-500/30 bg-green-400/10' :
+                              launch.status === 'pending' ? 'text-yellow-800 border-yellow-600/30 bg-yellow-400/15' :
+                              'text-red-700 border-red-500/30 bg-red-400/10'
+                            }`} data-testid={`text-launch-status-${launch.id}`}>{launch.status.toUpperCase()}</span>
+                          </div>
+                          <div className="font-display text-[8px] text-yellow-800/30 truncate mt-0.5">{launch.tokenName}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-display text-[8px] text-yellow-800/30">{timeAgo(launch.createdAt)}</div>
+                          <div className="flex items-center gap-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {launch.mintAddress && (
+                              <button onClick={() => copyToClipboard(launch.mintAddress!, launch.id)} className="text-yellow-700/30 hover:text-yellow-900" data-testid={`button-copy-mint-${launch.id}`}>
+                                {copiedId === launch.id ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            )}
+                            {launch.pumpUrl && (
+                              <a href={launch.pumpUrl} target="_blank" rel="noopener noreferrer" className="text-orange-600/40 hover:text-orange-700" data-testid={`link-pump-${launch.id}`}>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                            {launch.txSignature && (
+                              <a href={`https://solscan.io/tx/${launch.txSignature}`} target="_blank" rel="noopener noreferrer" className="text-blue-600/40 hover:text-blue-700" data-testid={`link-tx-${launch.id}`}>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {launch.headlineUsed && (
+                        <div className="mt-1.5 ml-12 font-display text-[7px] text-green-700/40 truncate">📰 {launch.headlineUsed.slice(0, 70)}...</div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-purple-200/30 via-pink-100/20 to-yellow-200/30 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <Star className="w-4 h-4 text-purple-600/40" />
+                  <span className="font-display text-[8px] text-yellow-900/50 tracking-[0.15em] font-bold">HIGHLIGHTS</span>
+                </div>
+                <div className="space-y-2.5">
+                  {fastestLaunch ? (
+                    <div>
+                      <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">FASTEST LAUNCH</div>
+                      <div className="font-display text-[10px] text-yellow-950 font-bold mt-0.5">${fastestLaunch.tokenSymbol}</div>
+                      <div className="font-display text-[8px] text-orange-600/60">{Math.round((fastestLaunch.scanToLaunchMs || 0) / 1000)}s scan-to-live</div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">FASTEST LAUNCH</div>
+                      <div className="font-display text-[9px] text-yellow-800/30 mt-0.5">No speed runs yet</div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">AI DETECTION RATE</div>
+                    <div className="font-display text-[10px] text-yellow-950 font-bold mt-0.5">
+                      {launches.length > 0 ? Math.round((aiLaunches.length / launches.length) * 100) : 0}%
+                    </div>
+                    <div className="font-display text-[8px] text-yellow-800/30">{aiLaunches.length} of {launches.length} launches</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-4 border-yellow-700/15 bg-gradient-to-br from-cyan-200/20 via-blue-100/20 to-yellow-200/30 p-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.08)' }}>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <TrendingUp className="w-4 h-4 text-cyan-600/40" />
+                  <span className="font-display text-[8px] text-yellow-900/50 tracking-[0.15em] font-bold">NEXT UP</span>
+                </div>
+                <div className="space-y-2.5">
+                  <div>
+                    <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">RANK PROGRESS</div>
+                    <div className="font-display text-[9px] text-yellow-950 mt-0.5">
+                      {creatorStats.score < 20 ? 'Launch 1 token to rank up' :
+                       creatorStats.score < 40 ? 'Try an AI launch for +10pts' :
+                       creatorStats.score < 60 ? 'Add socials for +5pts each' :
+                       creatorStats.score < 80 ? 'Speed run under 2min for +15pts' :
+                       'Max rank achieved!'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-display text-[6px] text-yellow-800/25 tracking-wider">WEEKLY THEME</div>
+                    <div className="font-display text-[10px] text-yellow-950 font-bold mt-0.5">{theme.tag}</div>
+                    <div className="font-display text-[8px] text-yellow-800/30">Match the theme for bonus clout</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {launches.length === 0 && (
+              <div className="border-4 border-dashed border-yellow-700/15 bg-yellow-500/5 p-6 text-center space-y-3">
+                <img src={crabClaw} alt="" className="w-16 h-16 mx-auto pixel-art-rendering opacity-30" style={{ imageRendering: 'pixelated' }} />
+                <div className="font-display text-[10px] text-yellow-800/40 tracking-wider">NO LAUNCHES YET</div>
+                <div className="font-display text-[8px] text-yellow-800/25 max-w-[200px] mx-auto leading-relaxed">
+                  Fire up the AI scanner or build your own token to get started
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {mode === "ai" && (
           <div className="space-y-3">
-            <div className="border-4 border-yellow-700/30 bg-yellow-100/60 overflow-hidden" style={{ boxShadow: '6px 6px 0px rgba(120,53,15,0.2)' }}>
-              <div className="bg-gradient-to-r from-yellow-400/60 to-amber-400/60 px-4 py-2.5 flex items-center gap-2 border-b-4 border-yellow-700/20">
+            <div className="border-4 border-yellow-700/25 bg-yellow-100/50 overflow-hidden" style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.15)' }}>
+              <div className="bg-gradient-to-r from-yellow-400/50 to-amber-400/50 px-4 py-2.5 flex items-center gap-2 border-b-3 border-yellow-700/15">
                 <span className="text-lg">🍌</span>
-                <span className="font-display text-[10px] text-yellow-900/70 tracking-[0.15em] flex-1 font-bold">NARRATIVE SCANNER</span>
-                {(aiPhase === "running" || isThinking) && (
-                  <span className="font-display text-[8px] text-green-700 animate-pulse tracking-wider font-bold">SCANNING...</span>
-                )}
+                <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] flex-1 font-bold">NARRATIVE SCANNER</span>
+                {(aiPhase === "running" || isThinking) && <span className="font-display text-[8px] text-green-700 animate-pulse tracking-wider font-bold">SCANNING...</span>}
               </div>
-
-              <div className="p-5 min-h-[220px] max-h-[380px] overflow-y-auto custom-scrollbar bg-gradient-to-b from-yellow-50/60 to-amber-50/40">
+              <div className="p-5 min-h-[200px] max-h-[380px] overflow-y-auto custom-scrollbar bg-gradient-to-b from-yellow-50/50 to-amber-50/30">
                 {aiPhase === "idle" && aiLog.length === 0 && (
-                  <div className="space-y-5 py-3">
-                    <div className="text-center space-y-4">
-                      <img src={crabClaw} alt="" className="w-24 h-24 pixel-art-rendering mx-auto drop-shadow-lg" style={{ imageRendering: 'pixelated' }} />
+                  <div className="space-y-4 py-2">
+                    <div className="text-center space-y-3">
+                      <img src={crabClaw} alt="" className="w-20 h-20 pixel-art-rendering mx-auto drop-shadow-lg opacity-70" style={{ imageRendering: 'pixelated' }} />
                       <div>
-                        <div className="font-display text-sm text-yellow-900/80 tracking-wider font-bold">READY TO SCAN</div>
-                        <p className="font-display text-[10px] text-yellow-800/40 mt-1.5 max-w-[280px] mx-auto leading-relaxed">
-                          Claude pulls live news, finds the hottest narrative, builds 3 token concepts
-                        </p>
+                        <div className="font-display text-sm text-yellow-900/70 tracking-wider font-bold">READY TO SCAN</div>
+                        <p className="font-display text-[9px] text-yellow-800/35 mt-1.5 max-w-[260px] mx-auto leading-relaxed">Claude pulls live news, finds the hottest narrative, builds 3 token concepts</p>
                       </div>
                     </div>
                     <button onClick={runAiGenerate} data-testid="button-ai-scan"
-                      className="w-full border-4 border-orange-600/40 bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 py-4 font-display text-sm text-yellow-950 tracking-[0.15em] hover:from-orange-300 hover:via-amber-300 hover:to-yellow-300 hover:border-orange-500 transition-all flex items-center justify-center gap-3 font-bold"
-                      style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.3)', textShadow: '1px 1px 0px rgba(255,255,255,0.4)' }}>
-                      <Zap className="w-5 h-5" />
-                      SCAN TRENDS NOW
+                      className="w-full border-4 border-orange-600/35 bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 py-3.5 font-display text-sm text-yellow-950 tracking-[0.12em] hover:from-orange-300 hover:via-amber-300 hover:to-yellow-300 hover:border-orange-500 transition-all flex items-center justify-center gap-2 font-bold"
+                      style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.25)', textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
+                      <Zap className="w-4 h-4" /> SCAN TRENDS NOW
                     </button>
                   </div>
                 )}
-
                 {aiLog.length > 0 && (
                   <div className="space-y-0">
                     {aiLog.map((line, i) => renderLogLine(line, i))}
@@ -475,150 +600,117 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
 
             {aiPhase === "picking" && aiConcepts.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <span className="text-lg">🎯</span>
-                  <span className="font-display text-[10px] text-yellow-900/70 tracking-[0.15em] font-bold">PICK YOUR BANANA</span>
-                </div>
+                <div className="flex items-center gap-2 px-1"><span className="text-lg">🎯</span><span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">PICK YOUR BANANA</span></div>
                 {aiConcepts.map((c, i) => (
                   <button key={i} data-testid={`button-pick-concept-${i}`}
                     onClick={() => { setAiConcept(c); setAiTwitterOverride(""); setAiPhase("ready"); addLog({ type: "gap", text: "" }); addLog({ type: "success", text: `Selected: $${c.tokenSymbol}` }); onSendChat?.(`AI trend token: $${c.tokenSymbol} — ${c.tokenName}`); }}
-                    className="w-full text-left border-4 border-yellow-700/20 bg-gradient-to-r from-yellow-200/60 to-amber-200/60 hover:from-yellow-200 hover:to-amber-200 hover:border-yellow-600/40 p-4 transition-all group"
-                    style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.15)' }}>
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <div className="w-9 h-9 border-3 border-yellow-700/30 bg-yellow-400/40 flex items-center justify-center group-hover:bg-yellow-400/60 transition-colors" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>
+                    className="w-full text-left border-4 border-yellow-700/15 bg-gradient-to-r from-yellow-200/50 to-amber-200/50 hover:from-yellow-200/80 hover:to-amber-200/80 hover:border-yellow-600/30 p-3.5 transition-all group"
+                    style={{ boxShadow: '3px 3px 0px rgba(120,53,15,0.12)' }}>
+                    <div className="flex items-center gap-3 mb-1">
+                      <div className="w-8 h-8 border-2 border-yellow-700/20 bg-yellow-400/30 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }}>
                         <span className="font-display text-sm text-yellow-950 font-bold">{i + 1}</span>
                       </div>
                       <span className="font-display text-sm text-yellow-950 tracking-wider font-bold">${c.tokenSymbol}</span>
-                      <span className="font-display text-[10px] text-yellow-800/40 truncate">{c.tokenName}</span>
+                      <span className="font-display text-[9px] text-yellow-800/35 truncate">{c.tokenName}</span>
                     </div>
-                    {c.headlineUsed && (
-                      <div className="text-[9px] text-green-700/60 pl-12 mb-1 truncate font-display">📰 {c.headlineUsed.slice(0, 60)}...</div>
-                    )}
-                    <div className="text-[9px] text-yellow-800/40 leading-relaxed line-clamp-2 pl-12 font-display">{c.description}</div>
-                    {c.xSearchUrl && (
-                      <div className="flex items-center gap-1 pl-12 mt-1.5">
-                        <Search className="w-3 h-3 text-blue-600/40" />
-                        <span className="text-[8px] text-blue-600/40 font-display font-bold">X SEARCH AVAILABLE</span>
-                      </div>
-                    )}
+                    {c.headlineUsed && <div className="text-[8px] text-green-700/50 pl-11 mb-1 truncate font-display">📰 {c.headlineUsed.slice(0, 55)}...</div>}
+                    <div className="text-[8px] text-yellow-800/35 leading-relaxed line-clamp-2 pl-11 font-display">{c.description}</div>
+                    {c.xSearchUrl && <div className="flex items-center gap-1 pl-11 mt-1"><Search className="w-2.5 h-2.5 text-blue-600/35" /><span className="text-[7px] text-blue-600/35 font-display font-bold">X SEARCH</span></div>}
                   </button>
                 ))}
                 <button onClick={() => { setAiPhase("idle"); setAiConcepts([]); setAiLog([]); setIsThinking(false); }}
-                  className="w-full flex items-center gap-2 justify-center py-3 font-display text-[10px] border-4 border-yellow-700/15 bg-yellow-500/10 text-yellow-800/50 hover:text-yellow-900 hover:bg-yellow-500/20 transition-all tracking-widest">
-                  <RotateCcw className="w-3.5 h-3.5" /> SCAN AGAIN
+                  className="w-full flex items-center gap-2 justify-center py-2.5 font-display text-[9px] border-4 border-yellow-700/10 bg-yellow-500/8 text-yellow-800/40 hover:text-yellow-900 hover:bg-yellow-500/15 transition-all tracking-widest">
+                  <RotateCcw className="w-3 h-3" /> SCAN AGAIN
                 </button>
               </div>
             )}
 
-            {aiPhase === "ready" && aiConcept && (
-              <div className="flex gap-2">
-                <button onClick={() => { setAiPhase("picking"); setAiConcept(null); setAiTwitterOverride(""); }}
-                  className="px-4 py-3 font-display text-[10px] border-4 border-yellow-700/15 bg-yellow-500/10 text-yellow-800/50 hover:bg-yellow-500/20 transition-all">BACK</button>
-                <button onClick={() => setAiPhase("config")} data-testid="button-ai-accept"
-                  className="flex-1 py-3 font-display text-sm border-4 border-yellow-700/30 bg-gradient-to-r from-yellow-400 to-amber-400 text-yellow-950 hover:from-yellow-300 hover:to-amber-300 transition-all flex items-center justify-center gap-2 tracking-wider font-bold"
-                  style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.25)', textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
-                  <Zap className="w-4 h-4" /> LOAD CANNON
-                </button>
-              </div>
-            )}
-
-            {aiPhase === "config" && aiConcept && (
+            {(aiPhase === "ready" || aiPhase === "config") && aiConcept && (
               <div className="space-y-3">
-                <div className="border-4 border-orange-600/30 bg-gradient-to-b from-orange-200/60 via-amber-200/40 to-yellow-200/60 p-5 space-y-4" style={{ boxShadow: '6px 6px 0px rgba(120,53,15,0.2)' }}>
+                <div className="border-4 border-orange-600/25 bg-gradient-to-b from-orange-200/50 via-amber-100/40 to-yellow-200/50 p-4 space-y-3" style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.18)' }}>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl animate-bounce">🍌</span>
-                    <span className="font-display text-sm text-orange-900 tracking-[0.15em] font-bold animate-pulse">CANNON LOADED</span>
-                    <div className="w-3 h-3 bg-green-500 animate-pulse ml-auto border-2 border-green-700" />
+                    <span className="text-lg animate-bounce">🍌</span>
+                    <span className="font-display text-[11px] text-orange-900 tracking-[0.12em] font-bold animate-pulse">CANNON LOADED</span>
+                    <div className="w-2.5 h-2.5 bg-green-500 animate-pulse ml-auto border border-green-700" />
                   </div>
 
-                  <div className="border-4 border-yellow-700/20 bg-yellow-300/30 p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-yellow-700/20 bg-yellow-400/30 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>
-                      <Rocket className="w-6 h-6 text-yellow-900" />
+                  <div className="border-3 border-yellow-700/15 bg-yellow-300/25 p-3 flex items-center gap-3">
+                    <div className="w-10 h-10 border-2 border-yellow-700/15 bg-yellow-400/20 flex items-center justify-center" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
+                      <Rocket className="w-5 h-5 text-yellow-900/70" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-display text-base text-yellow-950 tracking-wider font-bold">${aiConcept.tokenSymbol}</div>
-                      <div className="font-display text-[10px] text-yellow-800/50 truncate">{aiConcept.tokenName}</div>
+                      <div className="font-display text-sm text-yellow-950 tracking-wider font-bold">${aiConcept.tokenSymbol}</div>
+                      <div className="font-display text-[9px] text-yellow-800/40 truncate">{aiConcept.tokenName}</div>
                     </div>
                   </div>
 
-                  <div className="border-4 border-blue-500/20 bg-blue-100/30 p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Search className="w-3.5 h-3.5 text-blue-700/60" />
-                      <span className="font-display text-[9px] text-blue-700/60 tracking-wider font-bold">VERIFY ON X</span>
-                    </div>
-                    {aiConcept.xSearchUrl && (
-                      <a href={aiConcept.xSearchUrl} target="_blank" rel="noopener noreferrer" data-testid="link-x-search"
-                        className="flex items-center gap-2 px-4 py-2.5 border-4 border-blue-500/30 bg-blue-200/40 text-blue-800 font-display text-[10px] hover:bg-blue-200/60 hover:border-blue-500/50 transition-all w-full justify-center tracking-wider font-bold"
-                        style={{ boxShadow: '3px 3px 0px rgba(37,99,235,0.15)' }}>
-                        <ExternalLink className="w-3.5 h-3.5" /> FIND VIRAL POSTS ON X
-                      </a>
-                    )}
-                    <input value={aiTwitterOverride} onChange={e => setAiTwitterOverride(e.target.value)}
-                      placeholder="Paste viral tweet URL here..." data-testid="input-ai-twitter"
-                      className="w-full bg-white/40 border-2 border-blue-400/20 text-blue-900 px-3 py-2 text-[10px] font-mono focus:outline-none focus:border-blue-500/40 transition-colors placeholder:text-blue-400/30" />
-                  </div>
+                  {aiConcept.xSearchUrl && (
+                    <a href={aiConcept.xSearchUrl} target="_blank" rel="noopener noreferrer" data-testid="link-x-search"
+                      className="flex items-center gap-2 px-3 py-2 border-3 border-blue-500/25 bg-blue-100/25 text-blue-800 font-display text-[9px] hover:bg-blue-100/40 transition-all w-full justify-center tracking-wider font-bold"
+                      style={{ boxShadow: '2px 2px 0px rgba(37,99,235,0.1)' }}>
+                      <ExternalLink className="w-3 h-3" /> VERIFY ON X
+                    </a>
+                  )}
+                  <input value={aiTwitterOverride} onChange={e => setAiTwitterOverride(e.target.value)}
+                    placeholder="Paste viral tweet URL (optional)" data-testid="input-ai-twitter"
+                    className="w-full bg-white/35 border-2 border-yellow-600/15 text-yellow-950 px-3 py-2 text-[10px] font-mono focus:outline-none focus:border-yellow-600/30 transition-colors placeholder:text-yellow-600/20" />
 
                   {!wallet.connected ? (
                     <button onClick={connectWallet} data-testid="button-connect-ai-cannon"
-                      className="w-full flex items-center justify-center gap-2 p-3 border-4 border-purple-500/30 bg-purple-200/30 text-purple-800 font-display text-[10px] hover:bg-purple-200/50 hover:border-purple-500/50 transition-all tracking-wider font-bold"
-                      style={{ boxShadow: '3px 3px 0px rgba(147,51,234,0.15)' }}>
-                      <Wallet className="w-4 h-4" /> CONNECT PHANTOM
+                      className="w-full flex items-center justify-center gap-2 p-2.5 border-3 border-purple-500/25 bg-purple-200/25 text-purple-800 font-display text-[9px] hover:bg-purple-200/40 transition-all tracking-wider font-bold"
+                      style={{ boxShadow: '2px 2px 0px rgba(147,51,234,0.1)' }}>
+                      <Wallet className="w-3.5 h-3.5" /> CONNECT PHANTOM
                     </button>
                   ) : (
-                    <div className="flex items-center gap-2 p-3 border-4 border-green-500/25 bg-green-200/30">
-                      <div className="w-3 h-3 bg-green-500 border-2 border-green-700" />
-                      <span className="font-display text-[10px] text-green-800 font-bold">CONNECTED</span>
-                      <span className="text-[10px] text-green-700/50 font-mono">{wallet.publicKey?.slice(0, 6)}...{wallet.publicKey?.slice(-4)}</span>
-                      {wallet.balance !== null && <span className="font-display text-[10px] text-yellow-900 ml-auto font-bold">{wallet.balance.toFixed(4)} SOL</span>}
+                    <div className="flex items-center gap-2 p-2.5 border-3 border-green-500/20 bg-green-200/20">
+                      <div className="w-2.5 h-2.5 bg-green-500 border border-green-700" />
+                      <span className="font-display text-[9px] text-green-800 font-bold">CONNECTED</span>
+                      <span className="text-[9px] text-green-700/40 font-mono">{wallet.publicKey?.slice(0, 6)}...{wallet.publicKey?.slice(-4)}</span>
+                      {wallet.balance !== null && <span className="font-display text-[9px] text-yellow-900 ml-auto font-bold">{wallet.balance.toFixed(3)} SOL</span>}
                     </div>
                   )}
 
                   <div className="space-y-1">
-                    <label className="font-display text-[8px] text-yellow-800/50 tracking-wider font-bold">DEV BUY (SOL) — OPTIONAL</label>
+                    <label className="font-display text-[7px] text-yellow-800/40 tracking-wider font-bold">DEV BUY (SOL)</label>
                     <input value={aiDevBuy} onChange={e => setAiDevBuy(e.target.value)}
                       type="number" step="0.1" min="0" data-testid="input-ai-dev-buy"
-                      className="w-full bg-white/40 border-2 border-yellow-600/20 text-yellow-950 px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-yellow-600/40 transition-colors" />
+                      className="w-full bg-white/35 border-2 border-yellow-600/15 text-yellow-950 px-3 py-2 text-sm font-mono focus:outline-none focus:border-yellow-600/30 transition-colors" />
                   </div>
 
-                  <div className="border-4 border-yellow-700/15 bg-yellow-300/20 p-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-display text-[8px] text-yellow-800/40 tracking-wider">DEPLOY FEE</span>
-                      <span className="font-display text-[10px] text-yellow-900/60">{PUMP_PORTAL_FEE} SOL</span>
+                  <div className="border-3 border-yellow-700/10 bg-yellow-300/15 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-display text-[7px] text-yellow-800/30">FEE</span>
+                      <span className="font-display text-[9px] text-yellow-900/50">{PUMP_PORTAL_FEE} SOL</span>
                     </div>
                     {parseFloat(aiDevBuy || "0") > 0 && (
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-display text-[8px] text-yellow-800/40 tracking-wider">DEV BUY</span>
-                        <span className="font-display text-[10px] text-yellow-900/60">{parseFloat(aiDevBuy || "0")} SOL</span>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-display text-[7px] text-yellow-800/30">DEV BUY</span>
+                        <span className="font-display text-[9px] text-yellow-900/50">{parseFloat(aiDevBuy)} SOL</span>
                       </div>
                     )}
-                    <div className="h-[2px] bg-yellow-700/15 my-2" />
+                    <div className="h-px bg-yellow-700/10 my-1.5" />
                     <div className="flex items-center justify-between">
-                      <span className="font-display text-[10px] text-yellow-900/70 font-bold">TOTAL</span>
-                      <span className="font-display text-base text-yellow-950 font-bold">{aiTotalCost.toFixed(4)} SOL</span>
+                      <span className="font-display text-[9px] text-yellow-900/60 font-bold">TOTAL</span>
+                      <span className="font-display text-sm text-yellow-950 font-bold">{aiTotalCost.toFixed(4)} SOL</span>
                     </div>
                   </div>
                 </div>
 
-                {error && (
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-red-200/40 border-4 border-red-500/30 text-red-800 font-display text-[10px]" style={{ boxShadow: '3px 3px 0px rgba(220,38,38,0.15)' }}>
-                    <AlertTriangle className="w-4 h-4 shrink-0" /><span className="font-bold">{error}</span>
-                  </div>
-                )}
+                {error && <div className="flex items-center gap-2 px-3 py-2 bg-red-200/30 border-3 border-red-500/25 text-red-800 font-display text-[9px]"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /><span className="font-bold">{error}</span></div>}
 
                 <div className="flex gap-2">
-                  <button onClick={() => setAiPhase("ready")}
-                    className="px-4 py-3 font-display text-[10px] border-4 border-yellow-700/15 bg-yellow-500/10 text-yellow-800/50 hover:bg-yellow-500/20 transition-all">BACK</button>
+                  <button onClick={() => { setAiPhase("picking"); setAiConcept(null); setAiTwitterOverride(""); }}
+                    className="px-3 py-2.5 font-display text-[9px] border-3 border-yellow-700/12 bg-yellow-500/8 text-yellow-800/40 hover:bg-yellow-500/15 transition-all">BACK</button>
                   <button onClick={handleAiLaunch} disabled={launching || !wallet.connected} data-testid="button-ai-launch"
-                    className="flex-1 py-4 font-display text-sm disabled:opacity-30 flex items-center justify-center gap-3 border-4 border-red-600/50 transition-all relative overflow-hidden group tracking-wider font-bold"
+                    className="flex-1 py-3.5 font-display text-sm disabled:opacity-30 flex items-center justify-center gap-2 border-4 transition-all tracking-wider font-bold"
                     style={{
-                      background: launching ? 'rgba(220,38,38,0.1)' : 'linear-gradient(135deg, #ef4444, #f97316, #eab308)',
-                      boxShadow: launching ? 'none' : '6px 6px 0px rgba(120,53,15,0.35)',
-                      textShadow: '1px 1px 0px rgba(0,0,0,0.2)',
+                      background: launching ? 'rgba(220,38,38,0.08)' : 'linear-gradient(135deg, #ef4444, #f97316, #eab308)',
+                      borderColor: launching ? 'rgba(220,38,38,0.15)' : 'rgba(180,60,20,0.4)',
+                      boxShadow: launching ? 'none' : '5px 5px 0px rgba(120,53,15,0.3)',
+                      textShadow: '1px 1px 0px rgba(0,0,0,0.15)',
                       color: '#fff',
                     }}>
-                    <span className="relative flex items-center gap-2">
-                      {launching ? <><Loader2 className="w-5 h-5 animate-spin" /> FIRING...</> : <><img src={crabClaw} alt="" className="w-7 h-7 pixel-art-rendering" style={{ imageRendering: 'pixelated' }} /> FIRE CANNON</>}
-                    </span>
+                    {launching ? <><Loader2 className="w-4 h-4 animate-spin" /> FIRING...</> : <><img src={crabClaw} alt="" className="w-6 h-6 pixel-art-rendering" style={{ imageRendering: 'pixelated' }} /> FIRE CANNON</>}
                   </button>
                 </div>
               </div>
@@ -631,17 +723,15 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
             <div className="flex items-center gap-0">
               {[1, 2, 3].map(s => (
                 <div key={s} className="flex-1">
-                  <div className={`flex items-center gap-1.5 px-3 py-2 border-4 transition-all ${
-                    manualStep === s ? 'border-yellow-700/40 bg-yellow-300/50 text-yellow-950'
-                      : manualStep > s ? 'border-green-600/30 bg-green-300/30 text-green-800'
-                      : 'border-yellow-700/10 bg-yellow-500/5 text-yellow-800/20'
-                  }`} style={manualStep === s ? { boxShadow: '2px 2px 0px rgba(0,0,0,0.1)' } : {}}>
-                    <div className={`w-5 h-5 flex items-center justify-center font-display text-[9px] border-2 font-bold ${
-                      manualStep === s ? 'border-yellow-700/50 text-yellow-950' : manualStep > s ? 'border-green-600/40 text-green-700' : 'border-yellow-700/10 text-yellow-800/20'
+                  <div className={`flex items-center gap-1.5 px-3 py-2 border-3 transition-all ${
+                    manualStep === s ? 'border-yellow-700/30 bg-yellow-300/40 text-yellow-950'
+                      : manualStep > s ? 'border-green-600/20 bg-green-300/20 text-green-800'
+                      : 'border-yellow-700/8 bg-yellow-500/5 text-yellow-800/15'
+                  }`}>
+                    <div className={`w-5 h-5 flex items-center justify-center font-display text-[8px] border-2 font-bold ${
+                      manualStep === s ? 'border-yellow-700/40 text-yellow-950' : manualStep > s ? 'border-green-600/30 text-green-700' : 'border-yellow-700/8 text-yellow-800/15'
                     }`}>{manualStep > s ? '✓' : s}</div>
-                    <span className="font-display text-[8px] tracking-wider hidden sm:inline font-bold">
-                      {s === 1 ? 'CREATE' : s === 2 ? 'CONFIG' : 'FIRE'}
-                    </span>
+                    <span className="font-display text-[7px] tracking-wider hidden sm:inline font-bold">{s === 1 ? 'CREATE' : s === 2 ? 'CONFIG' : 'FIRE'}</span>
                   </div>
                 </div>
               ))}
@@ -649,60 +739,48 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
 
             {manualStep === 1 && (
               <div className="space-y-3">
-                <div className="border-4 border-yellow-700/20 bg-yellow-200/40 p-5 space-y-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.15)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🍌</span>
-                    <span className="font-display text-[10px] text-yellow-900/70 tracking-[0.15em] font-bold">DEFINE YOUR TOKEN</span>
-                  </div>
-                  <div className="flex gap-4">
+                <div className="border-4 border-yellow-700/15 bg-yellow-200/30 p-4 space-y-3" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
+                  <div className="flex items-center gap-2"><span className="text-lg">🍌</span><span className="font-display text-[10px] text-yellow-900/60 tracking-[0.12em] font-bold">DEFINE YOUR TOKEN</span></div>
+                  <div className="flex gap-3">
                     <div className="shrink-0">
-                      <label className="font-display text-[8px] text-yellow-800/40 tracking-wider block mb-1.5 font-bold">IMAGE</label>
-                      <div className="relative w-24 h-24 border-4 border-yellow-700/20 bg-yellow-300/20 flex items-center justify-center cursor-pointer hover:border-yellow-700/40 transition-colors overflow-hidden group" style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.08)' }}>
+                      <label className="font-display text-[7px] text-yellow-800/30 tracking-wider block mb-1 font-bold">IMAGE</label>
+                      <div className="relative w-20 h-20 border-3 border-yellow-700/15 bg-yellow-300/15 flex items-center justify-center cursor-pointer hover:border-yellow-700/30 transition-colors overflow-hidden group" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.06)' }}>
                         {imagePreview ? (
                           <>
                             <img src={imagePreview} alt="Token" className="w-full h-full object-cover pixel-art-rendering" />
-                            <button onClick={(e) => { e.preventDefault(); setImagePreview(null); }}
-                              className="absolute top-1 right-1 w-5 h-5 bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-2 border-red-700">
-                              <X className="w-3 h-3 text-white" />
-                            </button>
+                            <button onClick={(e) => { e.preventDefault(); setImagePreview(null); }} className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-red-700"><X className="w-2.5 h-2.5 text-white" /></button>
                           </>
                         ) : (
-                          <label className="cursor-pointer flex flex-col items-center gap-1 p-2 w-full h-full justify-center">
-                            <ImagePlus className="w-6 h-6 text-yellow-700/25" />
-                            <span className="font-display text-[7px] text-yellow-700/25 font-bold">UPLOAD</span>
+                          <label className="cursor-pointer flex flex-col items-center gap-1 w-full h-full justify-center">
+                            <ImagePlus className="w-5 h-5 text-yellow-700/20" />
+                            <span className="font-display text-[6px] text-yellow-700/20 font-bold">UPLOAD</span>
                             <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" data-testid="input-token-image" />
                           </label>
                         )}
                       </div>
                     </div>
-                    <div className="flex-1 space-y-2.5">
+                    <div className="flex-1 space-y-2">
                       <div className="grid grid-cols-3 gap-2">
                         <div className="col-span-2 space-y-1">
-                          <label className="font-display text-[8px] text-yellow-800/40 tracking-wider font-bold">NAME</label>
-                          <input value={tokenName} onChange={e => { setTokenName(e.target.value); setError(null); }}
-                            placeholder="e.g. Banana Coin" data-testid="input-token-name"
-                            className="w-full bg-white/50 border-2 border-yellow-600/20 text-yellow-950 px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-yellow-600/40 placeholder:text-yellow-600/20 transition-colors" />
+                          <label className="font-display text-[7px] text-yellow-800/30 tracking-wider font-bold">NAME</label>
+                          <input value={tokenName} onChange={e => { setTokenName(e.target.value); setError(null); }} placeholder="e.g. Banana Coin" data-testid="input-token-name"
+                            className="w-full bg-white/40 border-2 border-yellow-600/15 text-yellow-950 px-3 py-2 text-sm font-mono focus:outline-none focus:border-yellow-600/30 placeholder:text-yellow-600/15 transition-colors" />
                         </div>
                         <div className="space-y-1">
-                          <label className="font-display text-[8px] text-yellow-800/40 tracking-wider font-bold">TICKER</label>
-                          <input value={tokenSymbol} onChange={e => { setTokenSymbol(e.target.value.toUpperCase()); setError(null); }}
-                            placeholder="$BNNA" maxLength={10} data-testid="input-token-symbol"
-                            className="w-full bg-white/50 border-2 border-yellow-600/20 text-yellow-950 px-3 py-2.5 text-sm font-display focus:outline-none focus:border-yellow-600/40 placeholder:text-yellow-600/20 transition-colors" />
+                          <label className="font-display text-[7px] text-yellow-800/30 tracking-wider font-bold">TICKER</label>
+                          <input value={tokenSymbol} onChange={e => { setTokenSymbol(e.target.value.toUpperCase()); setError(null); }} placeholder="$BNN" maxLength={10} data-testid="input-token-symbol"
+                            className="w-full bg-white/40 border-2 border-yellow-600/15 text-yellow-950 px-3 py-2 text-sm font-display focus:outline-none focus:border-yellow-600/30 placeholder:text-yellow-600/15 transition-colors" />
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <label className="font-display text-[8px] text-yellow-800/40 tracking-wider font-bold">DESCRIPTION</label>
-                        <textarea value={description} onChange={e => { setDescription(e.target.value); setError(null); }}
-                          placeholder="What's this token about?" rows={3} data-testid="input-token-description"
-                          className="w-full bg-white/50 border-2 border-yellow-600/20 text-yellow-950 px-3 py-2 text-[11px] font-mono focus:outline-none focus:border-yellow-600/40 placeholder:text-yellow-600/20 resize-none transition-colors" />
+                        <label className="font-display text-[7px] text-yellow-800/30 tracking-wider font-bold">DESCRIPTION</label>
+                        <textarea value={description} onChange={e => { setDescription(e.target.value); setError(null); }} placeholder="What's this token about?" rows={3} data-testid="input-token-description"
+                          className="w-full bg-white/40 border-2 border-yellow-600/15 text-yellow-950 px-3 py-2 text-[11px] font-mono focus:outline-none focus:border-yellow-600/30 placeholder:text-yellow-600/15 resize-none transition-colors" />
                       </div>
                     </div>
                   </div>
-                  <div className="border-t-2 border-yellow-700/10 pt-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Globe className="w-3.5 h-3.5 text-yellow-700/25" />
-                      <span className="font-display text-[8px] text-yellow-800/30 tracking-wider font-bold">SOCIALS (OPTIONAL)</span>
-                    </div>
+                  <div className="border-t-2 border-yellow-700/8 pt-3">
+                    <div className="flex items-center gap-1.5 mb-2"><Globe className="w-3 h-3 text-yellow-700/20" /><span className="font-display text-[7px] text-yellow-800/20 tracking-wider font-bold">SOCIALS (OPTIONAL)</span></div>
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { val: twitter, set: setTwitter, label: "TWITTER", ph: "https://x.com/...", tid: "input-twitter" },
@@ -710,18 +788,18 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
                         { val: website, set: setWebsite, label: "WEBSITE", ph: "https://...", tid: "input-website" },
                       ].map(f => (
                         <div key={f.label} className="space-y-1">
-                          <label className="font-display text-[7px] text-yellow-800/25 tracking-wider font-bold">{f.label}</label>
+                          <label className="font-display text-[6px] text-yellow-800/18 tracking-wider font-bold">{f.label}</label>
                           <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.ph} data-testid={f.tid}
-                            className="w-full bg-white/30 border-2 border-yellow-600/10 text-yellow-950 px-2 py-1.5 text-[9px] font-mono focus:outline-none focus:border-yellow-600/30 placeholder:text-yellow-600/15 transition-colors" />
+                            className="w-full bg-white/25 border-2 border-yellow-600/8 text-yellow-950 px-2 py-1.5 text-[8px] font-mono focus:outline-none focus:border-yellow-600/25 placeholder:text-yellow-600/12 transition-colors" />
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
-                {error && <div className="flex items-center gap-2 px-4 py-2.5 bg-red-200/40 border-4 border-red-500/30 text-red-800 font-display text-[10px]"><AlertTriangle className="w-4 h-4 shrink-0" /><span className="font-bold">{error}</span></div>}
+                {error && <div className="flex items-center gap-2 px-3 py-2 bg-red-200/30 border-3 border-red-500/25 text-red-800 font-display text-[9px]"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /><span className="font-bold">{error}</span></div>}
                 <button onClick={() => { setError(null); setManualStep(2); }} disabled={!canProceedToStep2}
-                  className="w-full py-3 font-display text-sm border-4 border-yellow-700/30 bg-gradient-to-r from-yellow-400 to-amber-400 text-yellow-950 hover:from-yellow-300 hover:to-amber-300 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 tracking-wider font-bold"
-                  style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.2)', textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
+                  className="w-full py-3 font-display text-[11px] border-4 border-yellow-700/25 bg-gradient-to-r from-yellow-400 to-amber-400 text-yellow-950 hover:from-yellow-300 hover:to-amber-300 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 tracking-wider font-bold"
+                  style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.18)', textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
                   NEXT →
                 </button>
               </div>
@@ -729,167 +807,81 @@ export default function BananaCannonPanel({ onSendChat, fullscreen }: { onSendCh
 
             {manualStep === 2 && (
               <div className="space-y-3">
-                <div className="border-4 border-yellow-700/20 bg-yellow-200/40 p-5 space-y-4" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.15)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">⚙️</span>
-                    <span className="font-display text-[10px] text-yellow-900/70 tracking-[0.15em] font-bold">CONFIGURE</span>
-                  </div>
-                  <div className="border-4 border-yellow-700/15 bg-yellow-300/30 p-3 flex items-center gap-3">
-                    {imagePreview ? <div className="w-10 h-10 border-2 border-yellow-700/20 overflow-hidden shrink-0"><img src={imagePreview} alt="" className="w-full h-full object-cover pixel-art-rendering" /></div> : <span className="text-2xl">🍌</span>}
+                <div className="border-4 border-yellow-700/15 bg-yellow-200/30 p-4 space-y-3" style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.1)' }}>
+                  <div className="flex items-center gap-2"><span className="text-lg">⚙️</span><span className="font-display text-[10px] text-yellow-900/60 tracking-[0.12em] font-bold">CONFIGURE</span></div>
+                  <div className="border-3 border-yellow-700/12 bg-yellow-300/20 p-3 flex items-center gap-3">
+                    {imagePreview ? <div className="w-8 h-8 border-2 border-yellow-700/15 overflow-hidden shrink-0"><img src={imagePreview} alt="" className="w-full h-full object-cover pixel-art-rendering" /></div> : <span className="text-xl">🍌</span>}
                     <div className="flex-1 min-w-0">
-                      <div className="font-display text-base text-yellow-950 font-bold">${tokenSymbol || '???'}</div>
-                      <div className="font-display text-[10px] text-yellow-800/40 truncate">{tokenName || 'Untitled'}</div>
+                      <div className="font-display text-sm text-yellow-950 font-bold">${tokenSymbol || '???'}</div>
+                      <div className="font-display text-[9px] text-yellow-800/35 truncate">{tokenName || 'Untitled'}</div>
                     </div>
-                    <button onClick={() => setManualStep(1)} className="font-display text-[8px] text-yellow-800/50 hover:text-yellow-950 border-2 border-yellow-700/20 px-2 py-1 bg-yellow-400/20 transition-colors">EDIT</button>
+                    <button onClick={() => setManualStep(1)} className="font-display text-[7px] text-yellow-800/40 hover:text-yellow-950 border-2 border-yellow-700/15 px-2 py-1 bg-yellow-400/15 transition-colors">EDIT</button>
                   </div>
                   {!wallet.connected ? (
                     <button onClick={connectWallet} data-testid="button-connect-cannon"
-                      className="w-full flex items-center justify-center gap-2 p-3 border-4 border-purple-500/30 bg-purple-200/30 text-purple-800 font-display text-[10px] hover:bg-purple-200/50 transition-all tracking-wider font-bold"
-                      style={{ boxShadow: '3px 3px 0px rgba(147,51,234,0.15)' }}>
-                      <Wallet className="w-4 h-4" /> CONNECT PHANTOM
-                    </button>
+                      className="w-full flex items-center justify-center gap-2 p-2.5 border-3 border-purple-500/25 bg-purple-200/25 text-purple-800 font-display text-[9px] hover:bg-purple-200/40 transition-all tracking-wider font-bold"
+                      style={{ boxShadow: '2px 2px 0px rgba(147,51,234,0.1)' }}><Wallet className="w-3.5 h-3.5" /> CONNECT PHANTOM</button>
                   ) : (
-                    <div className="flex items-center gap-2 p-3 border-4 border-green-500/25 bg-green-200/30">
-                      <div className="w-3 h-3 bg-green-500 border-2 border-green-700" />
-                      <span className="font-display text-[10px] text-green-800 font-bold">CONNECTED</span>
-                      <span className="text-[10px] text-green-700/50 font-mono">{wallet.publicKey?.slice(0, 6)}...{wallet.publicKey?.slice(-4)}</span>
-                      {wallet.balance !== null && <span className="font-display text-[10px] text-yellow-900 ml-auto font-bold">{wallet.balance.toFixed(4)} SOL</span>}
+                    <div className="flex items-center gap-2 p-2.5 border-3 border-green-500/20 bg-green-200/20">
+                      <div className="w-2.5 h-2.5 bg-green-500 border border-green-700" />
+                      <span className="font-display text-[9px] text-green-800 font-bold">CONNECTED</span>
+                      <span className="text-[9px] text-green-700/40 font-mono">{wallet.publicKey?.slice(0, 6)}...{wallet.publicKey?.slice(-4)}</span>
+                      {wallet.balance !== null && <span className="font-display text-[9px] text-yellow-900 ml-auto font-bold">{wallet.balance.toFixed(3)} SOL</span>}
                     </div>
                   )}
                   <div className="space-y-1">
-                    <label className="font-display text-[8px] text-yellow-800/40 tracking-wider font-bold">DEV BUY (SOL)</label>
-                    <input value={devBuyAmount} onChange={e => { setDevBuyAmount(e.target.value); setError(null); }}
-                      type="number" step="0.1" min="0" data-testid="input-dev-buy"
-                      className="w-full bg-white/40 border-2 border-yellow-600/20 text-yellow-950 px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-yellow-600/40 transition-colors" />
+                    <label className="font-display text-[7px] text-yellow-800/35 tracking-wider font-bold">DEV BUY (SOL)</label>
+                    <input value={devBuyAmount} onChange={e => { setDevBuyAmount(e.target.value); setError(null); }} type="number" step="0.1" min="0" data-testid="input-dev-buy"
+                      className="w-full bg-white/35 border-2 border-yellow-600/15 text-yellow-950 px-3 py-2 text-sm font-mono focus:outline-none focus:border-yellow-600/30 transition-colors" />
                   </div>
-                  <div className="border-4 border-yellow-700/15 bg-yellow-300/20 p-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-display text-[8px] text-yellow-800/40">DEPLOY FEE</span>
-                      <span className="font-display text-[10px] text-yellow-900/60">{PUMP_PORTAL_FEE} SOL</span>
-                    </div>
-                    {parseFloat(devBuyAmount || "0") > 0 && (
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-display text-[8px] text-yellow-800/40">DEV BUY</span>
-                        <span className="font-display text-[10px] text-yellow-900/60">{parseFloat(devBuyAmount || "0")} SOL</span>
-                      </div>
-                    )}
-                    <div className="h-[2px] bg-yellow-700/15 my-2" />
-                    <div className="flex items-center justify-between">
-                      <span className="font-display text-[10px] text-yellow-900/70 font-bold">TOTAL</span>
-                      <span className="font-display text-base text-yellow-950 font-bold" data-testid="text-total-cost">{totalCost.toFixed(4)} SOL</span>
-                    </div>
+                  <div className="border-3 border-yellow-700/10 bg-yellow-300/15 p-3">
+                    <div className="flex items-center justify-between mb-1"><span className="font-display text-[7px] text-yellow-800/30">FEE</span><span className="font-display text-[9px] text-yellow-900/50">{PUMP_PORTAL_FEE} SOL</span></div>
+                    {parseFloat(devBuyAmount || "0") > 0 && <div className="flex items-center justify-between mb-1"><span className="font-display text-[7px] text-yellow-800/30">DEV BUY</span><span className="font-display text-[9px] text-yellow-900/50">{parseFloat(devBuyAmount)} SOL</span></div>}
+                    <div className="h-px bg-yellow-700/10 my-1.5" />
+                    <div className="flex items-center justify-between"><span className="font-display text-[9px] text-yellow-900/60 font-bold">TOTAL</span><span className="font-display text-sm text-yellow-950 font-bold" data-testid="text-total-cost">{totalCost.toFixed(4)} SOL</span></div>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setManualStep(1)} className="px-4 py-3 font-display text-[10px] border-4 border-yellow-700/15 bg-yellow-500/10 text-yellow-800/50 hover:bg-yellow-500/20 transition-all">BACK</button>
+                  <button onClick={() => setManualStep(1)} className="px-3 py-2.5 font-display text-[9px] border-3 border-yellow-700/12 bg-yellow-500/8 text-yellow-800/40 hover:bg-yellow-500/15 transition-all">BACK</button>
                   <button onClick={() => setManualStep(3)} disabled={!wallet.connected}
-                    className="flex-1 py-3 font-display text-sm border-4 border-yellow-700/30 bg-gradient-to-r from-yellow-400 to-amber-400 text-yellow-950 hover:from-yellow-300 hover:to-amber-300 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 tracking-wider font-bold"
-                    style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.2)', textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>
-                    REVIEW →
-                  </button>
+                    className="flex-1 py-3 font-display text-[11px] border-4 border-yellow-700/25 bg-gradient-to-r from-yellow-400 to-amber-400 text-yellow-950 hover:from-yellow-300 hover:to-amber-300 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 tracking-wider font-bold"
+                    style={{ boxShadow: '4px 4px 0px rgba(120,53,15,0.18)', textShadow: '1px 1px 0px rgba(255,255,255,0.3)' }}>REVIEW →</button>
                 </div>
               </div>
             )}
 
             {manualStep === 3 && (
               <div className="space-y-3">
-                <div className="border-4 border-orange-600/30 bg-gradient-to-b from-orange-200/60 to-yellow-200/60 p-5 space-y-4" style={{ boxShadow: '6px 6px 0px rgba(120,53,15,0.2)' }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl animate-bounce">🍌</span>
-                    <span className="font-display text-sm text-orange-900 tracking-[0.15em] font-bold animate-pulse">CANNON LOADED</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="border-4 border-yellow-700/15 bg-yellow-300/30 p-3" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }}>
-                      <div className="font-display text-[7px] text-yellow-800/30 tracking-wider mb-1 font-bold">TOKEN</div>
+                <div className="border-4 border-orange-600/25 bg-gradient-to-b from-orange-200/45 to-yellow-200/45 p-4 space-y-3" style={{ boxShadow: '5px 5px 0px rgba(120,53,15,0.18)' }}>
+                  <div className="flex items-center gap-2"><span className="text-lg animate-bounce">🍌</span><span className="font-display text-[11px] text-orange-900 tracking-[0.12em] font-bold animate-pulse">CANNON LOADED</span></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="border-3 border-yellow-700/12 bg-yellow-300/20 p-3">
+                      <div className="font-display text-[6px] text-yellow-800/25 tracking-wider mb-1 font-bold">TOKEN</div>
                       <div className="font-display text-sm text-yellow-950">{tokenName}</div>
                       <div className="font-display text-sm text-yellow-800 font-bold">${tokenSymbol}</div>
                     </div>
-                    <div className="border-4 border-yellow-700/15 bg-yellow-300/30 p-3" style={{ boxShadow: '2px 2px 0px rgba(0,0,0,0.08)' }}>
-                      <div className="font-display text-[7px] text-yellow-800/30 tracking-wider mb-1 font-bold">COST</div>
-                      <div className="font-display text-lg text-yellow-950 font-bold">{totalCost.toFixed(4)} SOL</div>
+                    <div className="border-3 border-yellow-700/12 bg-yellow-300/20 p-3">
+                      <div className="font-display text-[6px] text-yellow-800/25 tracking-wider mb-1 font-bold">COST</div>
+                      <div className="font-display text-lg text-yellow-950 font-bold">{totalCost.toFixed(4)}</div>
+                      <div className="font-display text-[8px] text-yellow-800/30">SOL</div>
                     </div>
                   </div>
-                  <div className="border-4 border-yellow-700/10 bg-yellow-300/20 p-3">
-                    <div className="font-display text-[7px] text-yellow-800/30 tracking-wider mb-1 font-bold">DESCRIPTION</div>
-                    <div className="text-[10px] text-yellow-800/60 leading-relaxed font-display">{description.slice(0, 150)}</div>
-                  </div>
-                  <div className="border-4 border-yellow-700/10 bg-yellow-300/20 p-3">
-                    <div className="font-display text-[7px] text-yellow-800/30 tracking-wider mb-1 font-bold">WALLET</div>
-                    <div className="text-[9px] text-yellow-800/40 font-mono break-all">{wallet.publicKey}</div>
-                  </div>
                 </div>
-                {error && <div className="flex items-center gap-2 px-4 py-2.5 bg-red-200/40 border-4 border-red-500/30 text-red-800 font-display text-[10px]"><AlertTriangle className="w-4 h-4 shrink-0" /><span className="font-bold">{error}</span></div>}
+                {error && <div className="flex items-center gap-2 px-3 py-2 bg-red-200/30 border-3 border-red-500/25 text-red-800 font-display text-[9px]"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /><span className="font-bold">{error}</span></div>}
                 <div className="flex gap-2">
-                  <button onClick={() => setManualStep(2)} className="px-4 py-3 font-display text-[10px] border-4 border-yellow-700/15 bg-yellow-500/10 text-yellow-800/50 hover:bg-yellow-500/20 transition-all">BACK</button>
+                  <button onClick={() => setManualStep(2)} className="px-3 py-2.5 font-display text-[9px] border-3 border-yellow-700/12 bg-yellow-500/8 text-yellow-800/40 hover:bg-yellow-500/15 transition-all">BACK</button>
                   <button onClick={handleManualLaunch} disabled={launching || !wallet.connected} data-testid="button-launch-token"
-                    className="flex-1 py-4 font-display text-sm disabled:opacity-30 flex items-center justify-center gap-3 border-4 border-red-600/50 transition-all relative overflow-hidden group tracking-wider font-bold"
+                    className="flex-1 py-3.5 font-display text-sm disabled:opacity-30 flex items-center justify-center gap-2 border-4 transition-all tracking-wider font-bold"
                     style={{
-                      background: launching ? 'rgba(220,38,38,0.1)' : 'linear-gradient(135deg, #ef4444, #f97316, #eab308)',
-                      boxShadow: launching ? 'none' : '6px 6px 0px rgba(120,53,15,0.35)',
-                      textShadow: '1px 1px 0px rgba(0,0,0,0.2)',
+                      background: launching ? 'rgba(220,38,38,0.08)' : 'linear-gradient(135deg, #ef4444, #f97316, #eab308)',
+                      borderColor: launching ? 'rgba(220,38,38,0.15)' : 'rgba(180,60,20,0.4)',
+                      boxShadow: launching ? 'none' : '5px 5px 0px rgba(120,53,15,0.3)',
+                      textShadow: '1px 1px 0px rgba(0,0,0,0.15)',
                       color: '#fff',
                     }}>
-                    <span className="relative flex items-center gap-2">
-                      {launching ? <><Loader2 className="w-5 h-5 animate-spin" /> FIRING...</> : <><img src={crabClaw} alt="" className="w-7 h-7 pixel-art-rendering" style={{ imageRendering: 'pixelated' }} /> FIRE CANNON</>}
-                    </span>
+                    {launching ? <><Loader2 className="w-4 h-4 animate-spin" /> FIRING...</> : <><img src={crabClaw} alt="" className="w-6 h-6 pixel-art-rendering" style={{ imageRendering: 'pixelated' }} /> FIRE CANNON</>}
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {launches.length > 0 && (
-          <div className="space-y-2">
-            <button onClick={() => setShowHistory(!showHistory)}
-              className="w-full flex items-center justify-between px-4 py-3 border-4 border-yellow-700/15 bg-yellow-400/20 hover:bg-yellow-400/30 transition-colors" style={{ boxShadow: '3px 3px 0px rgba(0,0,0,0.08)' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🚀</span>
-                <span className="font-display text-[10px] text-yellow-900/60 tracking-[0.15em] font-bold">LAUNCH HISTORY</span>
-                <span className="font-display text-[10px] text-yellow-950 border-2 border-yellow-700/20 px-2 py-0.5 bg-yellow-400/30 font-bold">{launches.length}</span>
-              </div>
-              {showHistory ? <ChevronUp className="w-4 h-4 text-yellow-800/30" /> : <ChevronDown className="w-4 h-4 text-yellow-800/30" />}
-            </button>
-            {showHistory && (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                {launches.map(launch => (
-                  <div key={launch.id} className="p-4 border-4 border-yellow-700/10 bg-yellow-200/30 hover:border-yellow-700/20 transition-colors space-y-2" data-testid={`launch-${launch.id}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">🍌</span>
-                        <span className="font-display text-sm text-yellow-950 font-bold" data-testid={`text-launch-symbol-${launch.id}`}>${launch.tokenSymbol}</span>
-                        <span className="font-display text-[10px] text-yellow-800/30">{launch.tokenName}</span>
-                      </div>
-                      <span className={`font-display text-[8px] px-2 py-1 border-2 tracking-wider font-bold ${
-                        launch.status === 'launched' || launch.status === 'confirmed' ? 'border-green-600/30 text-green-700 bg-green-200/40' :
-                        launch.status === 'pending' ? 'border-yellow-600/30 text-yellow-800 bg-yellow-300/30' :
-                        'border-red-500/30 text-red-700 bg-red-200/30'
-                      }`} data-testid={`text-launch-status-${launch.id}`}>{launch.status.toUpperCase()}</span>
-                    </div>
-                    <p className="font-display text-[9px] text-yellow-800/30 leading-relaxed">{launch.description.slice(0, 80)}...</p>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {launch.mintAddress && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-display text-[8px] text-yellow-800/25 font-bold">MINT:</span>
-                          <span className="text-[9px] text-yellow-800/50 font-mono">{launch.mintAddress.slice(0, 10)}...{launch.mintAddress.slice(-4)}</span>
-                          <button onClick={() => copyToClipboard(launch.mintAddress!, launch.id)} className="p-0.5 text-yellow-700/30 hover:text-yellow-900" data-testid={`button-copy-mint-${launch.id}`}>
-                            {copiedId === launch.id ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-                          </button>
-                        </div>
-                      )}
-                      {launch.pumpUrl && (
-                        <a href={launch.pumpUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 font-display text-[8px] text-orange-700/60 hover:text-orange-900 font-bold" data-testid={`link-pump-${launch.id}`}>
-                          VIEW <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                      {launch.txSignature && (
-                        <a href={`https://solscan.io/tx/${launch.txSignature}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 font-display text-[8px] text-blue-700/60 hover:text-blue-900 font-bold" data-testid={`link-tx-${launch.id}`}>
-                          SOLSCAN <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>
