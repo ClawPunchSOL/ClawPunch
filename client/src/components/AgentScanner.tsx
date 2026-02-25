@@ -114,10 +114,10 @@ export default function AgentScanner({ agentType, accentColor = "yellow", label 
             }
             return full;
           }
-          const charsToAdd = Math.min(3, full.length - prev.length);
+          const charsToAdd = Math.min(2, full.length - prev.length);
           return full.slice(0, prev.length + charsToAdd);
         });
-      }, 12);
+      }, 35);
     }
 
     return () => {};
