@@ -1,0 +1,131 @@
+🍌 Banana Cannon – Product Direction
+
+Banana Cannon is not just a token launcher.
+
+It is a real-time narrative deployment system.
+
+The core idea is simple:
+
+Attention moves markets.
+Narratives create liquidity.
+Speed wins.
+
+Banana Cannon allows users to launch tokens manually or with Claude AI assistance. The AI scans fresh breaking news, high-velocity tweets, and trending discussions. It generates narrative coin ideas based on emerging attention spikes.
+
+Before launch, users can:
+
+• Preview the original tweet/news source
+• Search it directly on X
+• Confirm the narrative
+• Copy the tweet
+• Then proceed with deployment
+
+This ensures launches are intentional and context-aware — not blind mints.
+
+⸻
+
+🎯 Phase 2 – Turning a Tool Into a Movement
+
+Banana Cannon should not be a static dashboard utility.
+
+It needs to become an ecosystem around narrative launches.
+
+We are building:
+
+1. Weekly Narrative Windows
+
+Each week focuses on a specific theme to drive competition and creativity.
+
+Examples:
+• Breaking News Week
+• Culture Hijack Week
+• AI vs AI Week
+• Utility Narrative Week
+• Market Reaction Week
+
+These themed cycles give creators a reason to participate and differentiate themselves.
+
+⸻
+
+2. Creator Score (Instead of Basic Leaderboards)
+
+We will not rank tokens purely by volume.
+
+We are introducing a Creator Score based on:
+
+• Speed from trend detection to launch
+• Engagement velocity
+• Liquidity stability
+• Volume quality
+• Survival duration
+• Wallet clustering behaviour
+• Early abnormal activity
+
+This creates a competitive layer that rewards execution, not just hype.
+
+⸻
+
+3. Live Discovery Board
+
+Instead of a basic “recent launches” list, the Discovery Board will surface:
+
+• Heating Up – tokens gaining velocity
+• AI Detected – narrative-aligned launches
+• Volatility Alert – unusual trading activity
+• Early Narrative Plays – fresh trend deployments
+• Creator Spotlight – strong executions
+
+This prevents projects from minting and disappearing unnoticed.
+
+⸻
+
+4. Clawd Integration (Post-Launch Intelligence Layer)
+
+After a token is launched, Clawd can:
+
+• Analyse early wallet behaviour
+• Detect suspicious clustering
+• Flag unusual activity
+• Suggest liquidity adjustments
+• Identify optimal marketing timing
+• Highlight volume quality vs artificial spikes
+
+This transforms Banana Cannon from a launcher into an intelligent launch ecosystem.
+
+⸻
+
+🖥 UI Direction
+
+The current UI is functional but lacks energy.
+
+We are redesigning toward:
+
+• Live radar-style trend scanning
+• Terminal-inspired interface
+• Real-time narrative feed
+• “Cannon Loaded” launch animation
+• Structured war-room style confirmation flow
+
+Launching should feel like executing a strategic move — not filling out a form.
+
+⸻
+
+🚀 Vision
+
+Banana Cannon is not just a mint tool.
+
+It is a narrative infrastructure layer.
+
+The goal is to:
+
+• Encourage fast, intelligent deployment
+• Surface high-quality launches
+• Make creators visible
+• Build competitive energy around attention timing
+• Turn token launches into real-time events
+
+If attention is the asset, Banana Cannon is the weapon.
+
+We are building a system where launches don’t just happen.
+
+They compete.
