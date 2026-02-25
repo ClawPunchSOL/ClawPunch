@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useWalletState } from "@/components/WalletButton";
 import { connectWallet, refreshBalance } from "@/lib/solanaWallet";
-import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Sparkles, Flame, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Sparkles, Flame, Copy, Check, ChevronDown, ChevronUp, ImagePlus, Globe, X } from "lucide-react";
 
 interface TokenLaunch {
   id: number;
@@ -18,6 +18,9 @@ interface TokenLaunch {
   feeAmount: number;
   status: string;
   aiPromptUsed: string | null;
+  twitter: string | null;
+  telegram: string | null;
+  website: string | null;
   createdAt: string;
 }
 
@@ -37,6 +40,10 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [showHistory, setShowHistory] = useState(true);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [twitter, setTwitter] = useState("");
+  const [telegram, setTelegram] = useState("");
+  const [website, setWebsite] = useState("");
 
   useEffect(() => {
     fetch("/api/token-launches")
@@ -66,6 +73,18 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be under 5MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const totalCost = PUMP_PORTAL_FEE + parseFloat(devBuyAmount || "0");
@@ -98,6 +117,10 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
           description: description.trim(),
           devBuyAmount: devBuy,
           walletAddress: wallet.publicKey,
+          imageUrl: imagePreview || null,
+          twitter: twitter.trim() || null,
+          telegram: telegram.trim() || null,
+          website: website.trim() || null,
         }),
       });
 
@@ -115,6 +138,10 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
       setTokenSymbol("");
       setDescription("");
       setDevBuyAmount("0");
+      setImagePreview(null);
+      setTwitter("");
+      setTelegram("");
+      setWebsite("");
       setStep(1);
       refreshBalance();
     } catch (err: any) {
@@ -207,45 +234,132 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2 space-y-1">
-                <label className="text-[8px] text-white/30 font-display">TOKEN NAME</label>
-                <input
-                  value={tokenName}
-                  onChange={e => { setTokenName(e.target.value); setError(null); }}
-                  placeholder="e.g. Banana Coin"
-                  data-testid="input-token-name"
-                  className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 transition-colors"
-                />
+            <div className="flex gap-3">
+              <div className="shrink-0">
+                <label className="text-[8px] text-white/30 font-display block mb-1">IMAGE</label>
+                <div className="relative w-20 h-20 border border-white/10 bg-black/50 flex items-center justify-center cursor-pointer hover:border-pink-500/30 transition-colors overflow-hidden group">
+                  {imagePreview ? (
+                    <>
+                      <img src={imagePreview} alt="Token" className="w-full h-full object-cover" />
+                      <button
+                        onClick={(e) => { e.preventDefault(); setImagePreview(null); }}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-2.5 h-2.5 text-white/60" />
+                      </button>
+                    </>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center gap-1 p-2">
+                      <ImagePlus className="w-5 h-5 text-white/20" />
+                      <span className="text-[7px] text-white/20 font-display">UPLOAD</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        data-testid="input-token-image"
+                      />
+                    </label>
+                  )}
+                </div>
+                <span className="text-[7px] text-white/15 mt-0.5 block">Max 5MB</span>
               </div>
-              <div className="space-y-1">
-                <label className="text-[8px] text-white/30 font-display">SYMBOL</label>
-                <input
-                  value={tokenSymbol}
-                  onChange={e => { setTokenSymbol(e.target.value.toUpperCase()); setError(null); }}
-                  placeholder="$BNNA"
-                  maxLength={10}
-                  data-testid="input-token-symbol"
-                  className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 font-display transition-colors"
-                />
+
+              <div className="flex-1 space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-2 space-y-1">
+                    <label className="text-[8px] text-white/30 font-display">TOKEN NAME</label>
+                    <input
+                      value={tokenName}
+                      onChange={e => { setTokenName(e.target.value); setError(null); }}
+                      placeholder="e.g. Banana Coin"
+                      data-testid="input-token-name"
+                      className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] text-white/30 font-display">SYMBOL</label>
+                    <input
+                      value={tokenSymbol}
+                      onChange={e => { setTokenSymbol(e.target.value.toUpperCase()); setError(null); }}
+                      placeholder="$BNNA"
+                      maxLength={10}
+                      data-testid="input-token-symbol"
+                      className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 font-display transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[8px] text-white/30 font-display">DESCRIPTION</label>
+                  <textarea
+                    value={description}
+                    onChange={e => { setDescription(e.target.value); setError(null); }}
+                    placeholder="What's this token about?"
+                    rows={2}
+                    data-testid="input-token-description"
+                    className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 resize-none transition-colors"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[8px] text-white/30 font-display">DESCRIPTION</label>
-              <textarea
-                value={description}
-                onChange={e => { setDescription(e.target.value); setError(null); }}
-                placeholder="What's this token about? The AI can also generate this for you."
-                rows={3}
-                data-testid="input-token-description"
-                className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 resize-none transition-colors"
-              />
+            <div className="border-t border-white/5 pt-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Globe className="w-3 h-3 text-white/25" />
+                <span className="font-display text-[8px] text-white/30 tracking-wider">SOCIAL LINKS</span>
+                <span className="text-[7px] text-white/15">(optional)</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[7px] text-white/20 font-display flex items-center gap-1">
+                    <span>𝕏</span> TWITTER
+                  </label>
+                  <input
+                    value={twitter}
+                    onChange={e => setTwitter(e.target.value)}
+                    placeholder="https://x.com/..."
+                    data-testid="input-twitter"
+                    className="w-full bg-black/50 border border-white/10 text-white px-2 py-1.5 text-[11px] focus:outline-none focus:border-pink-500/50 placeholder:text-white/10 transition-colors"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[7px] text-white/20 font-display flex items-center gap-1">
+                    <span>✈️</span> TELEGRAM
+                  </label>
+                  <input
+                    value={telegram}
+                    onChange={e => setTelegram(e.target.value)}
+                    placeholder="https://t.me/..."
+                    data-testid="input-telegram"
+                    className="w-full bg-black/50 border border-white/10 text-white px-2 py-1.5 text-[11px] focus:outline-none focus:border-pink-500/50 placeholder:text-white/10 transition-colors"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[7px] text-white/20 font-display flex items-center gap-1">
+                    <Globe className="w-2.5 h-2.5" /> WEBSITE
+                  </label>
+                  <input
+                    value={website}
+                    onChange={e => setWebsite(e.target.value)}
+                    placeholder="https://..."
+                    data-testid="input-website"
+                    className="w-full bg-black/50 border border-white/10 text-white px-2 py-1.5 text-[11px] focus:outline-none focus:border-pink-500/50 placeholder:text-white/10 transition-colors"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
+          {error && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/5 border border-red-500/20 text-red-400 text-[10px]">
+              <AlertTriangle className="w-3 h-3 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <button
-            onClick={() => setStep(2)}
+            onClick={() => { setError(null); setStep(2); }}
             disabled={!canProceedToStep2}
             className="w-full py-2.5 font-display text-[10px] border border-pink-500/40 bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
@@ -260,7 +374,13 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
             <span className="font-display text-[9px] text-white/60 tracking-wider">LAUNCH CONFIGURATION</span>
 
             <div className="border border-pink-500/15 bg-pink-500/5 p-3 flex items-center gap-3">
-              <div className="text-xl">🍌</div>
+              {imagePreview ? (
+                <div className="w-8 h-8 border border-white/10 overflow-hidden shrink-0">
+                  <img src={imagePreview} alt="Token" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="text-xl">🍌</div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="font-display text-[11px] text-white">${tokenSymbol || '???'}</div>
                 <div className="text-[10px] text-white/50 truncate">{tokenName || 'Untitled Token'}</div>
@@ -348,16 +468,23 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
           <div className="border border-pink-500/20 bg-pink-500/5 p-4 space-y-3">
             <span className="font-display text-[9px] text-pink-400/80 tracking-widest">LAUNCH REVIEW</span>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border border-white/5 bg-black/30 p-3">
-                <div className="text-[8px] text-white/30 font-display mb-1">TOKEN</div>
-                <div className="font-display text-[11px] text-white">{tokenName}</div>
-                <div className="text-[10px] text-pink-400 font-display">${tokenSymbol}</div>
-              </div>
-              <div className="border border-white/5 bg-black/30 p-3">
-                <div className="text-[8px] text-white/30 font-display mb-1">COST</div>
-                <div className="font-display text-sm text-pink-400">{totalCost.toFixed(4)} SOL</div>
-                <div className="text-[8px] text-white/30">Fee: {PUMP_PORTAL_FEE} + Dev: {parseFloat(devBuyAmount || "0")}</div>
+            <div className="flex gap-3">
+              {imagePreview && (
+                <div className="shrink-0 w-16 h-16 border border-white/10 overflow-hidden">
+                  <img src={imagePreview} alt="Token" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="flex-1 grid grid-cols-2 gap-3">
+                <div className="border border-white/5 bg-black/30 p-3">
+                  <div className="text-[8px] text-white/30 font-display mb-1">TOKEN</div>
+                  <div className="font-display text-[11px] text-white">{tokenName}</div>
+                  <div className="text-[10px] text-pink-400 font-display">${tokenSymbol}</div>
+                </div>
+                <div className="border border-white/5 bg-black/30 p-3">
+                  <div className="text-[8px] text-white/30 font-display mb-1">COST</div>
+                  <div className="font-display text-sm text-pink-400">{totalCost.toFixed(4)} SOL</div>
+                  <div className="text-[8px] text-white/30">Fee: {PUMP_PORTAL_FEE} + Dev: {parseFloat(devBuyAmount || "0")}</div>
+                </div>
               </div>
             </div>
 
@@ -365,6 +492,29 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: s
               <div className="text-[8px] text-white/30 font-display mb-1">DESCRIPTION</div>
               <div className="text-[10px] text-white/70 leading-relaxed">{description}</div>
             </div>
+
+            {(twitter || telegram || website) && (
+              <div className="border border-white/5 bg-black/30 p-3">
+                <div className="text-[8px] text-white/30 font-display mb-1">SOCIAL LINKS</div>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {twitter && (
+                    <a href={twitter} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline flex items-center gap-1">
+                      <span>𝕏</span> {twitter.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\/?/, '')}
+                    </a>
+                  )}
+                  {telegram && (
+                    <a href={telegram} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline flex items-center gap-1">
+                      <span>✈️</span> {telegram.replace(/^https?:\/\/(www\.)?t\.me\/?/, '')}
+                    </a>
+                  )}
+                  {website && (
+                    <a href={website} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline flex items-center gap-1">
+                      <Globe className="w-2.5 h-2.5" /> {website.replace(/^https?:\/\/(www\.)?/, '')}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="border border-white/5 bg-black/30 p-3">
               <div className="text-[8px] text-white/30 font-display mb-1">DEPLOYER WALLET</div>

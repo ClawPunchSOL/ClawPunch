@@ -2143,7 +2143,7 @@ ${JSON.stringify(data, null, 2)}`,
 
   app.post("/api/token-launches", async (req, res) => {
     try {
-      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress } = req.body;
+      const { tokenName, tokenSymbol, description, devBuyAmount, walletAddress, imageUrl, twitter, telegram, website } = req.body;
       if (!tokenName || !tokenSymbol || !description) {
         return res.status(400).json({ error: "Token name, symbol, and description are required" });
       }
@@ -2151,7 +2151,10 @@ ${JSON.stringify(data, null, 2)}`,
       const devBuy = parseFloat(devBuyAmount || "0");
       const fee = 0.02;
 
-      const launchUrl = `https://pump.fun/create?name=${encodeURIComponent(tokenName)}&symbol=${encodeURIComponent(tokenSymbol)}&description=${encodeURIComponent(description)}`;
+      let launchUrl = `https://pump.fun/create?name=${encodeURIComponent(tokenName)}&symbol=${encodeURIComponent(tokenSymbol)}&description=${encodeURIComponent(description)}`;
+      if (twitter) launchUrl += `&twitter=${encodeURIComponent(twitter)}`;
+      if (telegram) launchUrl += `&telegram=${encodeURIComponent(telegram)}`;
+      if (website) launchUrl += `&website=${encodeURIComponent(website)}`;
 
       const launch = await storage.createTokenLaunch({
         tokenName,
@@ -2163,10 +2166,13 @@ ${JSON.stringify(data, null, 2)}`,
         status: "launched",
         pumpUrl: launchUrl,
         aiPromptUsed: null,
-        imageUrl: null,
+        imageUrl: imageUrl || null,
         metadataUri: null,
         mintAddress: null,
         txSignature: null,
+        twitter: twitter || null,
+        telegram: telegram || null,
+        website: website || null,
       });
 
       res.status(201).json({ ...launch, launchUrl });

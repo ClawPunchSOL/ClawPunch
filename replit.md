@@ -103,7 +103,7 @@ All agents are powered by Claude with AI-first scanning architecture. Each agent
 - `security_scans` - Contract scan results (safetyScore, mintAuth, freezeAuth, etc.)
 - `repo_scans` - Repo analysis results (legitScore, commitCount, findings, etc.)
 - `transactions` - Solana transactions (recipient, amount, token, txHash, fromWallet)
-- `token_launches` - Token launches via Banana Cannon (tokenName, tokenSymbol, description, devBuyAmount, feeAmount, status, pumpUrl, mintAddress, txSignature)
+- `token_launches` - Token launches via Banana Cannon (tokenName, tokenSymbol, description, devBuyAmount, feeAmount, status, pumpUrl, mintAddress, txSignature, imageUrl, twitter, telegram, website)
 - `attention_positions` - Narrative attention markets with live price data (narrative, shares, virality, momentum, category, coinIds, priceChange24h, volume24h, marketCap)
 - `vault_positions` - DeFi vault staking positions (vaultName, protocol, apy, tvl, stakedAmount)
 

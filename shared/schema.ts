@@ -172,6 +172,9 @@ export const tokenLaunches = pgTable("token_launches", {
   feeAmount: real("fee_amount").notNull().default(0),
   status: text("status").notNull().default("concept"),
   aiPromptUsed: text("ai_prompt_used"),
+  twitter: text("twitter"),
+  telegram: text("telegram"),
+  website: text("website"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
