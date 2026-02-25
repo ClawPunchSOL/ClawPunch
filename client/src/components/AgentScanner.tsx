@@ -73,6 +73,7 @@ const colorMap: Record<string, { accent: string; dim: string }> = {
 
 export default function AgentScanner({ agentType, accentColor = "yellow", label = "AI SCANNER", context, autoScan = true, fullHeight = false }: AgentScannerProps) {
   const [analysis, setAnalysis] = useState<string>("");
+  const [displayedAnalysis, setDisplayedAnalysis] = useState<string>("");
   const [scanning, setScanning] = useState(false);
   const [phase, setPhase] = useState(0);
   const [hasScanned, setHasScanned] = useState(false);
@@ -80,19 +81,68 @@ export default function AgentScanner({ agentType, accentColor = "yellow", label 
   const phaseInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasAutoScanned = useRef(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const analysisRef = useRef<string>("");
 
   const colors = colorMap[accentColor] || colorMap.yellow;
   const phases = SCAN_PHASES[agentType] || ["SCANNING...", "ANALYZING...", "GENERATING REPORT..."];
 
   useEffect(() => {
-    if (contentRef.current && (scanning || analysis)) {
+    analysisRef.current = analysis;
+  }, [analysis]);
+
+  useEffect(() => {
+    if (!scanning && !analysis) {
+      setDisplayedAnalysis("");
+      if (typewriterRef.current) {
+        clearInterval(typewriterRef.current);
+        typewriterRef.current = null;
+      }
+      return;
+    }
+
+    if (analysis && !typewriterRef.current) {
+      typewriterRef.current = setInterval(() => {
+        setDisplayedAnalysis(prev => {
+          const full = analysisRef.current;
+          if (prev.length >= full.length) {
+            if (!scanning) {
+              if (typewriterRef.current) {
+                clearInterval(typewriterRef.current);
+                typewriterRef.current = null;
+              }
+            }
+            return full;
+          }
+          const charsToAdd = Math.min(3, full.length - prev.length);
+          return full.slice(0, prev.length + charsToAdd);
+        });
+      }, 12);
+    }
+
+    return () => {};
+  }, [analysis, scanning]);
+
+  useEffect(() => {
+    return () => {
+      if (typewriterRef.current) clearInterval(typewriterRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (contentRef.current && (scanning || displayedAnalysis)) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
-  }, [analysis, scanning]);
+  }, [displayedAnalysis, scanning]);
 
   const runScan = useCallback(async () => {
     setScanning(true);
     setAnalysis("");
+    setDisplayedAnalysis("");
+    if (typewriterRef.current) {
+      clearInterval(typewriterRef.current);
+      typewriterRef.current = null;
+    }
     setError(null);
     setPhase(0);
     setHasScanned(true);
@@ -283,7 +333,7 @@ export default function AgentScanner({ agentType, accentColor = "yellow", label 
       )}
 
       <div ref={contentRef} className={`${fullHeight ? 'flex-1 min-h-0' : 'max-h-[500px]'} overflow-y-auto custom-scrollbar relative z-10`}>
-        {scanning && !analysis && (
+        {scanning && !displayedAnalysis && (
           <div className="px-6 py-16 md:py-20 flex flex-col items-center justify-center gap-8">
             <div className="relative w-28 h-28 md:w-32 md:h-32">
               <div className="absolute inset-0 border-4 border-foreground/10 animate-ping opacity-20" />
@@ -321,12 +371,12 @@ export default function AgentScanner({ agentType, accentColor = "yellow", label 
           </div>
         )}
 
-        {analysis && (
+        {displayedAnalysis && (
           <div className="relative">
             <div className="px-6 md:px-8 py-6 md:py-8 relative">
               <div className="text-[12px] md:text-[13px] text-gray-300/90 leading-[1.9] whitespace-pre-wrap font-sans">
-                {analysis.split('\n').map(renderLine)}
-                {scanning && (
+                {displayedAnalysis.split('\n').map(renderLine)}
+                {(scanning || displayedAnalysis.length < analysis.length) && (
                   <span className="inline-block w-3 h-5 ml-1 align-middle border border-foreground/20" style={{
                     backgroundColor: colors.accent,
                     boxShadow: `0 0 10px ${colors.accent}`,
