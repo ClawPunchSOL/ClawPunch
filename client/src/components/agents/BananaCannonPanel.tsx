@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useWalletState } from "@/components/WalletButton";
-import { connectWallet, sendSolTransfer, refreshBalance } from "@/lib/solanaWallet";
-import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Sparkles, Flame, Copy, Check } from "lucide-react";
+import { connectWallet, refreshBalance } from "@/lib/solanaWallet";
+import { Rocket, Loader2, Wallet, ExternalLink, AlertTriangle, Sparkles, Flame, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
 
 interface TokenLaunch {
   id: number;
@@ -23,7 +23,7 @@ interface TokenLaunch {
 
 const PUMP_PORTAL_FEE = 0.02;
 
-export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: string) => void }) {
+export default function BananaCannonPanel({ onSendChat }: { onSendChat?: (msg: string) => void }) {
   const wallet = useWalletState();
   const [launches, setLaunches] = useState<TokenLaunch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +35,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [showHistory, setShowHistory] = useState(true);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   useEffect(() => {
     fetch("/api/token-launches")
@@ -53,7 +55,8 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
         setTokenName(data.tokenName);
         setTokenSymbol(data.tokenSymbol);
         setDescription(data.description);
-        onSendChat(`AI generated token concept: ${data.tokenSymbol} — ${data.tokenName}`);
+        onSendChat?.(`AI generated token concept: ${data.tokenSymbol} — ${data.tokenName}`);
+        setStep(2);
       } else {
         const err = await res.json();
         setError(err.error || "Failed to generate concept");
@@ -86,7 +89,6 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
 
     try {
       const devBuy = parseFloat(devBuyAmount || "0");
-
       const res = await fetch("/api/token-launches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,17 +108,14 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
       }
 
       const launch = await res.json();
-
-      if (launch.launchUrl) {
-        window.open(launch.launchUrl, '_blank');
-      }
-
+      if (launch.launchUrl) window.open(launch.launchUrl, '_blank');
       setLaunches(prev => [launch, ...prev]);
-      onSendChat(`Token launched: ${tokenSymbol} — ${tokenName}. ${launch.mintAddress ? `Mint: ${launch.mintAddress}` : 'Finalizing deployment...'}`);
+      onSendChat?.(`Token launched: ${tokenSymbol} — ${tokenName}. ${launch.mintAddress ? `Mint: ${launch.mintAddress}` : 'Finalizing deployment...'}`);
       setTokenName("");
       setTokenSymbol("");
       setDescription("");
       setDevBuyAmount("0");
+      setStep(1);
       refreshBalance();
     } catch (err: any) {
       if (err.message?.includes("User rejected")) {
@@ -135,221 +134,359 @@ export default function BananaCannonPanel({ onSendChat }: { onSendChat: (msg: st
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const statusBadge = (status: string) => {
-    switch (status) {
-      case "launched": return "border-green-500/40 text-green-400 bg-green-500/10";
-      case "pending": return "border-yellow-500/40 text-yellow-400 bg-yellow-500/10";
-      case "failed": return "border-red-500/40 text-red-400 bg-red-500/10";
-      default: return "border-foreground/20 text-muted-foreground bg-black/40";
-    }
-  };
+  const canProceedToStep2 = tokenName.trim() && tokenSymbol.trim() && description.trim();
+  const canProceedToStep3 = canProceedToStep2 && wallet.connected;
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 gap-3">
-        <div className="text-2xl animate-bounce">🔫</div>
-        <Loader2 className="w-5 h-5 animate-spin text-pink-400" />
-        <span className="text-[10px] text-pink-400 font-display drop-shadow-[2px_2px_0px_#000] tracking-widest">LOADING CANNON...</span>
+      <div className="flex flex-col items-center justify-center py-12 gap-4">
+        <div className="relative">
+          <Rocket className="w-8 h-8 text-pink-400 animate-bounce" />
+          <div className="absolute -inset-2 border border-pink-500/20 animate-ping" />
+        </div>
+        <span className="text-[10px] text-pink-400/60 font-display tracking-widest">LOADING CANNON...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between p-2 border-4 border-pink-500/40 bg-black/60 backdrop-blur-sm shadow-[4px_4px_0px_rgba(0,0,0,0.6)]">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🔫</span>
-          <Rocket className="w-4 h-4 text-pink-400" />
-          <span className="font-display text-[11px] text-pink-400 drop-shadow-[2px_2px_0px_#000]">TOKEN LAUNCHER</span>
-          <span className="text-[8px] text-muted-foreground/60 font-mono border border-foreground/10 px-1">ClawPunch Deployer</span>
-        </div>
-        <span className="text-[10px] text-pink-400 font-display border-2 border-pink-500/30 px-1.5 bg-pink-500/10">{launches.length} LAUNCHED</span>
-      </div>
-
-      {wallet.connected && wallet.publicKey ? (
-        <div className="flex items-center gap-2 p-2 border-4 border-pink-500/30 bg-pink-500/10 shadow-[3px_3px_0px_rgba(0,0,0,0.4)]">
-          <span className="text-sm">🐒</span>
-          <Wallet className="w-3 h-3 text-pink-400" />
-          <span className="text-[9px] text-pink-400 font-display">DEPLOYER:</span>
-          <span className="text-[9px] text-white font-mono">{wallet.publicKey.slice(0, 8)}...{wallet.publicKey.slice(-4)}</span>
-          {wallet.balance !== null && (
-            <span className="text-[9px] text-yellow-400 font-display ml-auto drop-shadow-[1px_1px_0px_#000]">{wallet.balance.toFixed(4)} SOL</span>
-          )}
-          <div className="w-2 h-2 bg-pink-400 animate-pulse shadow-[0_0_6px_rgba(236,72,153,0.8)]" />
-        </div>
-      ) : (
-        <button
-          onClick={connectWallet}
-          data-testid="button-connect-cannon"
-          className="w-full flex items-center justify-center gap-2 p-2.5 border-4 border-yellow-500/30 bg-yellow-500/10 text-yellow-400 text-[10px] font-display hover:bg-yellow-500/20 transition-colors shadow-[3px_3px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
-        >
-          <Wallet className="w-3 h-3" /> CONNECT PHANTOM TO LAUNCH
-        </button>
-      )}
-
-      <div className="p-3 border-4 border-pink-500/30 bg-black/60 backdrop-blur-sm space-y-3 shadow-[4px_4px_0px_rgba(0,0,0,0.6)]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-xs">🍌</span>
-            <span className="font-display text-[9px] text-pink-400 drop-shadow-[1px_1px_0px_#000]">CREATE TOKEN</span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center border border-pink-500/30 bg-pink-500/10">
+            <Rocket className="w-4 h-4 text-pink-400" />
           </div>
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            data-testid="button-ai-generate"
-            className="flex items-center gap-1 px-2 py-1 border-4 border-yellow-500/50 bg-yellow-500/10 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/20 transition-colors disabled:opacity-50 shadow-[2px_2px_0px_rgba(0,0,0,0.4)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
-          >
-            {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} AI GENERATE
-          </button>
-        </div>
-
-        <div className="flex gap-2">
-          <input
-            value={tokenName}
-            onChange={e => { setTokenName(e.target.value); setError(null); }}
-            placeholder="Token Name"
-            data-testid="input-token-name"
-            className="flex-1 bg-black/60 border-4 border-foreground/20 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500 placeholder:text-muted-foreground/50 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]"
-          />
-          <input
-            value={tokenSymbol}
-            onChange={e => { setTokenSymbol(e.target.value.toUpperCase()); setError(null); }}
-            placeholder="SYMBOL"
-            maxLength={10}
-            data-testid="input-token-symbol"
-            className="w-24 bg-black/60 border-4 border-foreground/20 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500 placeholder:text-muted-foreground/50 font-display shadow-[2px_2px_0px_rgba(0,0,0,0.3)]"
-          />
-        </div>
-
-        <textarea
-          value={description}
-          onChange={e => { setDescription(e.target.value); setError(null); }}
-          placeholder="Token description — what's this token about?"
-          rows={2}
-          data-testid="input-token-description"
-          className="w-full bg-black/60 border-4 border-foreground/20 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500 placeholder:text-muted-foreground/50 resize-none shadow-[2px_2px_0px_rgba(0,0,0,0.3)]"
-        />
-
-        <div className="space-y-1">
-          <label className="text-[9px] font-display text-muted-foreground">DEV BUY (SOL) — optional initial buy</label>
-          <input
-            value={devBuyAmount}
-            onChange={e => { setDevBuyAmount(e.target.value); setError(null); }}
-            type="number"
-            step="0.1"
-            min="0"
-            data-testid="input-dev-buy"
-            className="w-full bg-black/60 border-4 border-foreground/20 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]"
-          />
-        </div>
-
-        <div className="flex items-center justify-between p-2 border-4 border-foreground/10 bg-black/40 shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-              <span>Deployment Fee:</span>
-              <span className="text-white font-display">{PUMP_PORTAL_FEE} SOL</span>
-            </div>
-            {parseFloat(devBuyAmount || "0") > 0 && (
-              <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-                <span>Dev Buy:</span>
-                <span className="text-white font-display">{parseFloat(devBuyAmount || "0")} SOL</span>
-              </div>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="text-[8px] text-muted-foreground">TOTAL</div>
-            <div className="text-sm font-display text-pink-400 drop-shadow-[1px_1px_0px_#000]" data-testid="text-total-cost">{totalCost.toFixed(4)} SOL</div>
+          <div>
+            <div className="font-display text-[10px] text-white tracking-wider">TOKEN LAUNCHER</div>
+            <div className="text-[8px] text-pink-400/60 font-display">DEPLOY ON SOLANA</div>
           </div>
         </div>
-
-        {error && (
-          <div className="flex items-center gap-2 px-2 py-1.5 bg-red-500/10 border-4 border-red-500/30 text-red-400 text-[10px] shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
-            <AlertTriangle className="w-3 h-3 shrink-0" />
-            <span>{error}</span>
+        {launches.length > 0 && (
+          <div className="font-display text-[9px] text-pink-400/70 border border-pink-500/20 px-2 py-1 bg-pink-500/5">
+            {launches.length} LAUNCHED
           </div>
         )}
-
-        <button
-          onClick={handleLaunch}
-          disabled={launching || !tokenName.trim() || !tokenSymbol.trim() || !description.trim() || !wallet.connected}
-          data-testid="button-launch-token"
-          className="w-full py-3 text-[11px] font-display disabled:opacity-50 flex items-center justify-center gap-2 border-4 border-pink-500/60 bg-pink-500/20 text-pink-400 hover:bg-pink-500/30 transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.6)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
-        >
-          {launching ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> LAUNCHING TOKEN...</>
-          ) : (
-            <><Flame className="w-4 h-4" /> FIRE BANANA CANNON 🍌🔫</>
-          )}
-        </button>
-
-        <div className="text-center text-[8px] text-muted-foreground/60 border-2 border-foreground/10 py-1 bg-black/30">
-          Launches via ClawPunch deployment pipeline. Token is 100% yours — no custody, no cuts.
-        </div>
       </div>
 
-      {launches.length > 0 && (
-        <div className="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
-          <div className="font-display text-[9px] text-muted-foreground flex items-center gap-1">🚀 LAUNCH HISTORY</div>
-          {launches.map(launch => (
-            <div key={launch.id} className="p-3 border-4 border-foreground/15 bg-black/60 backdrop-blur-sm shadow-[3px_3px_0px_rgba(0,0,0,0.4)] hover:border-pink-500/30 transition-colors space-y-2" data-testid={`launch-${launch.id}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Rocket className="w-3 h-3 text-pink-400 shrink-0" />
-                  <span className="text-[11px] text-white font-display drop-shadow-[1px_1px_0px_#000]" data-testid={`text-launch-symbol-${launch.id}`}>${launch.tokenSymbol}</span>
-                  <span className="text-[10px] text-muted-foreground">{launch.tokenName}</span>
-                </div>
-                <span className={`text-[9px] font-display border-2 px-1.5 py-0.5 ${statusBadge(launch.status)}`} data-testid={`text-launch-status-${launch.id}`}>
-                  {launch.status.toUpperCase()}
-                </span>
+      <div className="flex items-center gap-0">
+        {[1, 2, 3].map(s => (
+          <div key={s} className="flex items-center flex-1">
+            <div className={`flex items-center gap-1.5 px-2 py-1.5 flex-1 border transition-all ${
+              step === s
+                ? 'border-pink-500/40 bg-pink-500/10 text-pink-400'
+                : step > s
+                ? 'border-green-500/30 bg-green-500/5 text-green-400/70'
+                : 'border-white/5 bg-black/20 text-white/20'
+            }`}>
+              <div className={`w-4 h-4 flex items-center justify-center font-display text-[8px] border ${
+                step === s ? 'border-pink-400 text-pink-400' : step > s ? 'border-green-400/50 text-green-400' : 'border-white/10 text-white/20'
+              }`}>
+                {step > s ? '✓' : s}
               </div>
+              <span className="font-display text-[7px] tracking-wider hidden sm:inline">
+                {s === 1 ? 'CONCEPT' : s === 2 ? 'CONFIG' : 'LAUNCH'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
 
-              <p className="text-[9px] text-muted-foreground leading-relaxed">{launch.description.slice(0, 100)}{launch.description.length > 100 ? '...' : ''}</p>
+      {step === 1 && (
+        <div className="space-y-3">
+          <div className="border border-white/10 bg-black/30 p-4 space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-display text-[9px] text-white/60 tracking-wider">DEFINE YOUR TOKEN</span>
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                data-testid="button-ai-generate"
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-yellow-500/40 bg-yellow-500/10 text-yellow-400 text-[9px] font-display hover:bg-yellow-500/20 transition-all disabled:opacity-50"
+              >
+                {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {generating ? 'GENERATING...' : 'AI GENERATE'}
+              </button>
+            </div>
 
-              <div className="flex items-center gap-3 text-[9px]">
-                {launch.devBuyAmount > 0 && (
-                  <span className="text-muted-foreground">Dev Buy: <span className="text-white font-display">{launch.devBuyAmount} SOL</span></span>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-2 space-y-1">
+                <label className="text-[8px] text-white/30 font-display">TOKEN NAME</label>
+                <input
+                  value={tokenName}
+                  onChange={e => { setTokenName(e.target.value); setError(null); }}
+                  placeholder="e.g. Banana Coin"
+                  data-testid="input-token-name"
+                  className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 transition-colors"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] text-white/30 font-display">SYMBOL</label>
+                <input
+                  value={tokenSymbol}
+                  onChange={e => { setTokenSymbol(e.target.value.toUpperCase()); setError(null); }}
+                  placeholder="$BNNA"
+                  maxLength={10}
+                  data-testid="input-token-symbol"
+                  className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 font-display transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[8px] text-white/30 font-display">DESCRIPTION</label>
+              <textarea
+                value={description}
+                onChange={e => { setDescription(e.target.value); setError(null); }}
+                placeholder="What's this token about? The AI can also generate this for you."
+                rows={3}
+                data-testid="input-token-description"
+                className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 placeholder:text-white/15 resize-none transition-colors"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={() => setStep(2)}
+            disabled={!canProceedToStep2}
+            className="w-full py-2.5 font-display text-[10px] border border-pink-500/40 bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            NEXT: CONFIGURE LAUNCH →
+          </button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-3">
+          <div className="border border-white/10 bg-black/30 p-4 space-y-3">
+            <span className="font-display text-[9px] text-white/60 tracking-wider">LAUNCH CONFIGURATION</span>
+
+            <div className="border border-pink-500/15 bg-pink-500/5 p-3 flex items-center gap-3">
+              <div className="text-xl">🍌</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-display text-[11px] text-white">${tokenSymbol || '???'}</div>
+                <div className="text-[10px] text-white/50 truncate">{tokenName || 'Untitled Token'}</div>
+              </div>
+              <button
+                onClick={() => setStep(1)}
+                className="text-[8px] text-pink-400/60 font-display hover:text-pink-400 transition-colors border border-pink-500/20 px-2 py-0.5"
+              >
+                EDIT
+              </button>
+            </div>
+
+            {!wallet.connected ? (
+              <button
+                onClick={connectWallet}
+                data-testid="button-connect-cannon"
+                className="w-full flex items-center justify-center gap-2 p-3 border border-yellow-500/30 bg-yellow-500/5 text-yellow-400 text-[10px] font-display hover:bg-yellow-500/10 transition-colors"
+              >
+                <Wallet className="w-4 h-4" /> CONNECT PHANTOM WALLET
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 p-2.5 border border-green-500/20 bg-green-500/5">
+                <Wallet className="w-3.5 h-3.5 text-green-400" />
+                <span className="text-[9px] text-green-400 font-display">CONNECTED</span>
+                <span className="text-[9px] text-white/50 font-mono">{wallet.publicKey?.slice(0, 6)}...{wallet.publicKey?.slice(-4)}</span>
+                {wallet.balance !== null && (
+                  <span className="text-[9px] text-yellow-400 font-display ml-auto">{wallet.balance.toFixed(4)} SOL</span>
                 )}
               </div>
+            )}
 
-              {launch.mintAddress && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[8px] text-muted-foreground">MINT:</span>
-                  <span className="text-[9px] text-pink-400 font-mono">{launch.mintAddress.slice(0, 12)}...{launch.mintAddress.slice(-6)}</span>
-                  <button
-                    onClick={() => copyToClipboard(launch.mintAddress!, launch.id)}
-                    className="p-0.5 text-muted-foreground hover:text-white"
-                    data-testid={`button-copy-mint-${launch.id}`}
-                  >
-                    {copiedId === launch.id ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                  </button>
+            <div className="space-y-1">
+              <label className="text-[8px] text-white/30 font-display">DEV BUY AMOUNT (SOL)</label>
+              <div className="text-[8px] text-white/20 mb-1">Optional initial buy of your own token at launch</div>
+              <input
+                value={devBuyAmount}
+                onChange={e => { setDevBuyAmount(e.target.value); setError(null); }}
+                type="number"
+                step="0.1"
+                min="0"
+                data-testid="input-dev-buy"
+                className="w-full bg-black/50 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-pink-500/50 transition-colors"
+              />
+            </div>
+
+            <div className="border border-white/5 bg-black/30 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] text-white/40">Deployment Fee</span>
+                <span className="text-[10px] text-white font-display">{PUMP_PORTAL_FEE} SOL</span>
+              </div>
+              {parseFloat(devBuyAmount || "0") > 0 && (
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] text-white/40">Dev Buy</span>
+                  <span className="text-[10px] text-white font-display">{parseFloat(devBuyAmount || "0")} SOL</span>
                 </div>
               )}
-
-              {launch.pumpUrl && (
-                <a
-                  href={launch.pumpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[9px] text-blue-400 hover:text-blue-300"
-                  data-testid={`link-pump-${launch.id}`}
-                >
-                  View Token <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              )}
-
-              {launch.txSignature && (
-                <a
-                  href={`https://solscan.io/tx/${launch.txSignature}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[9px] text-blue-400 hover:text-blue-300"
-                  data-testid={`link-tx-${launch.id}`}
-                >
-                  {launch.txSignature.slice(0, 16)}...{launch.txSignature.slice(-8)} <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              )}
+              <div className="h-px bg-white/10 my-2" />
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-white/60 font-display">TOTAL COST</span>
+                <span className="text-sm font-display text-pink-400" data-testid="text-total-cost">{totalCost.toFixed(4)} SOL</span>
+              </div>
             </div>
-          ))}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStep(1)}
+              className="px-4 py-2.5 font-display text-[10px] border border-white/10 text-white/40 hover:text-white/60 hover:border-white/20 transition-all"
+            >
+              ← BACK
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              disabled={!canProceedToStep3}
+              className="flex-1 py-2.5 font-display text-[10px] border border-pink-500/40 bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              NEXT: REVIEW & LAUNCH →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="space-y-3">
+          <div className="border border-pink-500/20 bg-pink-500/5 p-4 space-y-3">
+            <span className="font-display text-[9px] text-pink-400/80 tracking-widest">LAUNCH REVIEW</span>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="border border-white/5 bg-black/30 p-3">
+                <div className="text-[8px] text-white/30 font-display mb-1">TOKEN</div>
+                <div className="font-display text-[11px] text-white">{tokenName}</div>
+                <div className="text-[10px] text-pink-400 font-display">${tokenSymbol}</div>
+              </div>
+              <div className="border border-white/5 bg-black/30 p-3">
+                <div className="text-[8px] text-white/30 font-display mb-1">COST</div>
+                <div className="font-display text-sm text-pink-400">{totalCost.toFixed(4)} SOL</div>
+                <div className="text-[8px] text-white/30">Fee: {PUMP_PORTAL_FEE} + Dev: {parseFloat(devBuyAmount || "0")}</div>
+              </div>
+            </div>
+
+            <div className="border border-white/5 bg-black/30 p-3">
+              <div className="text-[8px] text-white/30 font-display mb-1">DESCRIPTION</div>
+              <div className="text-[10px] text-white/70 leading-relaxed">{description}</div>
+            </div>
+
+            <div className="border border-white/5 bg-black/30 p-3">
+              <div className="text-[8px] text-white/30 font-display mb-1">DEPLOYER WALLET</div>
+              <div className="text-[10px] text-white/50 font-mono">{wallet.publicKey}</div>
+            </div>
+
+            <div className="text-[8px] text-white/20 text-center leading-relaxed">
+              Token deploys on Solana via pump.fun. 100% yours — no custody, no cuts.
+              Your wallet signs the transaction directly.
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/5 border border-red-500/20 text-red-400 text-[10px]">
+              <AlertTriangle className="w-3 h-3 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStep(2)}
+              className="px-4 py-2.5 font-display text-[10px] border border-white/10 text-white/40 hover:text-white/60 hover:border-white/20 transition-all"
+            >
+              ← BACK
+            </button>
+            <button
+              onClick={handleLaunch}
+              disabled={launching || !wallet.connected}
+              data-testid="button-launch-token"
+              className="flex-1 py-3 font-display text-[10px] disabled:opacity-30 flex items-center justify-center gap-2 border border-pink-500/50 text-pink-400 transition-all relative overflow-hidden group"
+              style={{ background: launching ? 'rgba(236,72,153,0.05)' : 'rgba(236,72,153,0.15)' }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/0 via-pink-500/10 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="relative flex items-center gap-2">
+                {launching ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> DEPLOYING TOKEN...</>
+                ) : (
+                  <><Flame className="w-4 h-4" /> FIRE BANANA CANNON</>
+                )}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {launches.length > 0 && (
+        <div className="space-y-2">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between px-3 py-2 border border-white/10 bg-black/20 hover:bg-black/30 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Rocket className="w-3 h-3 text-pink-400/60" />
+              <span className="font-display text-[9px] text-white/50 tracking-wider">LAUNCH HISTORY</span>
+              <span className="text-[8px] text-pink-400/40 font-display">{launches.length}</span>
+            </div>
+            {showHistory ? <ChevronUp className="w-3 h-3 text-white/30" /> : <ChevronDown className="w-3 h-3 text-white/30" />}
+          </button>
+
+          {showHistory && (
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto custom-scrollbar">
+              {launches.map(launch => (
+                <div
+                  key={launch.id}
+                  className="p-3 border border-white/5 bg-black/20 hover:border-pink-500/20 transition-colors space-y-2"
+                  data-testid={`launch-${launch.id}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-[10px] text-white" data-testid={`text-launch-symbol-${launch.id}`}>
+                        ${launch.tokenSymbol}
+                      </span>
+                      <span className="text-[9px] text-white/30">{launch.tokenName}</span>
+                    </div>
+                    <span className={`text-[8px] font-display px-1.5 py-0.5 border ${
+                      launch.status === 'launched' ? 'border-green-500/30 text-green-400/80 bg-green-500/5' :
+                      launch.status === 'pending' ? 'border-yellow-500/30 text-yellow-400/80 bg-yellow-500/5' :
+                      launch.status === 'failed' ? 'border-red-500/30 text-red-400/80 bg-red-500/5' :
+                      'border-white/10 text-white/30'
+                    }`} data-testid={`text-launch-status-${launch.id}`}>
+                      {launch.status.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <p className="text-[9px] text-white/30 leading-relaxed">{launch.description.slice(0, 80)}{launch.description.length > 80 ? '...' : ''}</p>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {launch.mintAddress && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[8px] text-white/20">MINT:</span>
+                        <span className="text-[8px] text-pink-400/70 font-mono">{launch.mintAddress.slice(0, 10)}...{launch.mintAddress.slice(-4)}</span>
+                        <button
+                          onClick={() => copyToClipboard(launch.mintAddress!, launch.id)}
+                          className="p-0.5 text-white/20 hover:text-white/50"
+                          data-testid={`button-copy-mint-${launch.id}`}
+                        >
+                          {copiedId === launch.id ? <Check className="w-2.5 h-2.5 text-green-400" /> : <Copy className="w-2.5 h-2.5" />}
+                        </button>
+                      </div>
+                    )}
+                    {launch.pumpUrl && (
+                      <a href={launch.pumpUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[8px] text-blue-400/70 hover:text-blue-300"
+                        data-testid={`link-pump-${launch.id}`}
+                      >
+                        View Token <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+                    {launch.txSignature && (
+                      <a href={`https://solscan.io/tx/${launch.txSignature}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[8px] text-blue-400/70 hover:text-blue-300"
+                        data-testid={`link-tx-${launch.id}`}
+                      >
+                        Solscan <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
