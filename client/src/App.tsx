@@ -8,6 +8,8 @@ import Home from "@/pages/Home";
 import MonkeyOS from "@/pages/MonkeyOS";
 import Sanctuary from "@/pages/Sanctuary";
 import Docs from "@/pages/Docs";
+import HackathonAnimation from "@/pages/HackathonAnimation";
+import PunchAnimation from "@/pages/PunchAnimation";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +20,8 @@ function Router() {
       <Route path="/os" component={MonkeyOS} />
       <Route path="/sanctuary" component={Sanctuary} />
       <Route path="/docs" component={Docs} />
+      <Route path="/hackathon" component={HackathonAnimation} />
+      <Route path="/punch" component={PunchAnimation} />
       <Route component={NotFound} />
     </Switch>
   );
