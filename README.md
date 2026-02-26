@@ -5,7 +5,6 @@
 <h1 align="center">ClawPunch</h1>
 
 <p align="center">
-  <strong>Decentralized Client-Side Financial Orchestration Layer on Solana</strong>
 </p>
 
 <p align="center">
