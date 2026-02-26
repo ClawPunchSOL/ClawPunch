@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/clawpunch-banner.svg" alt="ClawPunch Protocol" width="800"/>
-</p>
-
 <h1 align="center">ClawPunch</h1>
 
 <p align="center">
