@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Terminal, Send, LogOut, Zap, Users, CircleDollarSign, Cpu,
-  ShieldAlert, FileCode, Loader2, Wrench, Radar, X, Rocket,
+  ShieldAlert, FileCode, Loader2, Wrench, X, Rocket,
   Minus, Maximize2, Home
 } from "lucide-react";
 
@@ -21,7 +21,6 @@ import fighterMonkey from "@/assets/images/fighter-monkey.png";
 import rugBear from "@/assets/images/rug-bear.png";
 
 import WalletButton from "@/components/WalletButton";
-import AgentScanner from "@/components/AgentScanner";
 import SwarmMonkeyPanel from "@/components/agents/SwarmMonkeyPanel";
 import PunchOraclePanel from "@/components/agents/PunchOraclePanel";
 import RugBusterPanel from "@/components/agents/RugBusterPanel";
@@ -209,7 +208,7 @@ export default function MonkeyOS() {
   const [, setLocation] = useLocation();
   const [activeAgentId, setActiveAgentId] = useState<AgentId | null>(null);
   const [conversationIds, setConversationIds] = useState<Record<string, number | null>>({});
-  const [activeTab, setActiveTab] = useState<'intel' | 'tools'>('intel');
+  const [activeTab, setActiveTab] = useState<'tools'>('tools');
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [chatResponse, setChatResponse] = useState<string>('');
@@ -268,12 +267,12 @@ export default function MonkeyOS() {
     return conv.id;
   }, [conversationIds]);
 
-  const UNLOCKED_AGENTS: AgentId[] = ['swarm-monkey'];
+  const UNLOCKED_AGENTS: AgentId[] = ['swarm-monkey', 'banana-cannon', 'repo-ape'];
 
   const handleAgentSelect = (agentId: AgentId) => {
     if (!UNLOCKED_AGENTS.includes(agentId)) return;
     setActiveAgentId(agentId);
-    setActiveTab(agentId === 'banana-cannon' ? 'tools' : 'intel');
+    setActiveTab('tools');
     setChatResponse('');
     setShowChat(false);
   };
@@ -816,67 +815,15 @@ export default function MonkeyOS() {
                 </div>
 
                 <div className="flex items-center gap-1 pr-2">
-                  <div className="flex border border-white/20 overflow-hidden">
-                    <button
-                      onClick={() => setActiveTab('intel')}
-                      data-testid="tab-intel"
-                      className={`flex items-center gap-1 px-2.5 md:px-3 py-1 font-display text-[7px] md:text-[8px] transition-all ${
-                        activeTab === 'intel'
-                          ? 'text-black'
-                          : 'bg-black/40 text-white/40 hover:text-white/70'
-                      }`}
-                      style={activeTab === 'intel' ? { background: activeAgent.accentHex } : {}}
-                    >
-                      <Radar className="w-3 h-3" /> INTEL
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('tools')}
-                      data-testid="tab-tools"
-                      className={`flex items-center gap-1 px-2.5 md:px-3 py-1 font-display text-[7px] md:text-[8px] transition-all border-l border-white/20 ${
-                        activeTab === 'tools'
-                          ? 'text-black'
-                          : 'bg-black/40 text-white/40 hover:text-white/70'
-                      }`}
-                      style={activeTab === 'tools' ? { background: activeAgent.accentHex } : {}}
-                    >
-                      <Wrench className="w-3 h-3" /> TOOLS
-                    </button>
-                  </div>
                 </div>
               </div>
 
               <div className={`flex-1 flex flex-col min-h-0 relative z-10 ${activeAgentId === 'banana-cannon' ? '' : 'bg-black/70 backdrop-blur-sm'}`}>
-                <AnimatePresence mode="wait">
-                  {activeTab === 'intel' ? (
-                    <motion.div
-                      key="intel"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      className="flex-1 flex flex-col min-h-0"
-                    >
-                      <AgentScanner
-                        agentType={activeAgent.scannerType}
-                        accentColor={activeAgent.scannerColor}
-                        label={activeAgent.scannerLabel}
-                        autoScan={true}
-                        fullHeight={true}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="tools"
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      className={`flex-1 overflow-y-auto custom-scrollbar relative ${activeAgentId === 'banana-cannon' ? '' : ''}`}
-                    >
-                      <div className={`relative z-10 ${activeAgentId === 'banana-cannon' ? 'h-full' : 'p-3 md:p-5'}`}>
-                        {renderToolPanel()}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${activeAgentId === 'banana-cannon' || activeAgentId === 'repo-ape' ? 'overflow-hidden' : ''}`}>
+                  <div className={`relative z-10 ${activeAgentId === 'banana-cannon' || activeAgentId === 'repo-ape' ? 'h-full' : 'p-3 md:p-5'}`}>
+                    {renderToolPanel()}
+                  </div>
+                </div>
 
                 <AnimatePresence>
                   {showChat && chatResponse && (
@@ -911,6 +858,7 @@ export default function MonkeyOS() {
                 </AnimatePresence>
               </div>
 
+              {activeAgentId !== 'repo-ape' && (
               <div className="shrink-0 border-t border-white/10 bg-black/85 backdrop-blur-md z-20 relative">
                 <form onSubmit={handleSend} className="flex items-center gap-2 p-2 md:p-3 relative z-10">
                   <div className="flex-1 relative">
@@ -948,6 +896,7 @@ export default function MonkeyOS() {
                   </motion.button>
                 </form>
               </div>
+              )}
             </div>
 
             <div className="absolute bottom-24 right-3 z-[5] hidden lg:block pointer-events-none">
