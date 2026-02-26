@@ -4,6 +4,14 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { seedSanctuaryPixels } from "./seed";
 
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED REJECTION:", err);
+});
+process.on("SIGHUP", () => { /* ignore SIGHUP to prevent workflow kill */ });
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -84,8 +92,23 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
+    const originalExit = process.exit;
+    process.exit = ((code?: number) => {
+      const stack = new Error().stack || "";
+      if (code === 1 && stack.includes("vite")) {
+        log("Vite esbuild service crashed — recovering without exit");
+        return undefined as never;
+      }
+      return originalExit(code);
+    }) as typeof process.exit;
+
     const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
+    try {
+      await setupVite(httpServer, app);
+    } catch (e) {
+      log("Vite setup failed, retrying...");
+      setTimeout(() => setupVite(httpServer, app), 1000);
+    }
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
@@ -93,11 +116,11 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
+
   httpServer.listen(
     {
       port,
       host: "0.0.0.0",
-      reusePort: true,
     },
     () => {
       log(`serving on port ${port}`);
