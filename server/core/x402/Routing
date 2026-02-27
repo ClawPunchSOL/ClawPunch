@@ -1,0 +1,123 @@
+import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
+
+const RPC_ENDPOINTS = [
+  process.env.SOLANA_RPC_URL,
+  'https://api.mainnet-beta.solana.com',
+].filter(Boolean) as string[];
+
+const DEVNET_ENDPOINTS = [
+  'https://api.devnet.solana.com',
+];
+
+export type NetworkMode = 'mainnet-beta' | 'devnet';
+
+interface RouteConfig {
+  rpcUrl: string;
+  commitment: 'processed' | 'confirmed' | 'finalized';
+  preflight: boolean;
+  retries: number;
+  timeoutMs: number;
+}
+
+interface HealthCheck {
+  rpcUrl: string;
+  latencyMs: number;
+  slot: number;
+  healthy: boolean;
+  lastChecked: number;
+}
+
+const healthCache: Map<string, HealthCheck> = new Map();
+const HEALTH_TTL_MS = 30_000;
+
+export function getConnection(network: NetworkMode = 'mainnet-beta'): Connection {
+  const config = selectRoute(network);
+  return new Connection(config.rpcUrl, {
+    commitment: config.commitment,
+    confirmTransactionInitialTimeout: config.timeoutMs,
+  });
+}
+
+export function selectRoute(network: NetworkMode): RouteConfig {
+  const endpoints = network === 'mainnet-beta' ? RPC_ENDPOINTS : DEVNET_ENDPOINTS;
+
+  const healthyEndpoints = endpoints.filter(url => {
+    const cached = healthCache.get(url);
+    if (!cached) return true;
+    if (Date.now() - cached.lastChecked > HEALTH_TTL_MS) return true;
+    return cached.healthy;
+  });
+
+  const selected = healthyEndpoints[0] || endpoints[0];
+
+  return {
+    rpcUrl: selected,
+    commitment: 'confirmed',
+    preflight: true,
+    retries: 3,
+    timeoutMs: 30_000,
+  };
+}
+
+export async function checkEndpointHealth(rpcUrl: string): Promise<HealthCheck> {
+  const cached = healthCache.get(rpcUrl);
+  if (cached && Date.now() - cached.lastChecked < HEALTH_TTL_MS) {
+    return cached;
+  }
+
+  const start = Date.now();
+  try {
+    const conn = new Connection(rpcUrl, 'confirmed');
+    const slot = await conn.getSlot();
+    const latencyMs = Date.now() - start;
+
+    const health: HealthCheck = {
+      rpcUrl,
+      latencyMs,
+      slot,
+      healthy: latencyMs < 5000,
+      lastChecked: Date.now(),
+    };
+
+    healthCache.set(rpcUrl, health);
+    return health;
+  } catch {
+    const health: HealthCheck = {
+      rpcUrl,
+      latencyMs: Date.now() - start,
+      slot: 0,
+      healthy: false,
+      lastChecked: Date.now(),
+    };
+    healthCache.set(rpcUrl, health);
+    return health;
+  }
+}
+
+export async function healthCheckAll(network: NetworkMode = 'mainnet-beta'): Promise<HealthCheck[]> {
+  const endpoints = network === 'mainnet-beta' ? RPC_ENDPOINTS : DEVNET_ENDPOINTS;
+  return Promise.all(endpoints.map(checkEndpointHealth));
+}
+
+export async function getCurrentTps(connection: Connection): Promise<number> {
+  try {
+    const samples = await connection.getRecentPerformanceSamples(5);
+    if (samples.length === 0) return 0;
+
+    const totalTx = samples.reduce((sum, s) => sum + s.numTransactions, 0);
+    const totalSeconds = samples.reduce((sum, s) => sum + s.samplePeriodSecs, 0);
+
+    return Math.round(totalTx / totalSeconds);
+  } catch {
+    return 0;
+  }
+}
+
+export async function getCurrentSlot(connection: Connection): Promise<number> {
+  return connection.getSlot('confirmed');
+}
+
+export function isMainnet(connection: Connection): boolean {
+  const endpoint = (connection as any)._rpcEndpoint || '';
+  return endpoint.includes('mainnet') || (!endpoint.includes('devnet') && !endpoint.includes('testnet'));
+}
